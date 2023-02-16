@@ -31,6 +31,7 @@ use table::engine::{EngineContext, TableEngineRef};
 use table::metadata::TableId;
 use table::requests::OpenTableRequest;
 use table::table::numbers::NumbersTable;
+use table::table::metrics::MetricsTable;
 use table::table::TableIdProvider;
 use table::TableRef;
 
@@ -121,6 +122,9 @@ impl LocalCatalogManager {
         // Add numbers table for test
         let table = Arc::new(NumbersTable::default());
         default_schema.register_table("numbers".to_string(), table)?;
+
+        let metrics_table = Arc::new(MetricsTable::new(2));
+        default_schema.register_table("metrics".to_string(), metrics_table)?;
 
         default_catalog.register_schema(DEFAULT_SCHEMA_NAME.to_string(), default_schema)?;
         self.catalogs

@@ -26,6 +26,7 @@ serde = "1.0.136"
 snafu = { version = "0.7", features = ["backtraces"] }
 store-api = { path = "../store-api" }
 tokio.workspace = true
+prometheus-parse = "0.2.3"
 
 [dev-dependencies]
 parquet = { workspace = true, features = ["async"] }
