@@ -30,8 +30,8 @@ use snafu::{ensure, OptionExt, ResultExt};
 use table::engine::{EngineContext, TableEngineRef};
 use table::metadata::TableId;
 use table::requests::OpenTableRequest;
-use table::table::numbers::NumbersTable;
 use table::table::metrics::MetricsTable;
+use table::table::numbers::NumbersTable;
 use table::table::TableIdProvider;
 use table::TableRef;
 

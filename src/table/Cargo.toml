@@ -28,6 +28,7 @@ humantime-serde = "1.1"
 parquet-format-async-temp = "0.2"
 paste = "1.0"
 serde = "1.0.136"
+serde_json = "1.0"
 snafu = { version = "0.7", features = ["backtraces"] }
 store-api = { path = "../store-api" }
 tokio.workspace = true

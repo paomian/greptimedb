@@ -114,6 +114,15 @@ pub enum Error {
         value: String,
         backtrace: Backtrace,
     },
+    #[snafu(display("Failed to parse prometheus metrics: {}", source))]
+    ParsePrometheusMetrics {
+        source: std::io::Error,
+        backtrace: Backtrace,
+    },
+    #[snafu(display("Failed to serialize prometheus value"))]
+    SerializePrometheusValue { backtrace: Backtrace },
+    #[snafu(display("Failed to get prometheus handler"))]
+    GetPrometheusHandler { backtrace: Backtrace },
 }
 
 impl ErrorExt for Error {
@@ -134,6 +143,9 @@ impl ErrorExt for Error {
             Error::RegionSchemaMismatch { .. } => StatusCode::StorageUnavailable,
             Error::Unsupported { .. } => StatusCode::Unsupported,
             Error::ParseTableOption { .. } => StatusCode::InvalidArguments,
+            Error::ParsePrometheusMetrics { .. } => StatusCode::Internal,
+            Error::SerializePrometheusValue { .. } => StatusCode::Internal,
+            Error::GetPrometheusHandler { .. } => StatusCode::Internal,
         }
     }
 
