@@ -13,9 +13,9 @@
 // limitations under the License.
 
 pub mod adapter;
+pub mod metrics;
 pub mod numbers;
 pub mod scan;
-pub mod metrics;
 
 use std::any::Any;
 use std::sync::Arc;
