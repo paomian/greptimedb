@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["extract_array"],"mod":["aggr_over_time","idelta","increase"],"struct":["AbsentOverTime","AvgOverTime","CountOverTime","IDelta","Increase","LastOverTime","MaxOverTime","MinOverTime","PresentOverTime","SumOverTime"]};

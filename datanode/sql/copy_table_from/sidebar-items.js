@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["ACCESS_KEY_ID","ENABLE_VIRTUAL_HOST_STYLE","ENDPOINT_URL","REGION","S3_SCHEMA","SECRET_ACCESS_KEY","SESSION_TOKEN"],"enum":["Source"],"opaque":[""],"struct":["DataSource"]};
