@@ -311,6 +311,27 @@
 <a href="#311" id="311">311</a>
 <a href="#312" id="312">312</a>
 <a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
+<a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
+<a href="#328" id="328">328</a>
+<a href="#329" id="329">329</a>
+<a href="#330" id="330">330</a>
+<a href="#331" id="331">331</a>
+<a href="#332" id="332">332</a>
+<a href="#333" id="333">333</a>
+<a href="#334" id="334">334</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -337,7 +358,7 @@
 </span><span class="kw">use </span>std::sync::atomic::{AtomicU64, Ordering};
 <span class="kw">use </span>std::sync::Arc;
 
-<span class="kw">use </span>common_telemetry::info;
+<span class="kw">use </span>common_telemetry::{debug, info};
 <span class="kw">use </span>store_api::manifest::ManifestVersion;
 <span class="kw">use </span>store_api::storage::{SchemaRef, SequenceNumber};
 
@@ -540,6 +561,26 @@
         <span class="self">self</span>.flushed_sequence
     }
 
+    <span class="kw">pub fn </span>apply_checkpoint(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        flushed_sequence: <span class="prelude-ty">Option</span>&lt;SequenceNumber&gt;,
+        manifest_version: ManifestVersion,
+        files: <span class="kw">impl </span>Iterator&lt;Item = FileMeta&gt;,
+    ) {
+        <span class="self">self</span>.flushed_sequence = flushed_sequence.unwrap_or(<span class="self">self</span>.flushed_sequence);
+        <span class="self">self</span>.manifest_version = manifest_version;
+        <span class="kw">let </span>ssts = <span class="self">self</span>.ssts.merge(files, std::iter::empty());
+        <span class="macro">info!</span>(
+            <span class="string">&quot;After applying checkpoint, region: {}, id: {}, flushed_sequence: {}, manifest_version: {}&quot;</span>,
+            <span class="self">self</span>.metadata.name(),
+            <span class="self">self</span>.metadata.id(),
+            <span class="self">self</span>.flushed_sequence,
+            <span class="self">self</span>.manifest_version,
+        );
+
+        <span class="self">self</span>.ssts = Arc::new(ssts);
+    }
+
     <span class="kw">pub fn </span>apply_edit(<span class="kw-2">&amp;mut </span><span class="self">self</span>, edit: VersionEdit) {
         <span class="kw">let </span>flushed_sequence = edit.flushed_sequence.unwrap_or(<span class="self">self</span>.flushed_sequence);
         <span class="kw">if </span><span class="self">self</span>.flushed_sequence &lt; flushed_sequence {
@@ -561,8 +602,9 @@
             </span>.ssts
             .merge(handles_to_add, edit.files_to_remove.into_iter());
 
-        <span class="macro">info!</span>(
-            <span class="string">&quot;After apply edit, region: {}, SST files: {:?}&quot;</span>,
+        <span class="macro">debug!</span>(
+            <span class="string">&quot;After applying edit, region: {}, id: {}, SST files: {:?}&quot;</span>,
+            <span class="self">self</span>.metadata.name(),
             <span class="self">self</span>.metadata.id(),
             merged_ssts
         );

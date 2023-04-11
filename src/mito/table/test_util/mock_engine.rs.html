@@ -355,9 +355,9 @@
 <span class="kw">use </span>storage::metadata::{RegionMetaImpl, RegionMetadata};
 <span class="kw">use </span>storage::write_batch::WriteBatch;
 <span class="kw">use </span>store_api::storage::{
-    AlterRequest, Chunk, ChunkReader, CreateOptions, EngineContext, GetRequest, GetResponse,
-    OpenOptions, ReadContext, Region, RegionDescriptor, RegionId, ScanRequest, ScanResponse,
-    SchemaRef, Snapshot, StorageEngine, WriteContext, WriteResponse,
+    AlterRequest, Chunk, ChunkReader, CreateOptions, EngineContext, FlushContext, GetRequest,
+    GetResponse, OpenOptions, ReadContext, Region, RegionDescriptor, RegionId, ScanRequest,
+    ScanResponse, SchemaRef, Snapshot, StorageEngine, WriteContext, WriteResponse,
 };
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, MockError&gt;;
@@ -530,7 +530,7 @@
         <span class="number">0
     </span>}
 
-    <span class="kw">async fn </span>flush(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+    <span class="kw">async fn </span>flush(<span class="kw-2">&amp;</span><span class="self">self</span>, _ctx: <span class="kw-2">&amp;</span>FlushContext) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="macro">unimplemented!</span>()
     }
 }

@@ -111,6 +111,7 @@
 <a href="#111" id="111">111</a>
 <a href="#112" id="112">112</a>
 <a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -162,8 +163,9 @@
                     DdlExpr::CreateTable(<span class="kw-2">mut </span>expr) =&gt; {
                         <span class="comment">// TODO(LFC): Support creating distributed table through GRPC interface.
                         // Currently only SQL supports it; how to design the fields in CreateTableExpr?
-                        </span><span class="self">self</span>.create_table(<span class="kw-2">&amp;mut </span>expr, <span class="prelude-val">None</span>).<span class="kw">await
-                    </span>}
+                        </span><span class="kw">let _ </span>= <span class="self">self</span>.create_table(<span class="kw-2">&amp;mut </span>expr, <span class="prelude-val">None</span>).<span class="kw">await</span>;
+                        <span class="prelude-val">Ok</span>(Output::AffectedRows(<span class="number">0</span>))
+                    }
                     DdlExpr::Alter(expr) =&gt; <span class="self">self</span>.handle_alter_table(expr).<span class="kw">await</span>,
                     DdlExpr::DropTable(expr) =&gt; {
                         <span class="kw">let </span>table_name =

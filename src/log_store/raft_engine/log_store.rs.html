@@ -529,28 +529,6 @@
 <a href="#529" id="529">529</a>
 <a href="#530" id="530">530</a>
 <a href="#531" id="531">531</a>
-<a href="#532" id="532">532</a>
-<a href="#533" id="533">533</a>
-<a href="#534" id="534">534</a>
-<a href="#535" id="535">535</a>
-<a href="#536" id="536">536</a>
-<a href="#537" id="537">537</a>
-<a href="#538" id="538">538</a>
-<a href="#539" id="539">539</a>
-<a href="#540" id="540">540</a>
-<a href="#541" id="541">541</a>
-<a href="#542" id="542">542</a>
-<a href="#543" id="543">543</a>
-<a href="#544" id="544">544</a>
-<a href="#545" id="545">545</a>
-<a href="#546" id="546">546</a>
-<a href="#547" id="547">547</a>
-<a href="#548" id="548">548</a>
-<a href="#549" id="549">549</a>
-<a href="#550" id="550">550</a>
-<a href="#551" id="551">551</a>
-<a href="#552" id="552">552</a>
-<a href="#553" id="553">553</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -566,25 +544,22 @@
 // limitations under the License.
 
 </span><span class="kw">use </span>std::fmt::{Debug, Formatter};
-<span class="kw">use </span>std::sync::atomic::{AtomicBool, Ordering};
 <span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>async_stream::stream;
+<span class="kw">use </span>common_runtime::{RepeatedTask, TaskFunction};
 <span class="kw">use </span>common_telemetry::{error, info};
 <span class="kw">use </span>raft_engine::{Config, Engine, LogBatch, MessageExt, ReadableSize, RecoveryMode};
-<span class="kw">use </span>snafu::{ensure, OptionExt, ResultExt};
+<span class="kw">use </span>snafu::{ensure, ResultExt};
 <span class="kw">use </span>store_api::logstore::entry::Id;
 <span class="kw">use </span>store_api::logstore::entry_stream::SendableEntryStream;
 <span class="kw">use </span>store_api::logstore::namespace::Namespace <span class="kw">as </span>NamespaceTrait;
 <span class="kw">use </span>store_api::logstore::{AppendResponse, LogStore};
-<span class="kw">use </span>tokio::sync::Mutex;
-<span class="kw">use </span>tokio::task::JoinHandle;
-<span class="kw">use </span>tokio_util::sync::CancellationToken;
 
 <span class="kw">use </span><span class="kw">crate</span>::config::LogConfig;
 <span class="kw">use </span><span class="kw">crate</span>::error::{
     AddEntryLogBatchSnafu, Error, FetchEntrySnafu, IllegalNamespaceSnafu, IllegalStateSnafu,
-    RaftEngineSnafu, WaitGcTaskStopSnafu,
+    RaftEngineSnafu, StartGcTaskSnafu, StopGcTaskSnafu,
 };
 <span class="kw">use </span><span class="kw">crate</span>::raft_engine::protos::logstore::{EntryImpl <span class="kw">as </span>Entry, NamespaceImpl <span class="kw">as </span>Namespace};
 
@@ -594,9 +569,36 @@
 <span class="kw">pub struct </span>RaftEngineLogStore {
     config: LogConfig,
     engine: Arc&lt;Engine&gt;,
-    cancel_token: Mutex&lt;<span class="prelude-ty">Option</span>&lt;CancellationToken&gt;&gt;,
-    gc_task_handle: Mutex&lt;<span class="prelude-ty">Option</span>&lt;JoinHandle&lt;()&gt;&gt;&gt;,
-    started: AtomicBool,
+    gc_task: RepeatedTask&lt;Error&gt;,
+}
+
+<span class="kw">pub struct </span>PurgeExpiredFilesFunction {
+    engine: Arc&lt;Engine&gt;,
+}
+
+<span class="attr">#[async_trait::async_trait]
+</span><span class="kw">impl </span>TaskFunction&lt;Error&gt; <span class="kw">for </span>PurgeExpiredFilesFunction {
+    <span class="kw">fn </span>name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>str {
+        <span class="string">&quot;RaftEngineLogStore-gc-task&quot;
+    </span>}
+
+    <span class="kw">async fn </span>call(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        <span class="kw">match </span><span class="self">self</span>.engine.purge_expired_files().context(RaftEngineSnafu) {
+            <span class="prelude-val">Ok</span>(res) =&gt; {
+                <span class="comment">// TODO(hl): the retval of purge_expired_files indicates the namespaces need to be compact,
+                // which is useful when monitoring regions failed to flush it&#39;s memtable to SSTs.
+                </span><span class="macro">info!</span>(
+                    <span class="string">&quot;Successfully purged logstore files, namespaces need compaction: {:?}&quot;</span>,
+                    res
+                );
+            }
+            <span class="prelude-val">Err</span>(e) =&gt; {
+                <span class="macro">error!</span>(e; <span class="string">&quot;Failed to purge files in logstore&quot;</span>);
+            }
+        }
+
+        <span class="prelude-val">Ok</span>(())
+    }
 }
 
 <span class="kw">impl </span>RaftEngineLogStore {
@@ -611,56 +613,31 @@
             ..Default::default()
         };
         <span class="kw">let </span>engine = Arc::new(Engine::open(raft_engine_config).context(RaftEngineSnafu)<span class="question-mark">?</span>);
+        <span class="kw">let </span>gc_task = RepeatedTask::new(
+            config.purge_interval,
+            Arc::new(PurgeExpiredFilesFunction {
+                engine: engine.clone(),
+            }),
+        );
+
         <span class="kw">let </span>log_store = <span class="self">Self </span>{
             config,
             engine,
-            cancel_token: Mutex::new(<span class="prelude-val">None</span>),
-            gc_task_handle: Mutex::new(<span class="prelude-val">None</span>),
-            started: AtomicBool::new(<span class="bool-val">false</span>),
+            gc_task,
         };
         log_store.start().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(log_store)
     }
 
     <span class="kw">pub fn </span>started(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
-        <span class="self">self</span>.started.load(Ordering::Relaxed)
+        <span class="self">self</span>.gc_task.started()
     }
 
     <span class="kw">async fn </span>start(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-        <span class="kw">let </span>engine_clone = <span class="self">self</span>.engine.clone();
-        <span class="kw">let </span>interval = <span class="self">self</span>.config.purge_interval;
-        <span class="kw">let </span>token = CancellationToken::new();
-        <span class="kw">let </span>child = token.child_token();
-        <span class="comment">// TODO(hl): Maybe spawn to a blocking runtime.
-        </span><span class="kw">let </span>handle = common_runtime::spawn_bg(<span class="kw">async move </span>{
-            <span class="kw">loop </span>{
-                <span class="macro">tokio::select! </span>{
-                    <span class="kw">_ </span>= tokio::time::sleep(interval) =&gt; {}
-                    <span class="kw">_ </span>= child.cancelled() =&gt; {
-                        <span class="macro">info!</span>(<span class="string">&quot;LogStore gc task has been cancelled&quot;</span>);
-                        <span class="kw">return</span>;
-                    }
-                }
-                <span class="kw">match </span>engine_clone.purge_expired_files().context(RaftEngineSnafu) {
-                    <span class="prelude-val">Ok</span>(res) =&gt; {
-                        <span class="comment">// TODO(hl): the retval of purge_expired_files indicates the namespaces need to be compact,
-                        // which is useful when monitoring regions failed to flush it&#39;s memtable to SSTs.
-                        </span><span class="macro">info!</span>(
-                            <span class="string">&quot;Successfully purged logstore files, namespaces need compaction: {:?}&quot;</span>,
-                            res
-                        );
-                    }
-                    <span class="prelude-val">Err</span>(e) =&gt; {
-                        <span class="macro">error!</span>(e; <span class="string">&quot;Failed to purge files in logstore&quot;</span>);
-                    }
-                }
-            }
-        });
-        <span class="kw-2">*</span><span class="self">self</span>.cancel_token.lock().<span class="kw">await </span>= <span class="prelude-val">Some</span>(token);
-        <span class="kw-2">*</span><span class="self">self</span>.gc_task_handle.lock().<span class="kw">await </span>= <span class="prelude-val">Some</span>(handle);
-        <span class="self">self</span>.started.store(<span class="bool-val">true</span>, Ordering::Relaxed);
-        <span class="macro">info!</span>(<span class="string">&quot;RaftEngineLogStore started with config: {:?}&quot;</span>, <span class="self">self</span>.config);
-        <span class="prelude-val">Ok</span>(())
+        <span class="self">self</span>.gc_task
+            .start(common_runtime::bg_runtime())
+            .<span class="kw">await
+            </span>.context(StartGcTaskSnafu)
     }
 }
 
@@ -668,7 +645,7 @@
     <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; std::fmt::Result {
         f.debug_struct(<span class="string">&quot;RaftEngineLogsStore&quot;</span>)
             .field(<span class="string">&quot;config&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.config)
-            .field(<span class="string">&quot;started&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.started.load(Ordering::Relaxed))
+            .field(<span class="string">&quot;started&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.gc_task.started())
             .finish()
     }
 }
@@ -680,28 +657,7 @@
     <span class="kw">type </span>Entry = Entry;
 
     <span class="kw">async fn </span>stop(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::Error&gt; {
-        <span class="macro">ensure!</span>(
-            <span class="self">self</span>.started
-                .compare_exchange(<span class="bool-val">true</span>, <span class="bool-val">false</span>, Ordering::Relaxed, Ordering::Relaxed)
-                .is_ok(),
-            IllegalStateSnafu
-        );
-        <span class="kw">let </span>handle = <span class="self">self
-            </span>.gc_task_handle
-            .lock()
-            .<span class="kw">await
-            </span>.take()
-            .context(IllegalStateSnafu)<span class="question-mark">?</span>;
-        <span class="kw">let </span>token = <span class="self">self
-            </span>.cancel_token
-            .lock()
-            .<span class="kw">await
-            </span>.take()
-            .context(IllegalStateSnafu)<span class="question-mark">?</span>;
-        token.cancel();
-        handle.<span class="kw">await</span>.context(WaitGcTaskStopSnafu)<span class="question-mark">?</span>;
-        <span class="macro">info!</span>(<span class="string">&quot;RaftEngineLogStore stopped&quot;</span>);
-        <span class="prelude-val">Ok</span>(())
+        <span class="self">self</span>.gc_task.stop().<span class="kw">await</span>.context(StopGcTaskSnafu)
     }
 
     <span class="doccomment">/// Append an entry to logstore. Currently of existence of entry&#39;s namespace is not checked.

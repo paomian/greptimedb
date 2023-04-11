@@ -166,7 +166,7 @@
         )
         .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="kw">let </span>config_options = <span class="self">self</span>.session_state.config().config_options();
+        <span class="kw">let </span>config_options = <span class="self">self</span>.session_state.config().options();
         <span class="kw">let </span>parser_options = ParserOptions {
             enable_ident_normalization: config_options.sql_parser.enable_ident_normalization,
             parse_float_as_decimal: config_options.sql_parser.parse_float_as_decimal,

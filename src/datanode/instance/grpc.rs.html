@@ -368,6 +368,8 @@
 <a href="#368" id="368">368</a>
 <a href="#369" id="369">369</a>
 <a href="#370" id="370">370</a>
+<a href="#371" id="371">371</a>
+<a href="#372" id="372">372</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -391,7 +393,7 @@
 <span class="kw">use </span>query::parser::{PromQuery, QueryLanguageParser, QueryStatement};
 <span class="kw">use </span>query::plan::LogicalPlan;
 <span class="kw">use </span>servers::query_handler::grpc::GrpcQueryHandler;
-<span class="kw">use </span>session::context::QueryContextRef;
+<span class="kw">use </span>session::context::{QueryContext, QueryContextRef};
 <span class="kw">use </span>snafu::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>sql::statements::statement::Statement;
 <span class="kw">use </span>substrait::{DFLogicalSubstraitConvertor, SubstraitPlan};
@@ -423,7 +425,7 @@
             </span>.context(DecodeLogicalPlanSnafu)<span class="question-mark">?</span>;
 
         <span class="self">self</span>.query_engine
-            .execute(<span class="kw-2">&amp;</span>LogicalPlan::DfPlan(logical_plan))
+            .execute(LogicalPlan::DfPlan(logical_plan), QueryContext::arc())
             .<span class="kw">await
             </span>.context(ExecuteLogicalPlanSnafu)
     }
@@ -439,11 +441,11 @@
                         <span class="kw">let </span>plan = <span class="self">self
                             </span>.query_engine
                             .planner()
-                            .plan(stmt, ctx)
+                            .plan(stmt, ctx.clone())
                             .<span class="kw">await
                             </span>.context(PlanStatementSnafu)<span class="question-mark">?</span>;
                         <span class="self">self</span>.query_engine
-                            .execute(<span class="kw-2">&amp;</span>plan)
+                            .execute(plan, ctx)
                             .<span class="kw">await
                             </span>.context(ExecuteLogicalPlanSnafu)
                     }
@@ -529,6 +531,7 @@
         alter_expr, AddColumn, AddColumns, AlterExpr, Column, ColumnDataType, ColumnDef,
         CreateDatabaseExpr, CreateTableExpr, QueryRequest,
     };
+    <span class="kw">use </span>common_catalog::consts::MITO_ENGINE;
     <span class="kw">use </span>common_recordbatch::RecordBatches;
     <span class="kw">use </span>datatypes::prelude::<span class="kw-2">*</span>;
     <span class="kw">use </span>query::parser::QueryLanguageParser;
@@ -545,7 +548,7 @@
             .plan(stmt, QueryContext::arc())
             .<span class="kw">await
             </span>.unwrap();
-        engine.execute(<span class="kw-2">&amp;</span>plan).<span class="kw">await</span>.unwrap()
+        engine.execute(plan, QueryContext::arc()).<span class="kw">await</span>.unwrap()
     }
 
     <span class="attr">#[tokio::test(flavor = <span class="string">&quot;multi_thread&quot;</span>)]
@@ -583,6 +586,7 @@
                     },
                 ],
                 time_index: <span class="string">&quot;ts&quot;</span>.to_string(),
+                engine: MITO_ENGINE.to_string(),
                 ..Default::default()
             })),
         });

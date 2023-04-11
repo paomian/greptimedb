@@ -724,7 +724,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::error::{<span class="self">self</span>, <span class="prelude-ty">Result</span>};
 
 <span class="kw">const </span>TIMESTAMP_COLUMN_NAME: <span class="kw-2">&amp;</span>str = <span class="string">&quot;greptime_timestamp&quot;</span>;
-<span class="kw">const </span>VALUE_COLUMN_NAME: <span class="kw-2">&amp;</span>str = <span class="string">&quot;greptime_value&quot;</span>;
+<span class="kw">const </span>FIELD_COLUMN_NAME: <span class="kw-2">&amp;</span>str = <span class="string">&quot;greptime_value&quot;</span>;
 <span class="kw">pub const </span>METRIC_NAME_LABEL: <span class="kw-2">&amp;</span>str = <span class="string">&quot;__name__&quot;</span>;
 
 <span class="doccomment">/// Metrics for push gateway protocol
@@ -877,7 +877,7 @@
         ));
 
         <span class="kw">for </span>(i, column_schema) <span class="kw">in </span>recordbatch.schema.column_schemas().iter().enumerate() {
-            <span class="kw">if </span>column_schema.name == VALUE_COLUMN_NAME
+            <span class="kw">if </span>column_schema.name == FIELD_COLUMN_NAME
                 || column_schema.name == TIMESTAMP_COLUMN_NAME
             {
                 <span class="kw">continue</span>;
@@ -927,17 +927,17 @@
         }
     );
 
-    <span class="kw">let </span>value_column = recordbatch.column_by_name(VALUE_COLUMN_NAME).context(
+    <span class="kw">let </span>field_column = recordbatch.column_by_name(FIELD_COLUMN_NAME).context(
         error::InvalidPromRemoteReadQueryResultSnafu {
             msg: <span class="string">&quot;missing greptime_value column in query result&quot;</span>,
         },
     )<span class="question-mark">?</span>;
     <span class="macro">ensure!</span>(
-        value_column.data_type() == ConcreteDataType::float64_datatype(),
+        field_column.data_type() == ConcreteDataType::float64_datatype(),
         error::InvalidPromRemoteReadQueryResultSnafu {
             msg: <span class="macro">format!</span>(
                 <span class="string">&quot;Expect value column of datatype Float64, actual {:?}&quot;</span>,
-                value_column.data_type()
+                field_column.data_type()
             )
         }
     );
@@ -955,11 +955,11 @@
                 ..Default::default()
             });
 
-        <span class="kw">if </span>ts_column.is_null(row) || value_column.is_null(row) {
+        <span class="kw">if </span>ts_column.is_null(row) || field_column.is_null(row) {
             <span class="kw">continue</span>;
         }
 
-        <span class="kw">let </span>value: f64 = <span class="kw">match </span>value_column.get(row) {
+        <span class="kw">let </span>value: f64 = <span class="kw">match </span>field_column.get(row) {
             Value::Float64(value) =&gt; value.into(),
             <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(<span class="string">&quot;checked by the \&quot;ensure\&quot; above&quot;</span>),
         };
@@ -1000,8 +1000,8 @@
     };
     columns.push(ts_column);
 
-    <span class="kw">let </span>value_column = Column {
-        column_name: VALUE_COLUMN_NAME.to_string(),
+    <span class="kw">let </span>field_column = Column {
+        column_name: FIELD_COLUMN_NAME.to_string(),
         values: <span class="prelude-val">Some</span>(column::Values {
             f64_values: samples.iter().map(|x| x.value).collect(),
             ..Default::default()
@@ -1010,7 +1010,7 @@
         datatype: ColumnDataType::Float64 <span class="kw">as </span>i32,
         ..Default::default()
     };
-    columns.push(value_column);
+    columns.push(field_column);
 
     <span class="kw">let </span><span class="kw-2">mut </span>table_name = <span class="prelude-val">None</span>;
 
@@ -1219,7 +1219,7 @@
             <span class="macro">vec!</span>[<span class="number">1000</span>, <span class="number">2000</span>]
         );
 
-        <span class="macro">assert_eq!</span>(columns[<span class="number">1</span>].column_name, VALUE_COLUMN_NAME);
+        <span class="macro">assert_eq!</span>(columns[<span class="number">1</span>].column_name, FIELD_COLUMN_NAME);
         <span class="macro">assert_eq!</span>(
             columns[<span class="number">1</span>].values.as_ref().unwrap().f64_values,
             <span class="macro">vec!</span>[<span class="number">1.0</span>, <span class="number">2.0</span>]
@@ -1245,7 +1245,7 @@
             <span class="macro">vec!</span>[<span class="number">1000</span>, <span class="number">2000</span>]
         );
 
-        <span class="macro">assert_eq!</span>(columns[<span class="number">1</span>].column_name, VALUE_COLUMN_NAME);
+        <span class="macro">assert_eq!</span>(columns[<span class="number">1</span>].column_name, FIELD_COLUMN_NAME);
         <span class="macro">assert_eq!</span>(
             columns[<span class="number">1</span>].values.as_ref().unwrap().f64_values,
             <span class="macro">vec!</span>[<span class="number">3.0</span>, <span class="number">4.0</span>]
@@ -1276,7 +1276,7 @@
             <span class="macro">vec!</span>[<span class="number">1000</span>, <span class="number">2000</span>, <span class="number">3000</span>]
         );
 
-        <span class="macro">assert_eq!</span>(columns[<span class="number">1</span>].column_name, VALUE_COLUMN_NAME);
+        <span class="macro">assert_eq!</span>(columns[<span class="number">1</span>].column_name, FIELD_COLUMN_NAME);
         <span class="macro">assert_eq!</span>(
             columns[<span class="number">1</span>].values.as_ref().unwrap().f64_values,
             <span class="macro">vec!</span>[<span class="number">5.0</span>, <span class="number">6.0</span>, <span class="number">7.0</span>]
@@ -1303,7 +1303,7 @@
                 <span class="bool-val">true</span>,
             ),
             ColumnSchema::new(
-                VALUE_COLUMN_NAME,
+                FIELD_COLUMN_NAME,
                 ConcreteDataType::float64_datatype(),
                 <span class="bool-val">true</span>,
             ),

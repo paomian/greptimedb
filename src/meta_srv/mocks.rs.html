@@ -103,6 +103,10 @@
 <a href="#103" id="103">103</a>
 <a href="#104" id="104">104</a>
 <a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -118,6 +122,7 @@
 // limitations under the License.
 
 </span><span class="kw">use </span>std::sync::Arc;
+<span class="kw">use </span>std::time::Duration;
 
 <span class="kw">use </span>api::v1::meta::heartbeat_server::HeartbeatServer;
 <span class="kw">use </span>api::v1::meta::router_server::RouterServer;
@@ -178,7 +183,10 @@
             .<span class="kw">await
     </span>});
 
-    <span class="kw">let </span>config = ChannelConfig::new();
+    <span class="kw">let </span>config = ChannelConfig::new()
+        .timeout(Duration::from_secs(<span class="number">1</span>))
+        .connect_timeout(Duration::from_secs(<span class="number">1</span>))
+        .tcp_nodelay(<span class="bool-val">true</span>);
     <span class="kw">let </span>channel_manager = ChannelManager::with_config(config);
 
     <span class="comment">// Move client to an option so we can _move_ the inner value

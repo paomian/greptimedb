@@ -233,7 +233,6 @@
 <a href="#233" id="233">233</a>
 <a href="#234" id="234">234</a>
 <a href="#235" id="235">235</a>
-<a href="#236" id="236">236</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -254,6 +253,7 @@
 <span class="kw">use </span>store_api::storage::RegionId;
 <span class="kw">use </span>tokio::sync::Notify;
 
+<span class="kw">use </span><span class="kw">crate</span>::error::Result;
 <span class="kw">use </span><span class="kw">crate</span>::scheduler::rate_limit::{BoxedRateLimitToken, RateLimitToken};
 <span class="kw">use </span><span class="kw">crate</span>::scheduler::{Handler, LocalScheduler, Request};
 <span class="kw">use </span><span class="kw">crate</span>::sst::{AccessLayerRef, FileId};
@@ -270,6 +270,8 @@
     <span class="kw">fn </span>key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self</span>::Key {
         <span class="macro">format!</span>(<span class="string">&quot;{}/{}&quot;</span>, <span class="self">self</span>.region_id, <span class="self">self</span>.file_id)
     }
+
+    <span class="kw">fn </span>complete(<span class="self">self</span>, _result: <span class="prelude-ty">Result</span>&lt;()&gt;) {}
 }
 
 <span class="kw">pub struct </span>FilePurgeHandler;
@@ -283,7 +285,7 @@
         req: <span class="self">Self</span>::Request,
         token: BoxedRateLimitToken,
         finish_notifier: Arc&lt;Notify&gt;,
-    ) -&gt; <span class="kw">crate</span>::error::Result&lt;()&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         req.sst_layer.delete_sst(req.file_id).<span class="kw">await</span>.map_err(|e| {
             <span class="macro">error!</span>(e; <span class="string">&quot;Failed to delete SST file, file: {}, region: {}&quot;</span>, 
                 req.file_id.as_parquet(), req.region_id);
@@ -308,6 +310,7 @@
 
     <span class="kw">use </span>tokio::sync::Notify;
 
+    <span class="kw">use </span><span class="kw">crate</span>::error::Result;
     <span class="kw">use </span><span class="kw">crate</span>::file_purger::{FilePurgeRequest, FilePurgerRef};
     <span class="kw">use </span><span class="kw">crate</span>::scheduler::rate_limit::{BoxedRateLimitToken, RateLimitToken};
     <span class="kw">use </span><span class="kw">crate</span>::scheduler::{Handler, LocalScheduler, SchedulerConfig};
@@ -331,7 +334,7 @@
             _req: <span class="self">Self</span>::Request,
             token: BoxedRateLimitToken,
             finish_notifier: Arc&lt;Notify&gt;,
-        ) -&gt; <span class="kw">crate</span>::error::Result&lt;()&gt; {
+        ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
             token.try_release();
             finish_notifier.notify_one();
             <span class="prelude-val">Ok</span>(())
@@ -343,7 +346,7 @@
 </span><span class="kw">mod </span>tests {
     <span class="kw">use </span>common_test_util::temp_dir::create_temp_dir;
     <span class="kw">use </span>object_store::services::Fs;
-    <span class="kw">use </span>object_store::{ObjectStore, ObjectStoreBuilder};
+    <span class="kw">use </span>object_store::ObjectStore;
     <span class="kw">use </span>store_api::storage::OpType;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
@@ -379,9 +382,10 @@
         <span class="kw">let </span>sst_path = <span class="string">&quot;table1&quot;</span>;
         <span class="kw">let </span>layer = Arc::new(FsAccessLayer::new(sst_path, os.clone()));
         <span class="kw">let </span>sst_info = layer
-            .write_sst(sst_file_id, Source::Iter(iter), <span class="kw-2">&amp;</span>WriteOptions {})
+            .write_sst(sst_file_id, Source::Iter(iter), <span class="kw-2">&amp;</span>WriteOptions::default())
             .<span class="kw">await
-            </span>.unwrap();
+            </span>.unwrap()
+            .unwrap();
 
         (
             FileHandle::new(
@@ -403,13 +407,9 @@
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_file_purger_handler() {
         <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;file-purge&quot;</span>);
-        <span class="kw">let </span>object_store = ObjectStore::new(
-            Fs::default()
-                .root(dir.path().to_str().unwrap())
-                .build()
-                .unwrap(),
-        )
-        .finish();
+        <span class="kw">let </span><span class="kw-2">mut </span>builder = Fs::default();
+        builder.root(dir.path().to_str().unwrap());
+        <span class="kw">let </span>object_store = ObjectStore::new(builder).unwrap().finish();
 
         <span class="kw">let </span>sst_file_id = FileId::random();
 
@@ -433,22 +433,20 @@
             </span>.unwrap();
 
         notify.notified().<span class="kw">await</span>;
-
-        <span class="kw">let </span>object = object_store.object(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{}/{}&quot;</span>, path, sst_file_id.as_parquet()));
-        <span class="macro">assert!</span>(!object.is_exist().<span class="kw">await</span>.unwrap());
+        <span class="kw">let </span>exists = object_store
+            .is_exist(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{}/{}&quot;</span>, path, sst_file_id.as_parquet()))
+            .<span class="kw">await
+            </span>.unwrap();
+        <span class="macro">assert!</span>(!exists);
     }
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_file_purge_loop() {
         common_telemetry::init_default_ut_logging();
         <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;file-purge&quot;</span>);
-        <span class="kw">let </span>object_store = ObjectStore::new(
-            Fs::default()
-                .root(dir.path().to_str().unwrap())
-                .build()
-                .unwrap(),
-        )
-        .finish();
+        <span class="kw">let </span><span class="kw-2">mut </span>builder = Fs::default();
+        builder.root(dir.path().to_str().unwrap());
+        <span class="kw">let </span>object_store = ObjectStore::new(builder).unwrap().finish();
         <span class="kw">let </span>sst_file_id = FileId::random();
         <span class="kw">let </span>scheduler = Arc::new(LocalScheduler::new(
             SchedulerConfig::default(),
@@ -463,9 +461,9 @@
             drop(handle);
         }
         scheduler.stop(<span class="bool-val">true</span>).<span class="kw">await</span>.unwrap();
+
         <span class="macro">assert!</span>(!object_store
-            .object(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{}/{}&quot;</span>, path, sst_file_id.as_parquet()))
-            .is_exist()
+            .is_exist(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{}/{}&quot;</span>, path, sst_file_id.as_parquet()))
             .<span class="kw">await
             </span>.unwrap());
     }

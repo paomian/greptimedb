@@ -387,6 +387,8 @@
 <a href="#387" id="387">387</a>
 <a href="#388" id="388">388</a>
 <a href="#389" id="389">389</a>
+<a href="#390" id="390">390</a>
+<a href="#391" id="391">391</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -586,7 +588,7 @@
         };
 
         <span class="kw">match </span>sub_state {
-            ProcedureState::Running =&gt; <span class="prelude-val">Ok</span>(Status::Suspended {
+            ProcedureState::Running | ProcedureState::Retrying { .. } =&gt; <span class="prelude-val">Ok</span>(Status::Suspended {
                 subprocedures: Vec::new(),
                 persist: <span class="bool-val">false</span>,
             }),
@@ -698,6 +700,7 @@
 </span><span class="kw">mod </span>tests {
     <span class="kw">use </span>datatypes::prelude::ConcreteDataType;
     <span class="kw">use </span>datatypes::schema::{ColumnSchema, RawSchema};
+    <span class="kw">use </span>mito::engine::MITO_ENGINE;
     <span class="kw">use </span>table::engine::{EngineContext, TableEngine};
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
@@ -734,6 +737,7 @@
             create_if_not_exists: <span class="bool-val">true</span>,
             primary_key_indices: <span class="macro">vec!</span>[<span class="number">0</span>],
             table_options: Default::default(),
+            engine: MITO_ENGINE.to_string(),
         }
     }
 

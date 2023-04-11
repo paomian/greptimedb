@@ -49,7 +49,7 @@ ctx.register_csv(<span class="string">&quot;example&quot;</span>, <span class="s
 </div></details><details class="toggle method-toggle" open><summary><section id="method.table_factory" class="method"><h4 class="code-header">pub fn <a href="#method.table_factory" class="fn">table_factory</a>(
     &amp;self,
     file_type: &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="struct" href="https://doc.rust-lang.org/nightly/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;dyn TableProviderFactory + 'static&gt;&gt;</h4></section></summary><div class="docblock"><p>Return the [<code>TableFactoryProvider</code>] that is registered for the
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="struct" href="https://doc.rust-lang.org/nightly/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;dyn TableProviderFactory + 'static&gt;&gt;</h4></section></summary><div class="docblock"><p>Return the [<code>TableProviderFactory</code>] that is registered for the
 specified file type, if any.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.enable_ident_normalization" class="method"><h4 class="code-header">pub fn <a href="#method.enable_ident_normalization" class="fn">enable_ident_normalization</a>(&amp;self) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a></h4></section></summary><div class="docblock"><p>Return the <code>enable_ident_normalization</code> of this Session</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.copied_config" class="method"><h4 class="code-header">pub fn <a href="#method.copied_config" class="fn">copied_config</a>(&amp;self) -&gt; SessionConfig</h4></section></summary><div class="docblock"><p>Return a copied version of config for this Session</p>
@@ -57,7 +57,8 @@ specified file type, if any.</p>
     &amp;self,
     sql: &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>
 ) -&gt; impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/future/future/trait.Future.html" title="trait core::future::future::Future">Future</a>&lt;Output = <a class="enum" href="https://doc.rust-lang.org/nightly/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;DataFrame, DataFusionError&gt;&gt;</h4></section></summary><div class="docblock"><p>Creates a [<code>DataFrame</code>] that will execute a SQL query.</p>
-<p>Note: This API implements DDL such as <code>CREATE TABLE</code> and <code>CREATE VIEW</code> with in-memory
+<p>Note: This API implements DDL statements such as <code>CREATE TABLE</code> and
+<code>CREATE VIEW</code> and DML statements such as <code>INSERT INTO</code> with in-memory
 default implementations.</p>
 <p>If this is not desirable, consider using [<code>SessionState::create_logical_plan()</code>] which
 does not mutate the state based on such statements.</p>

@@ -79,6 +79,39 @@
 <a href="#79" id="79">79</a>
 <a href="#80" id="80">80</a>
 <a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a>
+<a href="#86" id="86">86</a>
+<a href="#87" id="87">87</a>
+<a href="#88" id="88">88</a>
+<a href="#89" id="89">89</a>
+<a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -109,7 +142,8 @@
 <span class="kw">pub const </span>MIN_VERSION: u64 = <span class="number">0</span>;
 <span class="kw">pub const </span>MAX_VERSION: u64 = u64::MAX;
 
-<span class="kw">pub trait </span>MetaAction: Serialize + DeserializeOwned + Send + Sync + Clone + std::fmt::Debug {
+<span class="doccomment">/// The action to alter metadata
+</span><span class="kw">pub trait </span>MetaAction: Serialize + DeserializeOwned + Send + Sync + Clone + std::fmt::Debug {
     <span class="kw">type </span>Error: ErrorExt + Send + Sync;
 
     <span class="doccomment">/// Set a protocol action into meta action
@@ -128,6 +162,23 @@
         reader_version: ProtocolVersion,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(<span class="self">Self</span>, <span class="prelude-ty">Option</span>&lt;ProtocolAction&gt;), <span class="self">Self</span>::Error&gt;;
 }
+<span class="doccomment">/// The checkpoint by checkpoint
+</span><span class="kw">pub trait </span>Checkpoint: Send + Sync + Clone + std::fmt::Debug {
+    <span class="kw">type </span>Error: ErrorExt + Send + Sync;
+
+    <span class="doccomment">/// Set a protocol action into checkpoint
+    </span><span class="kw">fn </span>set_protocol(<span class="kw-2">&amp;mut </span><span class="self">self</span>, action: ProtocolAction);
+
+    <span class="doccomment">/// The last compacted action&#39;s version of checkpoint
+    </span><span class="kw">fn </span>last_version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ManifestVersion;
+
+    <span class="doccomment">/// Encode this checkpoint into a byte vector
+    </span><span class="kw">fn </span>encode(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, <span class="self">Self</span>::Error&gt;;
+
+    <span class="doccomment">/// Decode self from byte slice with reader protocol version,
+    /// return error when reader version is not supported.
+    </span><span class="kw">fn </span>decode(bs: <span class="kw-2">&amp;</span>[u8], reader_version: ProtocolVersion) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Error&gt;;
+}
 
 <span class="attr">#[async_trait]
 </span><span class="kw">pub trait </span>MetaActionIterator {
@@ -145,6 +196,7 @@
     <span class="kw">type </span>Error: ErrorExt + Send + Sync;
     <span class="kw">type </span>MetaAction: MetaAction;
     <span class="kw">type </span>MetaActionIterator: MetaActionIterator&lt;Error = <span class="self">Self</span>::Error, MetaAction = <span class="self">Self</span>::MetaAction&gt;;
+    <span class="kw">type </span>Checkpoint: Checkpoint;
 
     <span class="doccomment">/// Update metadata by the action
     </span><span class="kw">async fn </span>update(<span class="kw-2">&amp;</span><span class="self">self</span>, action: <span class="self">Self</span>::MetaAction) -&gt; <span class="prelude-ty">Result</span>&lt;ManifestVersion, <span class="self">Self</span>::Error&gt;;
@@ -156,9 +208,23 @@
         end: ManifestVersion,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::MetaActionIterator, <span class="self">Self</span>::Error&gt;;
 
-    <span class="kw">async fn </span>checkpoint(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;ManifestVersion, <span class="self">Self</span>::Error&gt;;
+    <span class="doccomment">/// Do a checkpoint, it will create a checkpoint and compact actions.
+    </span><span class="kw">async fn </span>do_checkpoint(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Checkpoint&gt;, <span class="self">Self</span>::Error&gt;;
 
-    <span class="kw">fn </span>last_version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ManifestVersion;
+    <span class="doccomment">/// Returns the last success checkpoint
+    </span><span class="kw">async fn </span>last_checkpoint(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Checkpoint&gt;, <span class="self">Self</span>::Error&gt;;
+
+    <span class="doccomment">/// Returns the last(or latest) manifest version.
+    </span><span class="kw">fn </span>last_version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ManifestVersion;
+
+    <span class="doccomment">/// Start the service
+    </span><span class="kw">async fn </span>start(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::Error&gt; {
+        <span class="prelude-val">Ok</span>(())
+    }
+    <span class="doccomment">/// Stop the service
+    </span><span class="kw">async fn </span>stop(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::Error&gt; {
+        <span class="prelude-val">Ok</span>(())
+    }
 }
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="store_api" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (34e6673a0 2023-02-25)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>

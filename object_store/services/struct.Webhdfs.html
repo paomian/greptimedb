@@ -22,8 +22,6 @@ list</li>
 <li><input disabled="" type="checkbox"/>
 <del>presign</del></li>
 <li><input disabled="" type="checkbox"/>
-<del>multipart</del></li>
-<li><input disabled="" type="checkbox"/>
 blocking</li>
 </ul>
 <h2 id="differences-with-hdfs"><a href="#differences-with-hdfs">Differences with hdfs</a></h2>
@@ -40,7 +38,6 @@ blocking</li>
 
 <span class="kw">use </span>anyhow::Result;
 <span class="kw">use </span>opendal::services::Webhdfs;
-<span class="kw">use </span>opendal::Object;
 <span class="kw">use </span>opendal::Operator;
 
 <span class="attr">#[tokio::main]
@@ -60,10 +57,7 @@ blocking</li>
     <span class="comment">// set the delegation_token for builder
     </span>builder.delegation(<span class="string">&quot;delegation_token&quot;</span>);
 
-    <span class="kw">let </span>op: Operator = Operator::create(builder)<span class="question-mark">?</span>.finish();
-
-    <span class="comment">// create an object handler to start operation on object.
-    </span><span class="kw">let _</span>: Object = op.object(<span class="string">&quot;test_file&quot;</span>);
+    <span class="kw">let </span>op: Operator = Operator::new(builder)<span class="question-mark">?</span>.finish();
 
     <span class="prelude-val">Ok</span>(())
 }</code></pre></div>

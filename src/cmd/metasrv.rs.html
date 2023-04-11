@@ -186,6 +186,27 @@
 <a href="#186" id="186">186</a>
 <a href="#187" id="187">187</a>
 <a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -200,7 +221,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="kw">use </span>clap::Parser;
+</span><span class="kw">use </span>std::time::Duration;
+
+<span class="kw">use </span>clap::Parser;
 <span class="kw">use </span>common_telemetry::{info, logging, warn};
 <span class="kw">use </span>meta_srv::bootstrap::MetaSrvInstance;
 <span class="kw">use </span>meta_srv::metasrv::MetaSrvOptions;
@@ -218,13 +241,14 @@
         <span class="self">self</span>.instance
             .start()
             .<span class="kw">await
-            </span>.context(error::StartMetaServerSnafu)<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(())
+            </span>.context(error::StartMetaServerSnafu)
     }
 
     <span class="kw">pub async fn </span>stop(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="comment">// TODO: handle metasrv shutdown
-        </span><span class="prelude-val">Ok</span>(())
+        <span class="self">self</span>.instance
+            .shutdown()
+            .<span class="kw">await
+            </span>.context(error::ShutdownMetaServerSnafu)
     }
 }
 
@@ -267,6 +291,10 @@
     </span>selector: <span class="prelude-ty">Option</span>&lt;String&gt;,
     <span class="attr">#[clap(long)]
     </span>use_memory_store: bool,
+    <span class="attr">#[clap(long)]
+    </span>http_addr: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="attr">#[clap(long)]
+    </span>http_timeout: <span class="prelude-ty">Option</span>&lt;u64&gt;,
 }
 
 <span class="kw">impl </span>StartCommand {
@@ -315,6 +343,16 @@
             opts.use_memory_store = <span class="bool-val">true</span>;
         }
 
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(http_addr) = cmd.http_addr {
+            opts.http_opts.addr = http_addr;
+        }
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(http_timeout) = cmd.http_timeout {
+            opts.http_opts.timeout = Duration::from_secs(http_timeout);
+        }
+
+        <span class="comment">// Disable dashboard in metasrv.
+        </span>opts.http_opts.disable_dashboard = <span class="bool-val">true</span>;
+
         <span class="prelude-val">Ok</span>(opts)
     }
 }
@@ -337,6 +375,8 @@
             config_file: <span class="prelude-val">None</span>,
             selector: <span class="prelude-val">Some</span>(<span class="string">&quot;LoadBased&quot;</span>.to_string()),
             use_memory_store: <span class="bool-val">false</span>,
+            http_addr: <span class="prelude-val">None</span>,
+            http_timeout: <span class="prelude-val">None</span>,
         };
         <span class="kw">let </span>options: MetaSrvOptions = cmd.try_into().unwrap();
         <span class="macro">assert_eq!</span>(<span class="string">&quot;127.0.0.1:3002&quot;</span>.to_string(), options.bind_addr);
@@ -365,6 +405,8 @@
             selector: <span class="prelude-val">None</span>,
             config_file: <span class="prelude-val">Some</span>(file.path().to_str().unwrap().to_string()),
             use_memory_store: <span class="bool-val">false</span>,
+            http_addr: <span class="prelude-val">None</span>,
+            http_timeout: <span class="prelude-val">None</span>,
         };
         <span class="kw">let </span>options: MetaSrvOptions = cmd.try_into().unwrap();
         <span class="macro">assert_eq!</span>(<span class="string">&quot;127.0.0.1:3002&quot;</span>.to_string(), options.bind_addr);

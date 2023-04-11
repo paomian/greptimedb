@@ -167,13 +167,13 @@
 
 <span class="kw">use </span>common_error::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>datafusion::error::DataFusionError;
-<span class="kw">use </span>snafu::{Backtrace, ErrorCompat, Snafu};
+<span class="kw">use </span>snafu::{Location, Snafu};
 
 <span class="attr">#[derive(Debug, Snafu)]
 #[snafu(visibility(<span class="kw">pub</span>))]
 </span><span class="kw">pub enum </span>Error {
     <span class="attr">#[snafu(display(<span class="string">&quot;Unsupported expr type: {}&quot;</span>, name))]
-    </span>UnsupportedExpr { name: String, backtrace: Backtrace },
+    </span>UnsupportedExpr { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;General catalog error: {}&quot;</span>, source))]
     </span>Catalog {
@@ -182,19 +182,13 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Catalog not found: {}&quot;</span>, catalog))]
-    </span>CatalogNotFound {
-        catalog: String,
-        backtrace: Backtrace,
-    },
+    </span>CatalogNotFound { catalog: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Schema not found: {}&quot;</span>, schema))]
-    </span>SchemaNotFound {
-        schema: String,
-        backtrace: Backtrace,
-    },
+    </span>SchemaNotFound { schema: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Table not found: {}&quot;</span>, table))]
-    </span>TableNotFound { table: String, backtrace: Backtrace },
+    </span>TableNotFound { table: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to do vector computation, source: {}&quot;</span>, source))]
     </span>VectorComputation {
@@ -221,29 +215,32 @@
     </span>QueryAccessDenied { catalog: String, schema: String },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;The SQL string has multiple statements, query: {}&quot;</span>, query))]
-    </span>MultipleStatements { query: String, backtrace: Backtrace },
+    </span>MultipleStatements { query: String, location: Location },
 
-    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to convert datatype: {}&quot;</span>, source))]
-    </span>Datatype { source: datatypes::error::Error },
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to convert Datafusion schema: {}&quot;</span>, source))]
+    </span>ConvertDatafusionSchema {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: datatypes::error::Error,
+    },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to parse timestamp `{}`: {}&quot;</span>, raw, source))]
     </span>ParseTimestamp {
         raw: String,
         source: chrono::ParseError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to parse float number `{}`: {}&quot;</span>, raw, source))]
     </span>ParseFloat {
         raw: String,
         source: std::num::ParseFloatError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;DataFusion error: {}&quot;</span>, source))]
     </span>DataFusion {
         source: DataFusionError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;General SQL error: {}&quot;</span>, source))]
@@ -256,7 +253,13 @@
     </span>PlanSql {
         sql: String,
         source: DataFusionError,
-        backtrace: Backtrace,
+        location: Location,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Timestamp column for table &#39;{table_name}&#39; is missing!&quot;</span>))]
+    </span>MissingTimestampColumn {
+        table_name: String,
+        location: Location,
     },
 }
 
@@ -274,18 +277,15 @@
             | ParseFloat { .. } =&gt; StatusCode::InvalidArguments,
             QueryAccessDenied { .. } =&gt; StatusCode::AccessDenied,
             Catalog { source } =&gt; source.status_code(),
-            VectorComputation { source } =&gt; source.status_code(),
+            VectorComputation { source } | ConvertDatafusionSchema { source } =&gt; {
+                source.status_code()
+            }
             CreateRecordBatch { source } =&gt; source.status_code(),
-            Datatype { source } =&gt; source.status_code(),
             QueryExecution { source } | QueryPlan { source } =&gt; source.status_code(),
-            DataFusion { .. } =&gt; StatusCode::Internal,
+            DataFusion { .. } | MissingTimestampColumn { .. } =&gt; StatusCode::Internal,
             Sql { source } =&gt; source.status_code(),
             PlanSql { .. } =&gt; StatusCode::PlanQuery,
         }
-    }
-
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
     }
 
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {

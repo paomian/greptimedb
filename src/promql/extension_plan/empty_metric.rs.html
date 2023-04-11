@@ -366,7 +366,6 @@
 <a href="#366" id="366">366</a>
 <a href="#367" id="367">367</a>
 <a href="#368" id="368">368</a>
-<a href="#369" id="369">369</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -420,17 +419,17 @@
         end: Millisecond,
         interval: Millisecond,
         time_index_column_name: String,
-        value_column_name: String,
+        field_column_name: String,
     ) -&gt; DataFusionResult&lt;<span class="self">Self</span>&gt; {
         <span class="kw">let </span>schema = Arc::new(DFSchema::new_with_metadata(
             <span class="macro">vec!</span>[
                 DFField::new(
-                    <span class="prelude-val">None</span>,
+                    <span class="prelude-val">Some</span>(<span class="string">&quot;&quot;</span>),
                     <span class="kw-2">&amp;</span>time_index_column_name,
                     DataType::Timestamp(TimeUnit::Millisecond, <span class="prelude-val">None</span>),
                     <span class="bool-val">false</span>,
                 ),
-                DFField::new(<span class="prelude-val">None</span>, <span class="kw-2">&amp;</span>value_column_name, DataType::Float64, <span class="bool-val">true</span>),
+                DFField::new(<span class="prelude-val">Some</span>(<span class="string">&quot;&quot;</span>), <span class="kw-2">&amp;</span>field_column_name, DataType::Float64, <span class="bool-val">true</span>),
             ],
             HashMap::new(),
         )<span class="question-mark">?</span>);
@@ -444,8 +443,7 @@
     }
 
     <span class="kw">pub fn </span>to_execution_plan(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Arc&lt;<span class="kw">dyn </span>ExecutionPlan&gt; {
-        <span class="comment">// let schema =  self.schema.to
-        </span>Arc::new(EmptyMetricExec {
+        Arc::new(EmptyMetricExec {
             start: <span class="self">self</span>.start,
             end: <span class="self">self</span>.end,
             interval: <span class="self">self</span>.interval,
@@ -623,11 +621,11 @@
         end: Millisecond,
         interval: Millisecond,
         time_column_name: String,
-        value_column_name: String,
+        field_column_name: String,
         expected: String,
     ) {
         <span class="kw">let </span>empty_metric =
-            EmptyMetric::new(start, end, interval, time_column_name, value_column_name).unwrap();
+            EmptyMetric::new(start, end, interval, time_column_name, field_column_name).unwrap();
         <span class="kw">let </span>empty_metric_exec = empty_metric.to_execution_plan();
 
         <span class="kw">let </span>session_context = SessionContext::default();

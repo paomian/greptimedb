@@ -96,13 +96,13 @@
         new_batch_with_num_values(<span class="number">1</span>)
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new_batch_with_num_values(num_value_columns: usize) -&gt; Batch {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new_batch_with_num_values(num_field_columns: usize) -&gt; Batch {
         <span class="kw">let </span>k0 = Int64Vector::from_slice([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]);
         <span class="kw">let </span>timestamp = TimestampMillisecondVector::from_vec(<span class="macro">vec!</span>[<span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>]);
 
         <span class="kw">let </span><span class="kw-2">mut </span>columns: Vec&lt;VectorRef&gt; = <span class="macro">vec!</span>[Arc::new(k0), Arc::new(timestamp)];
 
-        <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..num_value_columns {
+        <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..num_field_columns {
             <span class="kw">let </span>vi = Int64Vector::from_slice([i <span class="kw">as </span>i64, i <span class="kw">as </span>i64, i <span class="kw">as </span>i64]);
             columns.push(Arc::new(vi));
         }

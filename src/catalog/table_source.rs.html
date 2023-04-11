@@ -176,6 +176,18 @@
 <a href="#176" id="176">176</a>
 <a href="#177" id="177">177</a>
 <a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -193,8 +205,9 @@
 </span><span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::sync::Arc;
 
+<span class="kw">use </span>common_catalog::consts::INFORMATION_SCHEMA_NAME;
 <span class="kw">use </span>common_catalog::format_full_table_name;
-<span class="kw">use </span>datafusion::common::{OwnedTableReference, ResolvedTableReference, TableReference};
+<span class="kw">use </span>datafusion::common::{ResolvedTableReference, TableReference};
 <span class="kw">use </span>datafusion::datasource::provider_as_source;
 <span class="kw">use </span>datafusion::logical_expr::TableSource;
 <span class="kw">use </span>session::context::QueryContext;
@@ -204,6 +217,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::error::{
     CatalogNotFoundSnafu, QueryAccessDeniedSnafu, <span class="prelude-ty">Result</span>, SchemaNotFoundSnafu, TableNotExistSnafu,
 };
+<span class="kw">use </span><span class="kw">crate</span>::information_schema::InformationSchemaProvider;
 <span class="kw">use </span><span class="kw">crate</span>::CatalogListRef;
 
 <span class="kw">pub struct </span>DfTableSourceProvider {
@@ -265,9 +279,8 @@
 
     <span class="kw">pub async fn </span>resolve_table(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        table_ref: OwnedTableReference,
+        table_ref: TableReference&lt;<span class="lifetime">&#39;_</span>&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;<span class="kw">dyn </span>TableSource&gt;&gt; {
-        <span class="kw">let </span>table_ref = table_ref.as_table_reference();
         <span class="kw">let </span>table_ref = <span class="self">self</span>.resolve_table_ref(table_ref)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>resolved_name = table_ref.to_string();
@@ -279,14 +292,25 @@
         <span class="kw">let </span>schema_name = table_ref.schema.as_ref();
         <span class="kw">let </span>table_name = table_ref.table.as_ref();
 
-        <span class="kw">let </span>catalog = <span class="self">self
-            </span>.catalog_list
-            .catalog(catalog_name)<span class="question-mark">?
-            </span>.context(CatalogNotFoundSnafu { catalog_name })<span class="question-mark">?</span>;
-        <span class="kw">let </span>schema = catalog.schema(schema_name)<span class="question-mark">?</span>.context(SchemaNotFoundSnafu {
-            catalog: catalog_name,
-            schema: schema_name,
-        })<span class="question-mark">?</span>;
+        <span class="kw">let </span>schema = <span class="kw">if </span>schema_name != INFORMATION_SCHEMA_NAME {
+            <span class="kw">let </span>catalog = <span class="self">self
+                </span>.catalog_list
+                .catalog(catalog_name)<span class="question-mark">?
+                </span>.context(CatalogNotFoundSnafu { catalog_name })<span class="question-mark">?</span>;
+            catalog.schema(schema_name)<span class="question-mark">?</span>.context(SchemaNotFoundSnafu {
+                catalog: catalog_name,
+                schema: schema_name,
+            })<span class="question-mark">?
+        </span>} <span class="kw">else </span>{
+            <span class="kw">let </span>catalog_provider = <span class="self">self
+                </span>.catalog_list
+                .catalog(catalog_name)<span class="question-mark">?
+                </span>.context(CatalogNotFoundSnafu { catalog_name })<span class="question-mark">?</span>;
+            Arc::new(InformationSchemaProvider::new(
+                catalog_name.to_string(),
+                catalog_provider,
+            ))
+        };
         <span class="kw">let </span>table = schema
             .table(table_name)
             .<span class="kw">await</span><span class="question-mark">?

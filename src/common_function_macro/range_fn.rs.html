@@ -228,6 +228,11 @@
 <a href="#228" id="228">228</a>
 <a href="#229" id="229">229</a>
 <a href="#230" id="230">230</a>
+<a href="#231" id="231">231</a>
+<a href="#232" id="232">232</a>
+<a href="#233" id="233">233</a>
+<a href="#234" id="234">234</a>
+<a href="#235" id="235">235</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -266,6 +271,8 @@
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>process_range_fn(args: TokenStream, input: TokenStream) -&gt; TokenStream {
+    <span class="kw">let </span><span class="kw-2">mut </span>result = TokenStream::new();
+
     <span class="comment">// extract arg map
     </span><span class="kw">let </span>arg_pairs = <span class="macro">parse_macro_input!</span>(args <span class="kw">as </span>AttributeArgs);
     <span class="kw">let </span>arg_span = arg_pairs[<span class="number">0</span>].span();
@@ -289,12 +296,17 @@
     <span class="kw">let </span>arg_types = <span class="macro">ok!</span>(extract_input_types(inputs));
 
     <span class="comment">// build the struct and its impl block
-    </span><span class="kw">let </span>struct_code = build_struct(
-        attrs,
-        vis,
-        <span class="macro">ok!</span>(get_ident(<span class="kw-2">&amp;</span>arg_map, <span class="string">&quot;name&quot;</span>, arg_span)),
-        <span class="macro">ok!</span>(get_ident(<span class="kw-2">&amp;</span>arg_map, <span class="string">&quot;display_name&quot;</span>, arg_span)),
-    );
+    // only do this when `display_name` is specified
+    </span><span class="kw">if let </span><span class="prelude-val">Ok</span>(display_name) = get_ident(<span class="kw-2">&amp;</span>arg_map, <span class="string">&quot;display_name&quot;</span>, arg_span) {
+        <span class="kw">let </span>struct_code = build_struct(
+            attrs,
+            vis,
+            <span class="macro">ok!</span>(get_ident(<span class="kw-2">&amp;</span>arg_map, <span class="string">&quot;name&quot;</span>, arg_span)),
+            display_name,
+        );
+        result.extend(struct_code);
+    }
+
     <span class="kw">let </span>calc_fn_code = build_calc_fn(
         <span class="macro">ok!</span>(get_ident(<span class="kw-2">&amp;</span>arg_map, <span class="string">&quot;name&quot;</span>, arg_span)),
         arg_types,
@@ -307,8 +319,6 @@
     }
     .into();
 
-    <span class="kw">let </span><span class="kw-2">mut </span>result = TokenStream::new();
-    result.extend(struct_code);
     result.extend(calc_fn_code);
     result.extend(input_fn_code);
     result

@@ -155,13 +155,13 @@
 <span class="kw">use </span>axum::extract::{Json, Query, State};
 <span class="kw">use </span>axum::{Extension, Form};
 <span class="kw">use </span>common_error::status_code::StatusCode;
-<span class="kw">use </span>common_telemetry::metric;
 <span class="kw">use </span>query::parser::PromQuery;
 <span class="kw">use </span>schemars::JsonSchema;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>session::context::UserInfo;
 
 <span class="kw">use </span><span class="kw">crate</span>::http::{ApiState, JsonResponse};
+<span class="kw">use </span><span class="kw">crate</span>::metrics_handler::MetricsHandler;
 
 <span class="attr">#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
 </span><span class="kw">pub struct </span>SqlQuery {
@@ -179,6 +179,7 @@
     Form(form_params): Form&lt;SqlQuery&gt;,
 ) -&gt; Json&lt;JsonResponse&gt; {
     <span class="kw">let </span>sql_handler = <span class="kw-2">&amp;</span>state.sql_handler;
+
     <span class="kw">let </span>start = Instant::now();
     <span class="kw">let </span>sql = query_params.sql.or(form_params.sql);
     <span class="kw">let </span>db = query_params.db.or(form_params.db);
@@ -249,12 +250,11 @@
 
 <span class="doccomment">/// Handler to export metrics
 </span><span class="attr">#[axum_macros::debug_handler]
-</span><span class="kw">pub async fn </span>metrics(Query(_params): Query&lt;HashMap&lt;String, String&gt;&gt;) -&gt; String {
-    <span class="kw">if let </span><span class="prelude-val">Some</span>(handle) = metric::try_handle() {
-        handle.render()
-    } <span class="kw">else </span>{
-        <span class="string">&quot;Prometheus handle not initialized.&quot;</span>.to_owned()
-    }
+</span><span class="kw">pub async fn </span>metrics(
+    State(state): State&lt;MetricsHandler&gt;,
+    Query(_params): Query&lt;HashMap&lt;String, String&gt;&gt;,
+) -&gt; String {
+    state.render()
 }
 
 <span class="attr">#[derive(Debug, Serialize, Deserialize, JsonSchema)]

@@ -375,6 +375,21 @@
 <a href="#375" id="375">375</a>
 <a href="#376" id="376">376</a>
 <a href="#377" id="377">377</a>
+<a href="#378" id="378">378</a>
+<a href="#379" id="379">379</a>
+<a href="#380" id="380">380</a>
+<a href="#381" id="381">381</a>
+<a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
+<a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
+<a href="#390" id="390">390</a>
+<a href="#391" id="391">391</a>
+<a href="#392" id="392">392</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -419,11 +434,12 @@
 /// Roughly speaking, this method does these things:
 /// - bias sample&#39;s timestamp by offset
 /// - sort the record batch based on timestamp column
-/// - remove NaN values
+/// - remove NaN values (optional)
 </span><span class="attr">#[derive(Debug, PartialEq, Eq, Hash)]
 </span><span class="kw">pub struct </span>SeriesNormalize {
     offset: Millisecond,
     time_index_column_name: String,
+    need_filter_out_nan: bool,
 
     input: LogicalPlan,
 }
@@ -448,8 +464,8 @@
     <span class="kw">fn </span>fmt_for_explain(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter) -&gt; std::fmt::Result {
         <span class="macro">write!</span>(
             f,
-            <span class="string">&quot;PromSeriesNormalize: offset=[{}], time index=[{}]&quot;</span>,
-            <span class="self">self</span>.offset, <span class="self">self</span>.time_index_column_name
+            <span class="string">&quot;PromSeriesNormalize: offset=[{}], time index=[{}], filter NaN: [{}]&quot;</span>,
+            <span class="self">self</span>.offset, <span class="self">self</span>.time_index_column_name, <span class="self">self</span>.need_filter_out_nan
         )
     }
 
@@ -459,6 +475,7 @@
         <span class="self">Self </span>{
             offset: <span class="self">self</span>.offset,
             time_index_column_name: <span class="self">self</span>.time_index_column_name.clone(),
+            need_filter_out_nan: <span class="self">self</span>.need_filter_out_nan,
             input: inputs[<span class="number">0</span>].clone(),
         }
     }
@@ -468,11 +485,13 @@
     <span class="kw">pub fn </span>new&lt;N: AsRef&lt;str&gt;&gt;(
         offset: Millisecond,
         time_index_column_name: N,
+        need_filter_out_nan: bool,
         input: LogicalPlan,
     ) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             offset,
             time_index_column_name: time_index_column_name.as_ref().to_string(),
+            need_filter_out_nan,
             input,
         }
     }
@@ -481,6 +500,7 @@
         Arc::new(SeriesNormalizeExec {
             offset: <span class="self">self</span>.offset,
             time_index_column_name: <span class="self">self</span>.time_index_column_name.clone(),
+            need_filter_out_nan: <span class="self">self</span>.need_filter_out_nan,
             input: exec_input,
             metric: ExecutionPlanMetricsSet::new(),
         })
@@ -491,6 +511,7 @@
 </span><span class="kw">pub struct </span>SeriesNormalizeExec {
     offset: Millisecond,
     time_index_column_name: String,
+    need_filter_out_nan: bool,
 
     input: Arc&lt;<span class="kw">dyn </span>ExecutionPlan&gt;,
     metric: ExecutionPlanMetricsSet,
@@ -525,6 +546,7 @@
         <span class="prelude-val">Ok</span>(Arc::new(<span class="self">Self </span>{
             offset: <span class="self">self</span>.offset,
             time_index_column_name: <span class="self">self</span>.time_index_column_name.clone(),
+            need_filter_out_nan: <span class="self">self</span>.need_filter_out_nan,
             input: children[<span class="number">0</span>].clone(),
             metric: <span class="self">self</span>.metric.clone(),
         }))
@@ -546,6 +568,7 @@
         <span class="prelude-val">Ok</span>(Box::pin(SeriesNormalizeStream {
             offset: <span class="self">self</span>.offset,
             time_index,
+            need_filter_out_nan: <span class="self">self</span>.need_filter_out_nan,
             schema,
             input,
             metric: baseline_metric,
@@ -557,8 +580,8 @@
             DisplayFormatType::Default =&gt; {
                 <span class="macro">write!</span>(
                     f,
-                    <span class="string">&quot;PromSeriesNormalizeExec: offset=[{}], time index=[{}]&quot;</span>,
-                    <span class="self">self</span>.offset, <span class="self">self</span>.time_index_column_name
+                    <span class="string">&quot;PromSeriesNormalizeExec: offset=[{}], time index=[{}], filter NaN: [{}]&quot;</span>,
+                    <span class="self">self</span>.offset, <span class="self">self</span>.time_index_column_name, <span class="self">self</span>.need_filter_out_nan
                 )
             }
         }
@@ -577,6 +600,7 @@
     offset: Millisecond,
     <span class="comment">// Column index of TIME INDEX column&#39;s position in schema
     </span>time_index: usize,
+    need_filter_out_nan: bool,
 
     schema: SchemaRef,
     input: SendableRecordBatchStream,
@@ -597,7 +621,7 @@
             ts_column.clone()
         } <span class="kw">else </span>{
             TimestampMillisecondArray::from_iter(
-                ts_column.iter().map(|ts| ts.map(|ts| ts - <span class="self">self</span>.offset)),
+                ts_column.iter().map(|ts| ts.map(|ts| ts + <span class="self">self</span>.offset)),
             )
         };
         <span class="kw">let </span><span class="kw-2">mut </span>columns = input.columns().to_vec();
@@ -610,6 +634,10 @@
             .map(|array| compute::take(array, <span class="kw-2">&amp;</span>ordered_indices, <span class="prelude-val">None</span>))
             .collect::&lt;ArrowResult&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;&gt;()<span class="question-mark">?</span>;
         <span class="kw">let </span>ordered_batch = RecordBatch::try_new(input.schema(), ordered_columns)<span class="question-mark">?</span>;
+
+        <span class="kw">if </span>!<span class="self">self</span>.need_filter_out_nan {
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(ordered_batch);
+        }
 
         <span class="comment">// TODO(ruihang): consider the &quot;special NaN&quot;
         // filter out NaN
@@ -676,12 +704,12 @@
         <span class="kw">let </span>timestamp_column = Arc::new(TimestampMillisecondArray::from_slice([
             <span class="number">60_000</span>, <span class="number">120_000</span>, <span class="number">0</span>, <span class="number">30_000</span>, <span class="number">90_000</span>,
         ])) <span class="kw">as _</span>;
-        <span class="kw">let </span>value_column = Arc::new(Float64Array::from_slice([<span class="number">0.0</span>, <span class="number">1.0</span>, <span class="number">10.0</span>, <span class="number">100.0</span>, <span class="number">1000.0</span>])) <span class="kw">as _</span>;
+        <span class="kw">let </span>field_column = Arc::new(Float64Array::from_slice([<span class="number">0.0</span>, <span class="number">1.0</span>, <span class="number">10.0</span>, <span class="number">100.0</span>, <span class="number">1000.0</span>])) <span class="kw">as _</span>;
         <span class="kw">let </span>path_column =
             Arc::new(StringArray::from_slice([<span class="string">&quot;foo&quot;</span>, <span class="string">&quot;foo&quot;</span>, <span class="string">&quot;foo&quot;</span>, <span class="string">&quot;foo&quot;</span>, <span class="string">&quot;foo&quot;</span>])) <span class="kw">as _</span>;
         <span class="kw">let </span>data = RecordBatch::try_new(
             schema.clone(),
-            <span class="macro">vec!</span>[timestamp_column, value_column, path_column],
+            <span class="macro">vec!</span>[timestamp_column, field_column, path_column],
         )
         .unwrap();
 
@@ -694,6 +722,7 @@
         <span class="kw">let </span>normalize_exec = Arc::new(SeriesNormalizeExec {
             offset: <span class="number">0</span>,
             time_index_column_name: TIME_INDEX_COLUMN.to_string(),
+            need_filter_out_nan: <span class="bool-val">true</span>,
             input: memory_exec,
             metric: ExecutionPlanMetricsSet::new(),
         });
@@ -726,6 +755,7 @@
         <span class="kw">let </span>normalize_exec = Arc::new(SeriesNormalizeExec {
             offset: <span class="number">1_000</span>, <span class="comment">// offset 1s
             </span>time_index_column_name: TIME_INDEX_COLUMN.to_string(),
+            need_filter_out_nan: <span class="bool-val">true</span>,
             input: memory_exec,
             metric: ExecutionPlanMetricsSet::new(),
         });
@@ -741,11 +771,11 @@
             <span class="string">&quot;+---------------------+--------+------+\
             \n| timestamp           | value  | path |\
             \n+---------------------+--------+------+\
-            \n| 1969-12-31T23:59:59 | 10.0   | foo  |\
-            \n| 1970-01-01T00:00:29 | 100.0  | foo  |\
-            \n| 1970-01-01T00:00:59 | 0.0    | foo  |\
-            \n| 1970-01-01T00:01:29 | 1000.0 | foo  |\
-            \n| 1970-01-01T00:01:59 | 1.0    | foo  |\
+            \n| 1970-01-01T00:00:01 | 10.0   | foo  |\
+            \n| 1970-01-01T00:00:31 | 100.0  | foo  |\
+            \n| 1970-01-01T00:01:01 | 0.0    | foo  |\
+            \n| 1970-01-01T00:01:31 | 1000.0 | foo  |\
+            \n| 1970-01-01T00:02:01 | 1.0    | foo  |\
             \n+---------------------+--------+------+&quot;</span>,
         );
 

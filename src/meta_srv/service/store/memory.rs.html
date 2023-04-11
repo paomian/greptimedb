@@ -571,6 +571,30 @@
 <a href="#571" id="571">571</a>
 <a href="#572" id="572">572</a>
 <a href="#573" id="573">573</a>
+<a href="#574" id="574">574</a>
+<a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
+<a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
+<a href="#583" id="583">583</a>
+<a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
+<a href="#590" id="590">590</a>
+<a href="#591" id="591">591</a>
+<a href="#592" id="592">592</a>
+<a href="#593" id="593">593</a>
+<a href="#594" id="594">594</a>
+<a href="#595" id="595">595</a>
+<a href="#596" id="596">596</a>
+<a href="#597" id="597">597</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -590,9 +614,10 @@
 <span class="kw">use </span>std::ops::Range;
 
 <span class="kw">use </span>api::v1::meta::{
-    BatchGetRequest, BatchGetResponse, BatchPutRequest, BatchPutResponse, CompareAndPutRequest,
-    CompareAndPutResponse, DeleteRangeRequest, DeleteRangeResponse, KeyValue, MoveValueRequest,
-    MoveValueResponse, PutRequest, PutResponse, RangeRequest, RangeResponse, ResponseHeader,
+    BatchDeleteRequest, BatchDeleteResponse, BatchGetRequest, BatchGetResponse, BatchPutRequest,
+    BatchPutResponse, CompareAndPutRequest, CompareAndPutResponse, DeleteRangeRequest,
+    DeleteRangeResponse, KeyValue, MoveValueRequest, MoveValueResponse, PutRequest, PutResponse,
+    RangeRequest, RangeResponse, ResponseHeader,
 };
 <span class="kw">use </span>parking_lot::RwLock;
 
@@ -734,6 +759,29 @@
         <span class="kw">let </span>cluster_id = header.map_or(<span class="number">0</span>, |h| h.cluster_id);
         <span class="kw">let </span>header = <span class="prelude-val">Some</span>(ResponseHeader::success(cluster_id));
         <span class="prelude-val">Ok</span>(BatchPutResponse { header, prev_kvs })
+    }
+
+    <span class="kw">async fn </span>batch_delete(<span class="kw-2">&amp;</span><span class="self">self</span>, req: BatchDeleteRequest) -&gt; <span class="prelude-ty">Result</span>&lt;BatchDeleteResponse&gt; {
+        <span class="kw">let </span>BatchDeleteRequest {
+            header,
+            keys,
+            prev_kv,
+        } = req;
+
+        <span class="kw">let </span><span class="kw-2">mut </span>memory = <span class="self">self</span>.inner.write();
+        <span class="kw">let </span>prev_kvs = <span class="kw">if </span>prev_kv {
+            keys.into_iter()
+                .filter_map(|key| memory.remove(<span class="kw-2">&amp;</span>key).map(|value| KeyValue { key, value }))
+                .collect()
+        } <span class="kw">else </span>{
+            <span class="kw">for </span>key <span class="kw">in </span>keys.into_iter() {
+                memory.remove(<span class="kw-2">&amp;</span>key);
+            }
+            <span class="macro">vec!</span>[]
+        };
+        <span class="kw">let </span>cluster_id = header.map_or(<span class="number">0</span>, |h| h.cluster_id);
+        <span class="kw">let </span>header = <span class="prelude-val">Some</span>(ResponseHeader::success(cluster_id));
+        <span class="prelude-val">Ok</span>(BatchDeleteResponse { header, prev_kvs })
     }
 
     <span class="kw">async fn </span>compare_and_put(<span class="kw-2">&amp;</span><span class="self">self</span>, req: CompareAndPutRequest) -&gt; <span class="prelude-ty">Result</span>&lt;CompareAndPutResponse&gt; {

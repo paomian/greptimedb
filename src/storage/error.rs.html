@@ -536,36 +536,6 @@
 <a href="#536" id="536">536</a>
 <a href="#537" id="537">537</a>
 <a href="#538" id="538">538</a>
-<a href="#539" id="539">539</a>
-<a href="#540" id="540">540</a>
-<a href="#541" id="541">541</a>
-<a href="#542" id="542">542</a>
-<a href="#543" id="543">543</a>
-<a href="#544" id="544">544</a>
-<a href="#545" id="545">545</a>
-<a href="#546" id="546">546</a>
-<a href="#547" id="547">547</a>
-<a href="#548" id="548">548</a>
-<a href="#549" id="549">549</a>
-<a href="#550" id="550">550</a>
-<a href="#551" id="551">551</a>
-<a href="#552" id="552">552</a>
-<a href="#553" id="553">553</a>
-<a href="#554" id="554">554</a>
-<a href="#555" id="555">555</a>
-<a href="#556" id="556">556</a>
-<a href="#557" id="557">557</a>
-<a href="#558" id="558">558</a>
-<a href="#559" id="559">559</a>
-<a href="#560" id="560">560</a>
-<a href="#561" id="561">561</a>
-<a href="#562" id="562">562</a>
-<a href="#563" id="563">563</a>
-<a href="#564" id="564">564</a>
-<a href="#565" id="565">565</a>
-<a href="#566" id="566">566</a>
-<a href="#567" id="567">567</a>
-<a href="#568" id="568">568</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -585,9 +555,11 @@
 <span class="kw">use </span>std::str::Utf8Error;
 
 <span class="kw">use </span>common_error::prelude::<span class="kw-2">*</span>;
+<span class="kw">use </span>common_runtime::error::Error <span class="kw">as </span>RuntimeError;
 <span class="kw">use </span>datatypes::arrow::error::ArrowError;
 <span class="kw">use </span>datatypes::prelude::ConcreteDataType;
 <span class="kw">use </span>serde_json::error::Error <span class="kw">as </span>JsonError;
+<span class="kw">use </span>snafu::Location;
 <span class="kw">use </span>store_api::manifest::action::ProtocolVersion;
 <span class="kw">use </span>store_api::manifest::ManifestVersion;
 <span class="kw">use </span>store_api::storage::{RegionId, SequenceNumber};
@@ -607,66 +579,63 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Missing column {} in write batch&quot;</span>, column))]
-    </span>BatchMissingColumn {
-        column: String,
-        backtrace: Backtrace,
-    },
+    </span>BatchMissingColumn { column: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to write parquet file, source: {}&quot;</span>, source))]
     </span>WriteParquet {
         source: parquet::errors::ParquetError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to create RecordBatch from vectors, source: {}&quot;</span>, source))]
     </span>NewRecordBatch {
-        backtrace: Backtrace,
+        location: Location,
         source: ArrowError,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Fail to read object from path: {}, source: {}&quot;</span>, path, source))]
     </span>ReadObject {
         path: String,
-        backtrace: Backtrace,
+        location: Location,
         source: object_store::Error,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Fail to write object into path: {}, source: {}&quot;</span>, path, source))]
     </span>WriteObject {
         path: String,
-        backtrace: Backtrace,
+        location: Location,
         source: object_store::Error,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Fail to delete object from path: {}, source: {}&quot;</span>, path, source))]
     </span>DeleteObject {
         path: String,
-        backtrace: Backtrace,
+        location: Location,
         source: object_store::Error,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Fail to list objects in path: {}, source: {}&quot;</span>, path, source))]
     </span>ListObjects {
         path: String,
-        backtrace: Backtrace,
+        location: Location,
         source: object_store::Error,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Fail to create str from bytes, source: {}&quot;</span>, source))]
     </span>Utf8 {
-        backtrace: Backtrace,
+        location: Location,
         source: Utf8Error,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Fail to encode object into json , source: {}&quot;</span>, source))]
     </span>EncodeJson {
-        backtrace: Backtrace,
+        location: Location,
         source: JsonError,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Fail to decode object from json , source: {}&quot;</span>, source))]
     </span>DecodeJson {
-        backtrace: Backtrace,
+        location: Location,
         source: JsonError,
     },
 
@@ -674,7 +643,7 @@
     </span>InvalidScanIndex {
         start: ManifestVersion,
         end: ManifestVersion,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(
@@ -690,24 +659,24 @@
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to encode WAL header, source {}&quot;</span>, source))]
     </span>EncodeWalHeader {
-        backtrace: Backtrace,
+        location: Location,
         source: std::io::Error,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to decode WAL header, source {}&quot;</span>, source))]
     </span>DecodeWalHeader {
-        backtrace: Backtrace,
+        location: Location,
         source: std::io::Error,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to join task, source: {}&quot;</span>, source))]
     </span>JoinTask {
         source: common_runtime::JoinError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Task already cancelled&quot;</span>))]
-    </span>Cancelled { backtrace: Backtrace },
+    </span>Cancelled { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to cancel flush, source: {}&quot;</span>, source))]
     </span>CancelFlush {
@@ -723,7 +692,7 @@
     </span>ManifestProtocolForbidRead {
         min_version: ProtocolVersion,
         supported_version: ProtocolVersion,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(
@@ -734,11 +703,11 @@
     </span>ManifestProtocolForbidWrite {
         min_version: ProtocolVersion,
         supported_version: ProtocolVersion,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to decode action list, {}&quot;</span>, msg))]
-    </span>DecodeMetaActionList { msg: String, backtrace: Backtrace },
+    </span>DecodeMetaActionList { msg: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to read line, err: {}&quot;</span>, source))]
     </span>Readline { source: IoError },
@@ -747,13 +716,13 @@
     </span>ReadParquet {
         file: String,
         source: parquet::errors::ParquetError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Region is under {} state, cannot proceed operation&quot;</span>, state))]
     </span>InvalidRegionState {
         state: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to read WAL, region_id: {}, source: {}&quot;</span>, region_id, source))]
@@ -778,7 +747,7 @@
     </span>WalDataCorrupted {
         region_id: RegionId,
         message: String,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(
@@ -789,7 +758,7 @@
     </span>SequenceNotMonotonic {
         prev: SequenceNumber,
         given: SequenceNumber,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to convert store schema, file: {}, source: {}&quot;</span>, file, source))]
@@ -807,7 +776,7 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Try to write the closed region&quot;</span>))]
-    </span>ClosedRegion { backtrace: Backtrace },
+    </span>ClosedRegion { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid projection, source: {}&quot;</span>, source))]
     </span>InvalidProjection {
@@ -822,7 +791,7 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to build batch, {}&quot;</span>, msg))]
-    </span>BuildBatch { msg: String, backtrace: Backtrace },
+    </span>BuildBatch { msg: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to filter column {}, source: {}&quot;</span>, name, source))]
     </span>FilterColumn {
@@ -863,21 +832,18 @@
         <span class="doccomment">/// Schema version of data to write.
         </span>data_version: u32,
         schema_version: u32,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Column {} not in schema with version {}&quot;</span>, column, version))]
     </span>NotInSchemaToCompat {
         column: String,
         version: u32,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Incompatible schema to read, reason: {}&quot;</span>, reason))]
-    </span>CompatRead {
-        reason: String,
-        backtrace: Backtrace,
-    },
+    </span>CompatRead { reason: String, location: Location },
 
     <span class="attr">#[snafu(display(
         <span class="string">&quot;Failed to read column {}, could not create default value, source: {}&quot;</span>,
@@ -891,10 +857,7 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to read column {}, no proper default value for it&quot;</span>, column))]
-    </span>NoDefaultToRead {
-        column: String,
-        backtrace: Backtrace,
-    },
+    </span>NoDefaultToRead { column: String, location: Location },
 
     <span class="attr">#[snafu(display(
         <span class="string">&quot;Failed to convert arrow chunk to batch, name: {}, source: {}&quot;</span>,
@@ -908,7 +871,7 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Unknown column {}&quot;</span>, name))]
-    </span>UnknownColumn { name: String, backtrace: Backtrace },
+    </span>UnknownColumn { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to create record batch for write batch, source:{}&quot;</span>, source))]
     </span>CreateRecordBatch {
@@ -921,10 +884,7 @@
         write_batch::MAX_BATCH_SIZE,
         num_rows
     ))]
-    </span>RequestTooLarge {
-        num_rows: usize,
-        backtrace: Backtrace,
-    },
+    </span>RequestTooLarge { num_rows: usize, location: Location },
 
     <span class="attr">#[snafu(display(
         <span class="string">&quot;Type of column {} does not match type in schema, expect {:?}, given {:?}&quot;</span>,
@@ -936,11 +896,11 @@
         name: String,
         expect: ConcreteDataType,
         given: ConcreteDataType,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Column {} is not null but input has null&quot;</span>, name))]
-    </span>HasNull { name: String, backtrace: Backtrace },
+    </span>HasNull { name: String, location: Location },
 
     <span class="attr">#[snafu(display(
         <span class="string">&quot;Length of column {} not equals to other columns, expect {}, given {}&quot;</span>,
@@ -952,61 +912,79 @@
         name: String,
         expect: usize,
         given: usize,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to decode write batch, corrupted data {}&quot;</span>, message))]
-    </span>BatchCorrupted {
-        message: String,
-        backtrace: Backtrace,
-    },
+    </span>BatchCorrupted { message: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to decode arrow data, source: {}&quot;</span>, source))]
     </span>DecodeArrow {
-        backtrace: Backtrace,
+        location: Location,
         source: ArrowError,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to encode arrow data, source: {}&quot;</span>, source))]
     </span>EncodeArrow {
-        backtrace: Backtrace,
+        location: Location,
         source: ArrowError,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to parse schema, source: {}&quot;</span>, source))]
     </span>ParseSchema {
-        backtrace: Backtrace,
+        location: Location,
         source: datatypes::error::Error,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;More columns than expected in the request&quot;</span>))]
-    </span>MoreColumnThanExpected { backtrace: Backtrace },
+    </span>MoreColumnThanExpected { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to decode parquet file time range, msg: {}&quot;</span>, msg))]
-    </span>DecodeParquetTimeRange { msg: String, backtrace: Backtrace },
+    </span>DecodeParquetTimeRange { msg: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Scheduler rate limited, msg: {}&quot;</span>, msg))]
-    </span>RateLimited { msg: String, backtrace: Backtrace },
+    </span>RateLimited { msg: String },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Cannot schedule request, scheduler&#39;s already stopped&quot;</span>))]
-    </span>IllegalSchedulerState { backtrace: Backtrace },
+    </span>IllegalSchedulerState { location: Location },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to start manifest gc task: {}&quot;</span>, source))]
+    </span>StartManifestGcTask {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: RuntimeError,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to stop manifest gc task: {}&quot;</span>, source))]
+    </span>StopManifestGcTask {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: RuntimeError,
+    },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to stop scheduler, source: {}&quot;</span>, source))]
     </span>StopScheduler {
         source: JoinError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to delete SST file, source: {}&quot;</span>, source))]
     </span>DeleteSst {
         source: object_store::Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to calculate SST expire time, source: {}&quot;</span>, source))]
     </span>TtlCalculation {
         <span class="attr">#[snafu(backtrace)]
         </span>source: common_time::error::Error,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to create a checkpoint: {}&quot;</span>, msg))]
+    </span>ManifestCheckpoint { msg: String, location: Location },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;The compaction task is cancelled, region_id: {}&quot;</span>, region_id))]
+    </span>CompactTaskCancel {
+        region_id: RegionId,
+        source: tokio::sync::oneshot::error::RecvError,
     },
 }
 
@@ -1052,6 +1030,7 @@
             | BatchCorrupted { .. }
             | DecodeArrow { .. }
             | EncodeArrow { .. }
+            | ManifestCheckpoint { .. }
             | ParseSchema { .. } =&gt; StatusCode::Unexpected,
 
             WriteParquet { .. }
@@ -1078,61 +1057,22 @@
             ConvertChunk { source, .. } =&gt; source.status_code(),
             MarkWalObsolete { source, .. } =&gt; source.status_code(),
             DecodeParquetTimeRange { .. } =&gt; StatusCode::Unexpected,
-            RateLimited { .. } =&gt; StatusCode::Internal,
-            StopScheduler { .. } =&gt; StatusCode::Internal,
+            RateLimited { .. } | StopScheduler { .. } | CompactTaskCancel { .. } =&gt; {
+                StatusCode::Internal
+            }
             DeleteSst { .. } =&gt; StatusCode::StorageUnavailable,
-            IllegalSchedulerState { .. } =&gt; StatusCode::Unexpected,
+
+            StartManifestGcTask { .. }
+            | StopManifestGcTask { .. }
+            | IllegalSchedulerState { .. } =&gt; StatusCode::Unexpected,
+
             TtlCalculation { source, .. } =&gt; source.status_code(),
         }
-    }
-
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
     }
 
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {
         <span class="self">self
     </span>}
-}
-
-<span class="attr">#[cfg(test)]
-</span><span class="kw">mod </span>tests {
-    <span class="kw">use </span>common_error::prelude::StatusCode::<span class="kw-2">*</span>;
-    <span class="kw">use </span>snafu::GenerateImplicitData;
-
-    <span class="kw">use super</span>::<span class="kw-2">*</span>;
-
-    <span class="kw">fn </span>throw_metadata_error() -&gt; std::result::Result&lt;(), MetadataError&gt; {
-        <span class="prelude-val">Err</span>(MetadataError::CfIdExists {
-            id: <span class="number">1</span>,
-            backtrace: Backtrace::generate(),
-        })
-    }
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>test_invalid_region_desc_error() {
-        <span class="kw">let </span>err = throw_metadata_error()
-            .context(InvalidRegionDescSnafu { region: <span class="string">&quot;hello&quot; </span>})
-            .err()
-            .unwrap();
-
-        <span class="macro">assert_eq!</span>(StatusCode::InvalidArguments, err.status_code());
-        <span class="macro">assert!</span>(err.backtrace_opt().is_some());
-    }
-
-    <span class="attr">#[test]
-    </span><span class="kw">pub fn </span>test_arrow_error() {
-        <span class="kw">fn </span>throw_arrow_error() -&gt; std::result::Result&lt;(), ArrowError&gt; {
-            <span class="prelude-val">Err</span>(ArrowError::IoError(<span class="string">&quot;Lorem ipsum&quot;</span>.to_string()))
-        }
-
-        <span class="kw">let </span>error = throw_arrow_error()
-            .context(NewRecordBatchSnafu)
-            .err()
-            .unwrap();
-        <span class="macro">assert_eq!</span>(Unexpected, error.status_code());
-        <span class="macro">assert!</span>(error.backtrace_opt().is_some());
-    }
 }
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="storage" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (34e6673a0 2023-02-25)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>

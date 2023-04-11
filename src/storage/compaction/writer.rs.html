@@ -481,6 +481,17 @@
 <a href="#481" id="481">481</a>
 <a href="#482" id="482">482</a>
 <a href="#483" id="483">483</a>
+<a href="#484" id="484">484</a>
+<a href="#485" id="485">485</a>
+<a href="#486" id="486">486</a>
+<a href="#487" id="487">487</a>
+<a href="#488" id="488">488</a>
+<a href="#489" id="489">489</a>
+<a href="#490" id="490">490</a>
+<a href="#491" id="491">491</a>
+<a href="#492" id="492">492</a>
+<a href="#493" id="493">493</a>
+<a href="#494" id="494">494</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -568,6 +579,7 @@
     <span class="kw">use </span>std::sync::atomic::{AtomicU64, Ordering};
     <span class="kw">use </span>std::sync::Arc;
 
+    <span class="kw">use </span>common_base::readable_size::ReadableSize;
     <span class="kw">use </span>common_test_util::temp_dir::create_temp_dir;
     <span class="kw">use </span>common_time::Timestamp;
     <span class="kw">use </span>datatypes::prelude::{LogicalTypeId, ScalarVector, ScalarVectorBuilder};
@@ -576,7 +588,7 @@
         TimestampMillisecondVector, TimestampMillisecondVectorBuilder, UInt64VectorBuilder,
     };
     <span class="kw">use </span>object_store::services::Fs;
-    <span class="kw">use </span>object_store::{ObjectStore, ObjectStoreBuilder};
+    <span class="kw">use </span>object_store::ObjectStore;
     <span class="kw">use </span>store_api::storage::{ChunkReader, OpType, SequenceNumber};
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
@@ -593,7 +605,7 @@
         <span class="comment">// Just build a region desc and use its columns metadata.
         </span><span class="kw">let </span>desc = RegionDescBuilder::new(<span class="string">&quot;test&quot;</span>)
             .enable_version_column(<span class="bool-val">false</span>)
-            .push_value_column((<span class="string">&quot;v&quot;</span>, LogicalTypeId::UInt64, <span class="bool-val">true</span>))
+            .push_field_column((<span class="string">&quot;v&quot;</span>, LogicalTypeId::UInt64, <span class="bool-val">true</span>))
             .build();
         <span class="kw">let </span>metadata: RegionMetadata = desc.try_into().unwrap();
         metadata.schema().clone()
@@ -707,10 +719,12 @@
         <span class="kw">let </span>SstInfo {
             time_range,
             file_size,
+            ..
         } = writer
             .write_sst(<span class="kw-2">&amp;</span>sst::WriteOptions::default())
             .<span class="kw">await
-            </span>.unwrap();
+            </span>.unwrap()
+            .unwrap();
         <span class="kw">let </span>handle = FileHandle::new(
             FileMeta {
                 region_id: <span class="number">0</span>,
@@ -759,8 +773,10 @@
     </span><span class="kw">async fn </span>test_sst_reader() {
         <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;write_parquet&quot;</span>);
         <span class="kw">let </span>path = dir.path().to_str().unwrap();
-        <span class="kw">let </span>backend = Fs::default().root(path).build().unwrap();
-        <span class="kw">let </span>object_store = ObjectStore::new(backend).finish();
+        <span class="kw">let </span><span class="kw-2">mut </span>builder = Fs::default();
+        builder.root(path);
+
+        <span class="kw">let </span>object_store = ObjectStore::new(builder).unwrap().finish();
 
         <span class="kw">let </span>seq = AtomicU64::new(<span class="number">0</span>);
         <span class="kw">let </span>schema = schema_for_test();
@@ -836,8 +852,9 @@
     </span><span class="kw">async fn </span>test_sst_split() {
         <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;write_parquet&quot;</span>);
         <span class="kw">let </span>path = dir.path().to_str().unwrap();
-        <span class="kw">let </span>backend = Fs::default().root(path).build().unwrap();
-        <span class="kw">let </span>object_store = ObjectStore::new(backend).finish();
+        <span class="kw">let </span><span class="kw-2">mut </span>builder = Fs::default();
+        builder.root(path);
+        <span class="kw">let </span>object_store = ObjectStore::new(builder).unwrap().finish();
 
         <span class="kw">let </span>schema = schema_for_test();
         <span class="kw">let </span>seq = AtomicU64::new(<span class="number">0</span>);
@@ -890,7 +907,9 @@
             .<span class="kw">await
             </span>.unwrap();
 
-        <span class="kw">let </span>opts = WriteOptions {};
+        <span class="kw">let </span>opts = WriteOptions {
+            sst_write_buffer_size: ReadableSize::mb(<span class="number">8</span>),
+        };
         <span class="kw">let </span>s1 = ParquetWriter::new(
             <span class="kw-2">&amp;</span>output_file_ids[<span class="number">0</span>].as_parquet(),
             Source::Reader(reader1),
@@ -898,7 +917,8 @@
         )
         .write_sst(<span class="kw-2">&amp;</span>opts)
         .<span class="kw">await
-        </span>.unwrap();
+        </span>.unwrap()
+        .unwrap();
         <span class="macro">assert_eq!</span>(
             <span class="prelude-val">Some</span>((
                 Timestamp::new_millisecond(<span class="number">2000</span>),
@@ -914,7 +934,8 @@
         )
         .write_sst(<span class="kw-2">&amp;</span>opts)
         .<span class="kw">await
-        </span>.unwrap();
+        </span>.unwrap()
+        .unwrap();
         <span class="macro">assert_eq!</span>(
             <span class="prelude-val">Some</span>((
                 Timestamp::new_millisecond(<span class="number">3000</span>),
@@ -930,7 +951,8 @@
         )
         .write_sst(<span class="kw-2">&amp;</span>opts)
         .<span class="kw">await
-        </span>.unwrap();
+        </span>.unwrap()
+        .unwrap();
 
         <span class="macro">assert_eq!</span>(
             <span class="prelude-val">Some</span>((

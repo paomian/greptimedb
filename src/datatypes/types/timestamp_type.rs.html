@@ -178,6 +178,46 @@
 <a href="#178" id="178">178</a>
 <a href="#179" id="179">179</a>
 <a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -208,6 +248,7 @@
 
 <span class="kw">use </span><span class="kw">crate</span>::data_type::ConcreteDataType;
 <span class="kw">use </span><span class="kw">crate</span>::error;
+<span class="kw">use </span><span class="kw">crate</span>::error::InvalidTimestampPrecisionSnafu;
 <span class="kw">use </span><span class="kw">crate</span>::prelude::{
     DataType, LogicalTypeId, MutableVector, ScalarVectorBuilder, Value, ValueRef, Vector,
 };
@@ -221,6 +262,11 @@
     TimestampNanosecondVectorBuilder, TimestampSecondVector, TimestampSecondVectorBuilder,
 };
 
+<span class="kw">const </span>SECOND_VARIATION: u64 = <span class="number">0</span>;
+<span class="kw">const </span>MILLISECOND_VARIATION: u64 = <span class="number">3</span>;
+<span class="kw">const </span>MICROSECOND_VARIATION: u64 = <span class="number">6</span>;
+<span class="kw">const </span>NANOSECOND_VARIATION: u64 = <span class="number">9</span>;
+
 <span class="attr">#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[enum_dispatch(DataType)]
 </span><span class="kw">pub enum </span>TimestampType {
@@ -228,6 +274,31 @@
     Millisecond(TimestampMillisecondType),
     Microsecond(TimestampMicrosecondType),
     Nanosecond(TimestampNanosecondType),
+}
+
+<span class="kw">impl </span>TryFrom&lt;u64&gt; <span class="kw">for </span>TimestampType {
+    <span class="kw">type </span>Error = error::Error;
+
+    <span class="doccomment">/// Convert fractional timestamp precision to timestamp types. Supported precisions are:
+    /// - 0: second
+    /// - 3: millisecond
+    /// - 6: microsecond
+    /// - 9: nanosecond
+    </span><span class="kw">fn </span>try_from(value: u64) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Error&gt; {
+        <span class="kw">match </span>value {
+            SECOND_VARIATION =&gt; <span class="prelude-val">Ok</span>(TimestampType::Second(TimestampSecondType::default())),
+            MILLISECOND_VARIATION =&gt; <span class="prelude-val">Ok</span>(TimestampType::Millisecond(
+                TimestampMillisecondType::default(),
+            )),
+            MICROSECOND_VARIATION =&gt; <span class="prelude-val">Ok</span>(TimestampType::Microsecond(
+                TimestampMicrosecondType::default(),
+            )),
+            NANOSECOND_VARIATION =&gt; {
+                <span class="prelude-val">Ok</span>(TimestampType::Nanosecond(TimestampNanosecondType::default()))
+            }
+            <span class="kw">_ </span>=&gt; InvalidTimestampPrecisionSnafu { precision: value }.fail(),
+        }
+    }
 }
 
 <span class="kw">impl </span>TimestampType {
@@ -238,6 +309,15 @@
             TimestampType::Millisecond(<span class="kw">_</span>) =&gt; TimeUnit::Millisecond,
             TimestampType::Microsecond(<span class="kw">_</span>) =&gt; TimeUnit::Microsecond,
             TimestampType::Nanosecond(<span class="kw">_</span>) =&gt; TimeUnit::Nanosecond,
+        }
+    }
+
+    <span class="kw">pub fn </span>precision(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u64 {
+        <span class="kw">match </span><span class="self">self </span>{
+            TimestampType::Second(<span class="kw">_</span>) =&gt; SECOND_VARIATION,
+            TimestampType::Millisecond(<span class="kw">_</span>) =&gt; MILLISECOND_VARIATION,
+            TimestampType::Microsecond(<span class="kw">_</span>) =&gt; MICROSECOND_VARIATION,
+            TimestampType::Nanosecond(<span class="kw">_</span>) =&gt; NANOSECOND_VARIATION,
         }
     }
 }

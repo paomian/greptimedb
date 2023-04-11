@@ -32,6 +32,13 @@
 <a href="#32" id="32">32</a>
 <a href="#33" id="33">33</a>
 <a href="#34" id="34">34</a>
+<a href="#35" id="35">35</a>
+<a href="#36" id="36">36</a>
+<a href="#37" id="37">37</a>
+<a href="#38" id="38">38</a>
+<a href="#39" id="39">39</a>
+<a href="#40" id="40">40</a>
+<a href="#41" id="41">41</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -47,6 +54,7 @@
 // limitations under the License.
 
 </span><span class="attr">#![feature(assert_matches)]
+#![feature(trait_upcasting)]
 
 </span><span class="kw">pub mod </span>catalog;
 <span class="kw">pub mod </span>datanode;
@@ -56,15 +64,21 @@
 <span class="kw">pub mod </span>grpc;
 <span class="kw">pub mod </span>influxdb;
 <span class="kw">pub mod </span>instance;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>metric;
 <span class="kw">pub mod </span>mysql;
 <span class="kw">pub mod </span>opentsdb;
 <span class="kw">pub mod </span>postgres;
 <span class="kw">pub mod </span>prom;
 <span class="kw">pub mod </span>prometheus;
+<span class="kw">mod </span>script;
 <span class="kw">mod </span>server;
-<span class="kw">mod </span>sql;
 <span class="kw">mod </span>table;
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests;
+
+<span class="attr">#[cfg(test)]
+</span><span class="comment">// allowed because https://docs.rs/rstest_reuse/0.5.0/rstest_reuse/#use-rstest_reuse-at-the-top-of-your-crate
+</span><span class="attr">#[allow(clippy::single_component_path_imports)]
+</span><span class="kw">use </span>rstest_reuse;
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="frontend" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (34e6673a0 2023-02-25)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>

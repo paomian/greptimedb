@@ -108,67 +108,6 @@
 <a href="#108" id="108">108</a>
 <a href="#109" id="109">109</a>
 <a href="#110" id="110">110</a>
-<a href="#111" id="111">111</a>
-<a href="#112" id="112">112</a>
-<a href="#113" id="113">113</a>
-<a href="#114" id="114">114</a>
-<a href="#115" id="115">115</a>
-<a href="#116" id="116">116</a>
-<a href="#117" id="117">117</a>
-<a href="#118" id="118">118</a>
-<a href="#119" id="119">119</a>
-<a href="#120" id="120">120</a>
-<a href="#121" id="121">121</a>
-<a href="#122" id="122">122</a>
-<a href="#123" id="123">123</a>
-<a href="#124" id="124">124</a>
-<a href="#125" id="125">125</a>
-<a href="#126" id="126">126</a>
-<a href="#127" id="127">127</a>
-<a href="#128" id="128">128</a>
-<a href="#129" id="129">129</a>
-<a href="#130" id="130">130</a>
-<a href="#131" id="131">131</a>
-<a href="#132" id="132">132</a>
-<a href="#133" id="133">133</a>
-<a href="#134" id="134">134</a>
-<a href="#135" id="135">135</a>
-<a href="#136" id="136">136</a>
-<a href="#137" id="137">137</a>
-<a href="#138" id="138">138</a>
-<a href="#139" id="139">139</a>
-<a href="#140" id="140">140</a>
-<a href="#141" id="141">141</a>
-<a href="#142" id="142">142</a>
-<a href="#143" id="143">143</a>
-<a href="#144" id="144">144</a>
-<a href="#145" id="145">145</a>
-<a href="#146" id="146">146</a>
-<a href="#147" id="147">147</a>
-<a href="#148" id="148">148</a>
-<a href="#149" id="149">149</a>
-<a href="#150" id="150">150</a>
-<a href="#151" id="151">151</a>
-<a href="#152" id="152">152</a>
-<a href="#153" id="153">153</a>
-<a href="#154" id="154">154</a>
-<a href="#155" id="155">155</a>
-<a href="#156" id="156">156</a>
-<a href="#157" id="157">157</a>
-<a href="#158" id="158">158</a>
-<a href="#159" id="159">159</a>
-<a href="#160" id="160">160</a>
-<a href="#161" id="161">161</a>
-<a href="#162" id="162">162</a>
-<a href="#163" id="163">163</a>
-<a href="#164" id="164">164</a>
-<a href="#165" id="165">165</a>
-<a href="#166" id="166">166</a>
-<a href="#167" id="167">167</a>
-<a href="#168" id="168">168</a>
-<a href="#169" id="169">169</a>
-<a href="#170" id="170">170</a>
-<a href="#171" id="171">171</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -187,7 +126,7 @@
 <span class="kw">use </span>std::io;
 
 <span class="kw">use </span>common_error::prelude::{ErrorExt, StatusCode};
-<span class="kw">use </span>snafu::{Backtrace, ErrorCompat, Snafu};
+<span class="kw">use </span>snafu::{Location, Snafu};
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
 
@@ -200,11 +139,11 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid config file path, {}&quot;</span>, source))]
     </span>InvalidConfigFilePath {
         source: io::Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Missing required field in protobuf, field: {}&quot;</span>, field))]
-    </span>MissingField { field: String, backtrace: Backtrace },
+    </span>MissingField { field: String, location: Location },
 
     <span class="attr">#[snafu(display(
         <span class="string">&quot;Write type mismatch, column name: {}, expected: {}, actual: {}&quot;</span>,
@@ -216,13 +155,13 @@
         column_name: String,
         expected: String,
         actual: String,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to create gRPC channel, source: {}&quot;</span>, source))]
     </span>CreateChannel {
         source: tonic::transport::Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to create RecordBatch, source: {}&quot;</span>, source))]
@@ -232,7 +171,7 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to convert Arrow type: {}&quot;</span>, from))]
-    </span>Conversion { from: String, backtrace: Backtrace },
+    </span>Conversion { from: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Column datatype error, source: {}&quot;</span>, source))]
     </span>ColumnDataType {
@@ -243,14 +182,11 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to decode FlightData, source: {}&quot;</span>, source))]
     </span>DecodeFlightData {
         source: api::DecodeError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid FlightData, reason: {}&quot;</span>, reason))]
-    </span>InvalidFlightData {
-        reason: String,
-        backtrace: Backtrace,
-    },
+    </span>InvalidFlightData { reason: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to convert Arrow Schema, source: {}&quot;</span>, source))]
     </span>ConvertArrowSchema {
@@ -278,67 +214,9 @@
         }
     }
 
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
-    }
-
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {
         <span class="self">self
     </span>}
-}
-
-<span class="attr">#[cfg(test)]
-</span><span class="kw">mod </span>tests {
-    <span class="kw">use </span>snafu::{OptionExt, ResultExt};
-
-    <span class="kw">use super</span>::<span class="kw-2">*</span>;
-
-    <span class="kw">type </span>StdResult&lt;E&gt; = std::result::Result&lt;(), E&gt;;
-
-    <span class="kw">fn </span>throw_none_option() -&gt; <span class="prelude-ty">Option</span>&lt;String&gt; {
-        <span class="prelude-val">None
-    </span>}
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>test_missing_field_error() {
-        <span class="kw">let </span>e = throw_none_option()
-            .context(MissingFieldSnafu { field: <span class="string">&quot;test&quot; </span>})
-            .err()
-            .unwrap();
-
-        <span class="macro">assert!</span>(e.backtrace_opt().is_some());
-        <span class="macro">assert_eq!</span>(e.status_code(), StatusCode::InvalidArguments);
-    }
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>test_type_mismatch_error() {
-        <span class="kw">let </span>e = throw_none_option()
-            .context(TypeMismatchSnafu {
-                column_name: <span class="string">&quot;&quot;</span>,
-                expected: <span class="string">&quot;&quot;</span>,
-                actual: <span class="string">&quot;&quot;</span>,
-            })
-            .err()
-            .unwrap();
-
-        <span class="macro">assert!</span>(e.backtrace_opt().is_some());
-        <span class="macro">assert_eq!</span>(e.status_code(), StatusCode::InvalidArguments);
-    }
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>test_create_channel_error() {
-        <span class="kw">fn </span>throw_tonic_error() -&gt; StdResult&lt;tonic::transport::Error&gt; {
-            tonic::transport::Endpoint::new(<span class="string">&quot;http//http&quot;</span>).map(|<span class="kw">_</span>| ())
-        }
-
-        <span class="kw">let </span>e = throw_tonic_error()
-            .context(CreateChannelSnafu)
-            .err()
-            .unwrap();
-
-        <span class="macro">assert!</span>(e.backtrace_opt().is_some());
-        <span class="macro">assert_eq!</span>(e.status_code(), StatusCode::Internal);
-    }
 }
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="common_grpc" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (34e6673a0 2023-02-25)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>

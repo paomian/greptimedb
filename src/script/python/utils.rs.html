@@ -55,11 +55,6 @@
 <a href="#55" id="55">55</a>
 <a href="#56" id="56">56</a>
 <a href="#57" id="57">57</a>
-<a href="#58" id="58">58</a>
-<a href="#59" id="59">59</a>
-<a href="#60" id="60">60</a>
-<a href="#61" id="61">61</a>
-<a href="#62" id="62">62</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -78,7 +73,6 @@
 <span class="kw">use </span>once_cell::sync::OnceCell;
 <span class="kw">use </span>rustpython_vm::builtins::PyBaseExceptionRef;
 <span class="kw">use </span>rustpython_vm::{PyObjectRef, PyPayload, VirtualMachine};
-<span class="kw">use </span>snafu::{Backtrace, GenerateImplicitData};
 <span class="kw">use </span>tokio::runtime::Runtime;
 
 <span class="kw">use </span><span class="kw">crate</span>::python::error;
@@ -92,16 +86,12 @@
 <span class="kw">pub fn </span>format_py_error(excep: PyBaseExceptionRef, vm: <span class="kw-2">&amp;</span>VirtualMachine) -&gt; error::Error {
     <span class="kw">let </span><span class="kw-2">mut </span>msg = String::new();
     <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = vm.write_exception(<span class="kw-2">&amp;mut </span>msg, <span class="kw-2">&amp;</span>excep) {
-        <span class="kw">return </span>error::Error::PyRuntime {
+        <span class="kw">return </span>error::PyRuntimeSnafu {
             msg: <span class="macro">format!</span>(<span class="string">&quot;Failed to write exception msg, err: {e}&quot;</span>),
-            backtrace: Backtrace::generate(),
-        };
+        }
+        .build();
     }
-
-    error::Error::PyRuntime {
-        msg,
-        backtrace: Backtrace::generate(),
-    }
+    error::PyRuntimeSnafu { msg }.build()
 }
 <span class="kw">static </span>LOCAL_RUNTIME: OnceCell&lt;tokio::runtime::Runtime&gt; = OnceCell::new();
 <span class="kw">fn </span>get_local_runtime() -&gt; std::thread::Result&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>Runtime&gt; {

@@ -89,7 +89,6 @@
 <a href="#89" id="89">89</a>
 <a href="#90" id="90">90</a>
 <a href="#91" id="91">91</a>
-<a href="#92" id="92">92</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -109,7 +108,8 @@
 
 <span class="kw">use </span>store_api::storage::RegionId;
 
-<span class="kw">use </span><span class="kw">crate</span>::compaction::{CompactionTask, Picker, PickerContext};
+<span class="kw">use </span><span class="kw">crate</span>::compaction::{CompactionTask, Picker};
+<span class="kw">use </span><span class="kw">crate</span>::error::Result;
 <span class="kw">use </span><span class="kw">crate</span>::scheduler::{Request, Scheduler};
 
 <span class="kw">pub struct </span>NoopCompactionScheduler&lt;R&gt; {
@@ -140,11 +140,7 @@
     <span class="kw">type </span>Request = NoopCompactionRequest;
     <span class="kw">type </span>Task = NoopCompactionTask;
 
-    <span class="kw">fn </span>pick(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        _ctx: <span class="kw-2">&amp;</span>PickerContext,
-        _req: <span class="kw-2">&amp;</span><span class="self">Self</span>::Request,
-    ) -&gt; <span class="kw">crate</span>::error::Result&lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Task&gt;&gt; {
+    <span class="kw">fn </span>pick(<span class="kw-2">&amp;</span><span class="self">self</span>, _req: <span class="kw-2">&amp;</span><span class="self">Self</span>::Request) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Task&gt;&gt; {
         <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
     }
 }
@@ -154,7 +150,7 @@
 
 <span class="attr">#[async_trait::async_trait]
 </span><span class="kw">impl </span>CompactionTask <span class="kw">for </span>NoopCompactionTask {
-    <span class="kw">async fn </span>run(<span class="self">self</span>) -&gt; <span class="kw">crate</span>::error::Result&lt;()&gt; {
+    <span class="kw">async fn </span>run(<span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="prelude-val">Ok</span>(())
     }
 }
@@ -165,6 +161,8 @@
     <span class="kw">fn </span>key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self</span>::Key {
         <span class="number">0
     </span>}
+
+    <span class="kw">fn </span>complete(<span class="self">self</span>, _result: <span class="prelude-ty">Result</span>&lt;()&gt;) {}
 }
 
 <span class="attr">#[async_trait::async_trait]
@@ -174,11 +172,11 @@
 {
     <span class="kw">type </span>Request = R;
 
-    <span class="kw">fn </span>schedule(<span class="kw-2">&amp;</span><span class="self">self</span>, _request: <span class="self">Self</span>::Request) -&gt; <span class="kw">crate</span>::error::Result&lt;bool&gt; {
+    <span class="kw">fn </span>schedule(<span class="kw-2">&amp;</span><span class="self">self</span>, _request: <span class="self">Self</span>::Request) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
         <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
     }
 
-    <span class="kw">async fn </span>stop(<span class="kw-2">&amp;</span><span class="self">self</span>, _await_termination: bool) -&gt; <span class="kw">crate</span>::error::Result&lt;()&gt; {
+    <span class="kw">async fn </span>stop(<span class="kw-2">&amp;</span><span class="self">self</span>, _await_termination: bool) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="prelude-val">Ok</span>(())
     }
 }

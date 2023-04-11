@@ -364,35 +364,6 @@
 <a href="#364" id="364">364</a>
 <a href="#365" id="365">365</a>
 <a href="#366" id="366">366</a>
-<a href="#367" id="367">367</a>
-<a href="#368" id="368">368</a>
-<a href="#369" id="369">369</a>
-<a href="#370" id="370">370</a>
-<a href="#371" id="371">371</a>
-<a href="#372" id="372">372</a>
-<a href="#373" id="373">373</a>
-<a href="#374" id="374">374</a>
-<a href="#375" id="375">375</a>
-<a href="#376" id="376">376</a>
-<a href="#377" id="377">377</a>
-<a href="#378" id="378">378</a>
-<a href="#379" id="379">379</a>
-<a href="#380" id="380">380</a>
-<a href="#381" id="381">381</a>
-<a href="#382" id="382">382</a>
-<a href="#383" id="383">383</a>
-<a href="#384" id="384">384</a>
-<a href="#385" id="385">385</a>
-<a href="#386" id="386">386</a>
-<a href="#387" id="387">387</a>
-<a href="#388" id="388">388</a>
-<a href="#389" id="389">389</a>
-<a href="#390" id="390">390</a>
-<a href="#391" id="391">391</a>
-<a href="#392" id="392">392</a>
-<a href="#393" id="393">393</a>
-<a href="#394" id="394">394</a>
-<a href="#395" id="395">395</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -414,30 +385,24 @@
 <span class="kw">use </span>common_query::Output;
 <span class="kw">use </span>common_telemetry::logging::info;
 <span class="kw">use </span>common_telemetry::timer;
-<span class="kw">use </span>futures::StreamExt;
 <span class="kw">use </span>query::error::QueryExecutionSnafu;
 <span class="kw">use </span>query::parser::{PromQuery, QueryLanguageParser, QueryStatement};
 <span class="kw">use </span>query::query_engine::StatementHandler;
-<span class="kw">use </span>servers::error <span class="kw">as </span>server_error;
-<span class="kw">use </span>servers::prom::PromHandler;
-<span class="kw">use </span>session::context::{QueryContext, QueryContextRef};
+<span class="kw">use </span>session::context::QueryContextRef;
 <span class="kw">use </span>snafu::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>sql::ast::ObjectName;
-<span class="kw">use </span>sql::statements::copy::CopyTable;
+<span class="kw">use </span>sql::statements::copy::{CopyTable, CopyTableArgument};
 <span class="kw">use </span>sql::statements::statement::Statement;
 <span class="kw">use </span>table::engine::TableReference;
-<span class="kw">use </span>table::requests::{
-    CopyTableFromRequest, CopyTableRequest, CreateDatabaseRequest, DropTableRequest,
-};
+<span class="kw">use </span>table::requests::{CopyDirection, CopyTableRequest, CreateDatabaseRequest, DropTableRequest};
 
 <span class="kw">use </span><span class="kw">crate</span>::error::{
     <span class="self">self</span>, BumpTableIdSnafu, ExecuteSqlSnafu, ExecuteStatementSnafu, PlanStatementSnafu, <span class="prelude-ty">Result</span>,
     TableIdProviderNotFoundSnafu,
 };
 <span class="kw">use </span><span class="kw">crate</span>::instance::Instance;
-<span class="kw">use </span><span class="kw">crate</span>::metric;
-<span class="kw">use </span><span class="kw">crate</span>::sql::insert::InsertRequests;
-<span class="kw">use </span><span class="kw">crate</span>::sql::SqlRequest;
+<span class="kw">use </span><span class="kw">crate</span>::metrics;
+<span class="kw">use </span><span class="kw">crate</span>::sql::{SqlHandler, SqlRequest};
 
 <span class="kw">impl </span>Instance {
     <span class="kw">pub async fn </span>execute_stmt(
@@ -447,37 +412,10 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
         <span class="kw">match </span>stmt {
             QueryStatement::Sql(Statement::Insert(insert)) =&gt; {
-                <span class="kw">let </span>requests = <span class="self">self
-                    </span>.sql_handler
-                    .insert_to_requests(<span class="self">self</span>.catalog_manager.clone(), <span class="kw-2">*</span>insert, query_ctx.clone())
-                    .<span class="kw">await</span><span class="question-mark">?</span>;
-
-                <span class="kw">match </span>requests {
-                    InsertRequests::Request(request) =&gt; {
-                        <span class="self">self</span>.sql_handler.execute(request, query_ctx.clone()).<span class="kw">await
-                    </span>}
-
-                    InsertRequests::Stream(<span class="kw-2">mut </span>s) =&gt; {
-                        <span class="kw">let </span><span class="kw-2">mut </span>rows = <span class="number">0</span>;
-                        <span class="kw">while let </span><span class="prelude-val">Some</span>(request) = s.next().<span class="kw">await </span>{
-                            <span class="kw">match </span><span class="self">self
-                                </span>.sql_handler
-                                .execute(request<span class="question-mark">?</span>, query_ctx.clone())
-                                .<span class="kw">await</span><span class="question-mark">?
-                            </span>{
-                                Output::AffectedRows(n) =&gt; {
-                                    rows += n;
-                                }
-                                <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
-                            }
-                        }
-                        <span class="prelude-val">Ok</span>(Output::AffectedRows(rows))
-                    }
-                }
-            }
-            QueryStatement::Sql(Statement::Delete(delete)) =&gt; {
-                <span class="kw">let </span>request = SqlRequest::Delete(<span class="kw-2">*</span>delete);
-                <span class="self">self</span>.sql_handler.execute(request, query_ctx).<span class="kw">await
+                <span class="kw">let </span>request =
+                    SqlHandler::insert_to_request(<span class="self">self</span>.catalog_manager.clone(), <span class="kw-2">*</span>insert, query_ctx)
+                        .<span class="kw">await</span><span class="question-mark">?</span>;
+                <span class="self">self</span>.sql_handler.insert(request).<span class="kw">await
             </span>}
             QueryStatement::Sql(Statement::CreateDatabase(create_database)) =&gt; {
                 <span class="kw">let </span>request = CreateDatabaseRequest {
@@ -516,6 +454,9 @@
                     .execute(SqlRequest::CreateTable(request), query_ctx)
                     .<span class="kw">await
             </span>}
+            QueryStatement::Sql(Statement::CreateExternalTable(_create_external_table)) =&gt; {
+                <span class="macro">unimplemented!</span>()
+            }
             QueryStatement::Sql(Statement::Alter(alter_table)) =&gt; {
                 <span class="kw">let </span>name = alter_table.table_name().clone();
                 <span class="kw">let </span>(catalog, schema, table) = table_idents_to_full_name(<span class="kw-2">&amp;</span>name, query_ctx.clone())<span class="question-mark">?</span>;
@@ -547,51 +488,63 @@
                     .execute(SqlRequest::ShowTables(show_tables), query_ctx)
                     .<span class="kw">await
             </span>}
-            QueryStatement::Sql(Statement::DescribeTable(describe_table)) =&gt; {
-                <span class="self">self</span>.sql_handler
-                    .execute(SqlRequest::DescribeTable(describe_table), query_ctx)
-                    .<span class="kw">await
-            </span>}
             QueryStatement::Sql(Statement::ShowCreateTable(_show_create_table)) =&gt; {
                 <span class="macro">unimplemented!</span>(<span class="string">&quot;SHOW CREATE TABLE is unimplemented yet&quot;</span>);
             }
-            QueryStatement::Sql(Statement::Copy(copy_table)) =&gt; <span class="kw">match </span>copy_table {
-                CopyTable::To(copy_table) =&gt; {
-                    <span class="kw">let </span>(catalog_name, schema_name, table_name) =
-                        table_idents_to_full_name(copy_table.table_name(), query_ctx.clone())<span class="question-mark">?</span>;
-                    <span class="kw">let </span>file_name = copy_table.file_name().to_string();
+            QueryStatement::Sql(Statement::Copy(copy_table)) =&gt; {
+                <span class="kw">let </span>req = <span class="kw">match </span>copy_table {
+                    CopyTable::To(copy_table) =&gt; {
+                        <span class="kw">let </span>CopyTableArgument {
+                            location,
+                            connection,
+                            pattern,
+                            table_name,
+                            ..
+                        } = copy_table;
+                        <span class="kw">let </span>(catalog_name, schema_name, table_name) =
+                            table_idents_to_full_name(<span class="kw-2">&amp;</span>table_name, query_ctx.clone())<span class="question-mark">?</span>;
+                        CopyTableRequest {
+                            catalog_name,
+                            schema_name,
+                            table_name,
+                            location,
+                            connection,
+                            pattern,
+                            direction: CopyDirection::Export,
+                        }
+                    }
+                    CopyTable::From(copy_table) =&gt; {
+                        <span class="kw">let </span>CopyTableArgument {
+                            location,
+                            connection,
+                            pattern,
+                            table_name,
+                            ..
+                        } = copy_table;
+                        <span class="kw">let </span>(catalog_name, schema_name, table_name) =
+                            table_idents_to_full_name(<span class="kw-2">&amp;</span>table_name, query_ctx.clone())<span class="question-mark">?</span>;
+                        CopyTableRequest {
+                            catalog_name,
+                            schema_name,
+                            table_name,
+                            location,
+                            connection,
+                            pattern,
+                            direction: CopyDirection::Import,
+                        }
+                    }
+                };
 
-                    <span class="kw">let </span>req = CopyTableRequest {
-                        catalog_name,
-                        schema_name,
-                        table_name,
-                        file_name,
-                    };
-
-                    <span class="self">self</span>.sql_handler
-                        .execute(SqlRequest::CopyTable(req), query_ctx)
-                        .<span class="kw">await
-                </span>}
-                CopyTable::From(copy_table) =&gt; {
-                    <span class="kw">let </span>(catalog_name, schema_name, table_name) =
-                        table_idents_to_full_name(<span class="kw-2">&amp;</span>copy_table.table_name, query_ctx.clone())<span class="question-mark">?</span>;
-                    <span class="kw">let </span>req = CopyTableFromRequest {
-                        catalog_name,
-                        schema_name,
-                        table_name,
-                        connection: copy_table.connection,
-                        pattern: copy_table.pattern,
-                        from: copy_table.from,
-                    };
-                    <span class="self">self</span>.sql_handler
-                        .execute(SqlRequest::CopyTableFrom(req), query_ctx)
-                        .<span class="kw">await
-                </span>}
-            },
+                <span class="self">self</span>.sql_handler
+                    .execute(SqlRequest::CopyTable(req), query_ctx)
+                    .<span class="kw">await
+            </span>}
             QueryStatement::Sql(Statement::Query(<span class="kw">_</span>))
             | QueryStatement::Sql(Statement::Explain(<span class="kw">_</span>))
             | QueryStatement::Sql(Statement::Use(<span class="kw">_</span>))
             | QueryStatement::Sql(Statement::Tql(<span class="kw">_</span>))
+            | QueryStatement::Sql(Statement::Delete(<span class="kw">_</span>))
+            | QueryStatement::Sql(Statement::DescribeTable(<span class="kw">_</span>))
             | QueryStatement::Promql(<span class="kw">_</span>) =&gt; <span class="macro">unreachable!</span>(),
         }
     }
@@ -601,17 +554,20 @@
         promql: <span class="kw-2">&amp;</span>PromQuery,
         query_ctx: QueryContextRef,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
-        <span class="kw">let </span>_timer = <span class="macro">timer!</span>(metric::METRIC_HANDLE_PROMQL_ELAPSED);
+        <span class="kw">let </span>_timer = <span class="macro">timer!</span>(metrics::METRIC_HANDLE_PROMQL_ELAPSED);
 
         <span class="kw">let </span>stmt = QueryLanguageParser::parse_promql(promql).context(ExecuteSqlSnafu)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>engine = <span class="self">self</span>.query_engine();
         <span class="kw">let </span>plan = engine
             .planner()
-            .plan(stmt, query_ctx)
+            .plan(stmt, query_ctx.clone())
             .<span class="kw">await
             </span>.context(PlanStatementSnafu)<span class="question-mark">?</span>;
-        engine.execute(<span class="kw-2">&amp;</span>plan).<span class="kw">await</span>.context(ExecuteStatementSnafu)
+        engine
+            .execute(plan, query_ctx)
+            .<span class="kw">await
+            </span>.context(ExecuteStatementSnafu)
     }
 
     <span class="comment">// TODO(ruihang): merge this and `execute_promql` after #951 landed
@@ -644,10 +600,13 @@
         <span class="kw">let </span>engine = <span class="self">self</span>.query_engine();
         <span class="kw">let </span>plan = engine
             .planner()
-            .plan(stmt, query_ctx)
+            .plan(stmt, query_ctx.clone())
             .<span class="kw">await
             </span>.context(PlanStatementSnafu)<span class="question-mark">?</span>;
-        engine.execute(<span class="kw-2">&amp;</span>plan).<span class="kw">await</span>.context(ExecuteStatementSnafu)
+        engine
+            .execute(plan, query_ctx)
+            .<span class="kw">await
+            </span>.context(ExecuteStatementSnafu)
     }
 }
 
@@ -693,23 +652,6 @@
             .<span class="kw">await
             </span>.map_err(BoxedError::new)
             .context(QueryExecutionSnafu)
-    }
-}
-
-<span class="attr">#[async_trait]
-</span><span class="kw">impl </span>PromHandler <span class="kw">for </span>Instance {
-    <span class="kw">async fn </span>do_query(<span class="kw-2">&amp;</span><span class="self">self</span>, query: <span class="kw-2">&amp;</span>PromQuery) -&gt; server_error::Result&lt;Output&gt; {
-        <span class="kw">let </span>_timer = <span class="macro">timer!</span>(metric::METRIC_HANDLE_PROMQL_ELAPSED);
-
-        <span class="self">self</span>.execute_promql(query, QueryContext::arc())
-            .<span class="kw">await
-            </span>.map_err(BoxedError::new)
-            .with_context(|<span class="kw">_</span>| {
-                <span class="kw">let </span>query_literal = <span class="macro">format!</span>(<span class="string">&quot;{query:?}&quot;</span>);
-                server_error::ExecuteQuerySnafu {
-                    query: query_literal,
-                }
-            })
     }
 }
 

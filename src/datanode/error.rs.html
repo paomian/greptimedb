@@ -644,73 +644,6 @@
 <a href="#644" id="644">644</a>
 <a href="#645" id="645">645</a>
 <a href="#646" id="646">646</a>
-<a href="#647" id="647">647</a>
-<a href="#648" id="648">648</a>
-<a href="#649" id="649">649</a>
-<a href="#650" id="650">650</a>
-<a href="#651" id="651">651</a>
-<a href="#652" id="652">652</a>
-<a href="#653" id="653">653</a>
-<a href="#654" id="654">654</a>
-<a href="#655" id="655">655</a>
-<a href="#656" id="656">656</a>
-<a href="#657" id="657">657</a>
-<a href="#658" id="658">658</a>
-<a href="#659" id="659">659</a>
-<a href="#660" id="660">660</a>
-<a href="#661" id="661">661</a>
-<a href="#662" id="662">662</a>
-<a href="#663" id="663">663</a>
-<a href="#664" id="664">664</a>
-<a href="#665" id="665">665</a>
-<a href="#666" id="666">666</a>
-<a href="#667" id="667">667</a>
-<a href="#668" id="668">668</a>
-<a href="#669" id="669">669</a>
-<a href="#670" id="670">670</a>
-<a href="#671" id="671">671</a>
-<a href="#672" id="672">672</a>
-<a href="#673" id="673">673</a>
-<a href="#674" id="674">674</a>
-<a href="#675" id="675">675</a>
-<a href="#676" id="676">676</a>
-<a href="#677" id="677">677</a>
-<a href="#678" id="678">678</a>
-<a href="#679" id="679">679</a>
-<a href="#680" id="680">680</a>
-<a href="#681" id="681">681</a>
-<a href="#682" id="682">682</a>
-<a href="#683" id="683">683</a>
-<a href="#684" id="684">684</a>
-<a href="#685" id="685">685</a>
-<a href="#686" id="686">686</a>
-<a href="#687" id="687">687</a>
-<a href="#688" id="688">688</a>
-<a href="#689" id="689">689</a>
-<a href="#690" id="690">690</a>
-<a href="#691" id="691">691</a>
-<a href="#692" id="692">692</a>
-<a href="#693" id="693">693</a>
-<a href="#694" id="694">694</a>
-<a href="#695" id="695">695</a>
-<a href="#696" id="696">696</a>
-<a href="#697" id="697">697</a>
-<a href="#698" id="698">698</a>
-<a href="#699" id="699">699</a>
-<a href="#700" id="700">700</a>
-<a href="#701" id="701">701</a>
-<a href="#702" id="702">702</a>
-<a href="#703" id="703">703</a>
-<a href="#704" id="704">704</a>
-<a href="#705" id="705">705</a>
-<a href="#706" id="706">706</a>
-<a href="#707" id="707">707</a>
-<a href="#708" id="708">708</a>
-<a href="#709" id="709">709</a>
-<a href="#710" id="710">710</a>
-<a href="#711" id="711">711</a>
-<a href="#712" id="712">712</a>
-<a href="#713" id="713">713</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -727,11 +660,11 @@
 
 </span><span class="kw">use </span>std::any::Any;
 
+<span class="kw">use </span>common_datasource::error::Error <span class="kw">as </span>DataSourceError;
 <span class="kw">use </span>common_error::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>common_procedure::ProcedureId;
-<span class="kw">use </span>common_recordbatch::error::Error <span class="kw">as </span>RecordBatchError;
 <span class="kw">use </span>datafusion::parquet;
-<span class="kw">use </span>datatypes::prelude::ConcreteDataType;
+<span class="kw">use </span>snafu::Location;
 <span class="kw">use </span>storage::error::Error <span class="kw">as </span>StorageError;
 <span class="kw">use </span>table::error::Error <span class="kw">as </span>TableError;
 <span class="kw">use </span>url::ParseError;
@@ -773,7 +706,7 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Incorrect internal state: {}&quot;</span>, state))]
-    </span>IncorrectInternalState { state: String, backtrace: Backtrace },
+    </span>IncorrectInternalState { state: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to create catalog list, source: {}&quot;</span>, source))]
     </span>NewCatalog {
@@ -782,10 +715,10 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Catalog not found: {}&quot;</span>, name))]
-    </span>CatalogNotFound { name: String, backtrace: Backtrace },
+    </span>CatalogNotFound { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Schema not found: {}&quot;</span>, name))]
-    </span>SchemaNotFound { name: String, backtrace: Backtrace },
+    </span>SchemaNotFound { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to create table: {}, source: {}&quot;</span>, table_name, source))]
     </span>CreateTable {
@@ -815,10 +748,17 @@
         </span>source: BoxedError,
     },
 
+    <span class="attr">#[snafu(display(<span class="string">&quot;Table engine not found: {}, source: {}&quot;</span>, engine_name, source))]
+    </span>TableEngineNotFound {
+        engine_name: String,
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: table::error::Error,
+    },
+
     <span class="attr">#[snafu(display(<span class="string">&quot;Table not found: {}&quot;</span>, table_name))]
     </span>TableNotFound {
         table_name: String,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Column {} not found in table {}&quot;</span>, column_name, table_name))]
@@ -828,7 +768,7 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Missing timestamp column in request&quot;</span>))]
-    </span>MissingTimestampColumn { backtrace: Backtrace },
+    </span>MissingTimestampColumn { location: Location },
 
     <span class="attr">#[snafu(display(
         <span class="string">&quot;Columns and values number mismatch, columns: {}, values: {}&quot;</span>,
@@ -837,24 +777,6 @@
     ))]
     </span>ColumnValuesNumberMismatch { columns: usize, values: usize },
 
-    <span class="attr">#[snafu(display(
-        <span class="string">&quot;Column type mismatch, column: {}, expected type: {:?}, actual: {:?}&quot;</span>,
-        column,
-        expected,
-        actual,
-    ))]
-    </span>ColumnTypeMismatch {
-        column: String,
-        expected: ConcreteDataType,
-        actual: ConcreteDataType,
-    },
-
-    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to collect record batch, source: {}&quot;</span>, source))]
-    </span>CollectRecords {
-        <span class="attr">#[snafu(backtrace)]
-        </span>source: RecordBatchError,
-    },
-
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to parse sql value, source: {}&quot;</span>, source))]
     </span>ParseSqlValue {
         <span class="attr">#[snafu(backtrace)]
@@ -862,7 +784,7 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Missing insert body&quot;</span>))]
-    </span>MissingInsertBody { backtrace: Backtrace },
+    </span>MissingInsertBody { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to insert value to table: {}, source: {}&quot;</span>, table_name, source))]
     </span>Insert {
@@ -913,6 +835,9 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to create directory {}, source: {}&quot;</span>, dir, source))]
     </span>CreateDir { dir: String, source: std::io::Error },
 
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to remove directory {}, source: {}&quot;</span>, dir, source))]
+    </span>RemoveDir { dir: String, source: std::io::Error },
+
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to open log store, source: {}&quot;</span>, source))]
     </span>OpenLogStore {
         <span class="attr">#[snafu(backtrace)]
@@ -926,13 +851,19 @@
     </span>InitBackend {
         config: Box&lt;ObjectStoreConfig&gt;,
         source: object_store::Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to build backend, source: {}&quot;</span>, source))]
     </span>BuildBackend {
-        source: object_store::Error,
-        backtrace: Backtrace,
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: DataSourceError,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to parse url, source: {}&quot;</span>, source))]
+    </span>ParseUrl {
+        source: DataSourceError,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Runtime resource error, source: {}&quot;</span>, source))]
@@ -958,8 +889,14 @@
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to regex, source: {}&quot;</span>, source))]
     </span>BuildRegex {
-        backtrace: Backtrace,
+        location: Location,
         source: regex::Error,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to list objects, source: {}&quot;</span>, source))]
+    </span>ListObjects {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: DataSourceError,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to parse the data, source: {}&quot;</span>, source))]
@@ -978,10 +915,10 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Specified timestamp key or primary key column not found: {}&quot;</span>, name))]
-    </span>KeyColumnNotFound { name: String, backtrace: Backtrace },
+    </span>KeyColumnNotFound { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Illegal primary keys definition: {}&quot;</span>, msg))]
-    </span>IllegalPrimaryKeysDef { msg: String, backtrace: Backtrace },
+    </span>IllegalPrimaryKeysDef { msg: String, location: Location },
 
     <span class="attr">#[snafu(display(
         <span class="string">&quot;Constraint in CREATE TABLE statement is not supported yet: {}&quot;</span>,
@@ -989,7 +926,7 @@
     ))]
     </span>ConstraintNotSupported {
         constraint: String,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to insert into system catalog table, source: {}&quot;</span>, source))]
@@ -1011,7 +948,7 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Schema {} already exists&quot;</span>, name))]
-    </span>SchemaExists { name: String, backtrace: Backtrace },
+    </span>SchemaExists { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to convert alter expr to request: {}&quot;</span>, source))]
     </span>AlterExprToRequest {
@@ -1029,12 +966,6 @@
     </span>ParseSql {
         <span class="attr">#[snafu(backtrace)]
         </span>source: sql::error::Error,
-    },
-
-    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to start script manager, source: {}&quot;</span>, source))]
-    </span>StartScriptManager {
-        <span class="attr">#[snafu(backtrace)]
-        </span>source: script::error::Error,
     },
 
     <span class="attr">#[snafu(display(
@@ -1075,7 +1006,7 @@
     <span class="attr">#[snafu(display(
         <span class="string">&quot;Table id provider not found, cannot execute SQL directly on datanode in distributed mode&quot;
     </span>))]
-    </span>TableIdProviderNotFound { backtrace: Backtrace },
+    </span>TableIdProviderNotFound { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to bump table id, source: {}&quot;</span>, source))]
     </span>BumpTableId {
@@ -1090,13 +1021,13 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Missing node id option in distributed mode&quot;</span>))]
-    </span>MissingNodeId { backtrace: Backtrace },
+    </span>MissingNodeId { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Missing node id option in distributed mode&quot;</span>))]
-    </span>MissingMetasrvOpts { backtrace: Backtrace },
+    </span>MissingMetasrvOpts { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Missing required field: {}&quot;</span>, name))]
-    </span>MissingRequiredField { name: String, backtrace: Backtrace },
+    </span>MissingRequiredField { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Cannot find requested database: {}-{}&quot;</span>, catalog, schema))]
     </span>DatabaseNotFound { catalog: String, schema: String },
@@ -1116,10 +1047,7 @@
         <span class="string">&quot;No valid default value can be built automatically, column: {}&quot;</span>,
         column,
     ))]
-    </span>ColumnNoneDefaultValue {
-        column: String,
-        backtrace: Backtrace,
-    },
+    </span>ColumnNoneDefaultValue { column: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to describe schema for given statement, source: {}&quot;</span>, source))]
     </span>DescribeStatement {
@@ -1141,11 +1069,13 @@
     },
 
     <span class="attr">#[snafu(display(
-        <span class="string">&quot;File Schema mismatch, expected table schema: {} but found :{}&quot;</span>,
+        <span class="string">&quot;File schema mismatch at index {}, expected table schema: {} but found: {}&quot;</span>,
+        index,
         table_schema,
         file_schema
     ))]
     </span>InvalidSchema {
+        index: usize,
         table_schema: String,
         file_schema: String,
     },
@@ -1153,45 +1083,32 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to read parquet file, source: {}&quot;</span>, source))]
     </span>ReadParquet {
         source: parquet::errors::ParquetError,
-        backtrace: Backtrace,
-    },
-
-    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to write parquet file, source: {}&quot;</span>, source))]
-    </span>WriteParquet {
-        source: parquet::errors::ParquetError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to poll stream, source: {}&quot;</span>, source))]
     </span>PollStream {
         source: datafusion_common::DataFusionError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to build parquet record batch stream, source: {}&quot;</span>, source))]
     </span>BuildParquetRecordBatchStream {
-        backtrace: Backtrace,
+        location: Location,
         source: parquet::errors::ParquetError,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to read object in path: {}, source: {}&quot;</span>, path, source))]
     </span>ReadObject {
         path: String,
-        backtrace: Backtrace,
+        location: Location,
         source: object_store::Error,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to write object into path: {}, source: {}&quot;</span>, path, source))]
     </span>WriteObject {
         path: String,
-        backtrace: Backtrace,
-        source: object_store::Error,
-    },
-
-    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to lists object in path: {}, source: {}&quot;</span>, path, source))]
-    </span>ListObjects {
-        path: String,
-        backtrace: Backtrace,
+        location: Location,
         source: object_store::Error,
     },
 
@@ -1238,6 +1155,12 @@
         <span class="attr">#[snafu(backtrace)]
         </span>source: BoxedError,
     },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to copy table to parquet file, source: {}&quot;</span>, source))]
+    </span>WriteParquet {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: storage::error::Error,
+    },
 }
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
@@ -1263,8 +1186,7 @@
 
             Insert { source, .. } =&gt; source.status_code(),
             Delete { source, .. } =&gt; source.status_code(),
-            CollectRecords { source, .. } =&gt; source.status_code(),
-
+            TableEngineNotFound { source, .. } =&gt; source.status_code(),
             TableNotFound { .. } =&gt; StatusCode::TableNotFound,
             ColumnNotFound { .. } =&gt; StatusCode::TableColumnNotFound,
 
@@ -1277,7 +1199,6 @@
             ConvertSchema { source, .. } | VectorComputation { source } =&gt; source.status_code(),
 
             ColumnValuesNumberMismatch { .. }
-            | ColumnTypeMismatch { .. }
             | InvalidSql { .. }
             | InvalidUrl { .. }
             | InvalidPath { .. }
@@ -1297,7 +1218,8 @@
             | DatabaseNotFound { .. }
             | MissingNodeId { .. }
             | MissingMetasrvOpts { .. }
-            | ColumnNoneDefaultValue { .. } =&gt; StatusCode::InvalidArguments,
+            | ColumnNoneDefaultValue { .. }
+            | ParseUrl { .. } =&gt; StatusCode::InvalidArguments,
 
             <span class="comment">// TODO(yingwen): Further categorize http error.
             </span>StartServer { .. }
@@ -1305,6 +1227,7 @@
             | TcpBind { .. }
             | StartGrpc { .. }
             | CreateDir { .. }
+            | RemoveDir { .. }
             | InsertSystemCatalog { .. }
             | RenameTable { .. }
             | Catalog { .. }
@@ -1326,7 +1249,6 @@
             | WriteObject { .. }
             | ListObjects { .. } =&gt; StatusCode::StorageUnavailable,
             OpenLogStore { source } =&gt; source.status_code(),
-            StartScriptManager { source } =&gt; source.status_code(),
             OpenStorageEngine { source } =&gt; source.status_code(),
             RuntimeResource { .. } =&gt; StatusCode::RuntimeResourcesExhausted,
             MetaClientInit { source, .. } =&gt; source.status_code(),
@@ -1343,10 +1265,6 @@
         }
     }
 
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
-    }
-
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {
         <span class="self">self
     </span>}
@@ -1360,61 +1278,9 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
-    <span class="kw">use </span>std::error::Error <span class="kw">as </span>StdError;
     <span class="kw">use </span>std::str::FromStr;
 
-    <span class="kw">use </span>common_error::ext::BoxedError;
-    <span class="kw">use </span>common_error::mock::MockError;
-
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
-
-    <span class="kw">fn </span>throw_query_error() -&gt; std::result::Result&lt;(), query::error::Error&gt; {
-        query::error::CatalogNotFoundSnafu {
-            catalog: String::new(),
-        }
-        .fail()
-    }
-
-    <span class="kw">fn </span>throw_catalog_error() -&gt; catalog::error::Result&lt;()&gt; {
-        <span class="prelude-val">Err</span>(catalog::error::Error::SchemaProviderOperation {
-            source: BoxedError::new(MockError::with_backtrace(StatusCode::Internal)),
-        })
-    }
-
-    <span class="kw">fn </span>assert_internal_error(err: <span class="kw-2">&amp;</span>Error) {
-        <span class="macro">assert!</span>(err.backtrace_opt().is_some());
-        <span class="macro">assert_eq!</span>(StatusCode::Internal, err.status_code());
-    }
-
-    <span class="kw">fn </span>assert_invalid_argument_error(err: <span class="kw-2">&amp;</span>Error) {
-        <span class="macro">assert!</span>(err.backtrace_opt().is_some());
-        <span class="macro">assert_eq!</span>(StatusCode::InvalidArguments, err.status_code());
-    }
-
-    <span class="kw">fn </span>assert_tonic_internal_error(err: Error) {
-        <span class="kw">let </span>status_code = err.status_code();
-        <span class="kw">let </span>err_string = err.to_string();
-
-        <span class="kw">let </span>s: tonic::Status = err.into();
-        <span class="macro">assert_eq!</span>(s.code(), tonic::Code::Unknown);
-
-        <span class="kw">let </span>source = s.source().unwrap().downcast_ref::&lt;Error&gt;().unwrap();
-        <span class="macro">assert_eq!</span>(source.status_code(), status_code);
-        <span class="macro">assert_eq!</span>(source.to_string(), err_string);
-    }
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>test_error() {
-        <span class="kw">let </span>err = throw_query_error().context(ExecuteSqlSnafu).err().unwrap();
-        assert_invalid_argument_error(<span class="kw-2">&amp;</span>err);
-        assert_tonic_internal_error(err);
-        <span class="kw">let </span>err = throw_catalog_error()
-            .context(NewCatalogSnafu)
-            .err()
-            .unwrap();
-        assert_internal_error(<span class="kw-2">&amp;</span>err);
-        assert_tonic_internal_error(err);
-    }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_timestamp() {

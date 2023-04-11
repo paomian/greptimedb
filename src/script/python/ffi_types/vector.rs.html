@@ -537,6 +537,18 @@
 <a href="#537" id="537">537</a>
 <a href="#538" id="538">538</a>
 <a href="#539" id="539">539</a>
+<a href="#540" id="540">540</a>
+<a href="#541" id="541">541</a>
+<a href="#542" id="542">542</a>
+<a href="#543" id="543">543</a>
+<a href="#544" id="544">544</a>
+<a href="#545" id="545">545</a>
+<a href="#546" id="546">546</a>
+<a href="#547" id="547">547</a>
+<a href="#548" id="548">548</a>
+<a href="#549" id="549">549</a>
+<a href="#550" id="550">550</a>
+<a href="#551" id="551">551</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -564,7 +576,7 @@
 <span class="kw">use </span>datatypes::arrow::datatypes::DataType <span class="kw">as </span>ArrowDataType;
 <span class="kw">use </span>datatypes::arrow::error::Result <span class="kw">as </span>ArrowResult;
 <span class="kw">use </span>datatypes::data_type::DataType;
-<span class="kw">use </span>datatypes::prelude::Value;
+<span class="kw">use </span>datatypes::prelude::{ConcreteDataType, Value};
 <span class="kw">use </span>datatypes::value::{<span class="self">self</span>, OrderedFloat};
 <span class="kw">use </span>datatypes::vectors::{Helper, NullVector, VectorRef};
 <span class="attr">#[cfg(feature = <span class="string">&quot;pyo3_backend&quot;</span>)]
@@ -587,6 +599,8 @@
 </span><span class="kw">pub struct </span>PyVector {
     <span class="kw">pub</span>(<span class="kw">crate</span>) vector: VectorRef,
 }
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">type </span>PyVectorRef = PyRef&lt;PyVector&gt;;
 
 <span class="kw">impl </span>From&lt;VectorRef&gt; <span class="kw">for </span>PyVector {
     <span class="kw">fn </span>from(vector: VectorRef) -&gt; <span class="self">Self </span>{
@@ -673,6 +687,16 @@
 }
 
 <span class="kw">impl </span>PyVector {
+    <span class="attr">#[inline]
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>data_type(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ConcreteDataType {
+        <span class="self">self</span>.vector.data_type()
+    }
+
+    <span class="attr">#[inline]
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>arrow_data_type(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ArrowDataType {
+        <span class="self">self</span>.vector.data_type().as_arrow_type()
+    }
+
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>vector_and(left: <span class="kw-2">&amp;</span><span class="self">Self</span>, right: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, String&gt; {
         <span class="kw">let </span>left = left.to_arrow_array();
         <span class="kw">let </span>right = right.to_arrow_array();
@@ -920,7 +944,6 @@
         <span class="comment">// adjust_indices so negative number is transform to usize
         </span><span class="kw">let </span>(<span class="kw-2">mut </span>range, step, slice_len) = slice.adjust_indices(<span class="self">self</span>.len());
         <span class="kw">let </span>vector = <span class="self">self</span>.as_vector_ref();
-
         <span class="kw">let </span><span class="kw-2">mut </span>buf = vector.data_type().create_mutable_vector(slice_len);
         <span class="kw">if </span>slice_len == <span class="number">0 </span>{
             <span class="kw">let </span>v: PyVector = buf.to_vector().into();
@@ -930,6 +953,7 @@
             <span class="prelude-val">Ok</span>(v.into_pyobject(vm))
         } <span class="kw">else if </span>step.is_negative() {
             <span class="comment">// Negative step require special treatment
+            // range.start &gt; range.stop if slice can found no-empty
             </span><span class="kw">for </span>i <span class="kw">in </span>range.rev().step_by(step.unsigned_abs()) {
                 <span class="comment">// Safety: This mutable vector is created from the vector&#39;s data type.
                 </span>buf.push_value_ref(vector.get_ref(i));

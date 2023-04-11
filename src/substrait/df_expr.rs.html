@@ -1372,7 +1372,7 @@
         | Expr::ScalarSubquery(..)
         | Expr::Placeholder { .. }
         | Expr::QualifiedWildcard { .. } =&gt; <span class="macro">todo!</span>(),
-        Expr::GroupingSet(<span class="kw">_</span>) =&gt; UnsupportedExprSnafu {
+        Expr::GroupingSet(<span class="kw">_</span>) | Expr::OuterReferenceColumn(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; UnsupportedExprSnafu {
             name: expr.to_string(),
         }
         .fail()<span class="question-mark">?</span>,

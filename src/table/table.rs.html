@@ -113,6 +113,26 @@
 <a href="#113" id="113">113</a>
 <a href="#114" id="114">114</a>
 <a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -138,10 +158,11 @@
 <span class="kw">use </span>common_query::logical_plan::Expr;
 <span class="kw">use </span>common_query::physical_plan::PhysicalPlanRef;
 <span class="kw">use </span>datatypes::schema::SchemaRef;
+<span class="kw">use </span>store_api::storage::RegionNumber;
 
 <span class="kw">use </span><span class="kw">crate</span>::error::{<span class="prelude-ty">Result</span>, UnsupportedSnafu};
 <span class="kw">use </span><span class="kw">crate</span>::metadata::{FilterPushDownType, TableId, TableInfoRef, TableType};
-<span class="kw">use </span><span class="kw">crate</span>::requests::{AlterTableRequest, DeleteRequest, FlushTableRequest, InsertRequest};
+<span class="kw">use </span><span class="kw">crate</span>::requests::{AlterTableRequest, DeleteRequest, InsertRequest};
 
 <span class="kw">pub type </span>AlterContext = anymap::Map&lt;<span class="kw">dyn </span>Any + Send + Sync&gt;;
 
@@ -210,7 +231,12 @@
     </span>}
 
     <span class="doccomment">/// Flush table.
-    </span><span class="kw">async fn </span>flush(<span class="kw-2">&amp;</span><span class="self">self</span>, _request: FlushTableRequest) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+    ///
+    /// Options:
+    /// - region_number: specify region to flush.
+    /// - wait: Whether to wait until flush is done.
+    </span><span class="kw">async fn </span>flush(<span class="kw-2">&amp;</span><span class="self">self</span>, region_number: <span class="prelude-ty">Option</span>&lt;RegionNumber&gt;, wait: <span class="prelude-ty">Option</span>&lt;bool&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        <span class="kw">let _ </span>= (region_number, wait);
         UnsupportedSnafu { operation: <span class="string">&quot;FLUSH&quot; </span>}.fail()<span class="question-mark">?
     </span>}
 
@@ -218,6 +244,14 @@
     </span><span class="kw">async fn </span>close(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="prelude-val">Ok</span>(())
     }
+
+    <span class="doccomment">/// Get region stats in this table.
+    </span><span class="kw">fn </span>region_stats(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;RegionStat&gt;&gt; {
+        UnsupportedSnafu {
+            operation: <span class="string">&quot;REGION_STATS&quot;</span>,
+        }
+        .fail()<span class="question-mark">?
+    </span>}
 }
 
 <span class="kw">pub type </span>TableRef = Arc&lt;<span class="kw">dyn </span>Table&gt;;
@@ -228,5 +262,11 @@
 }
 
 <span class="kw">pub type </span>TableIdProviderRef = Arc&lt;<span class="kw">dyn </span>TableIdProvider + Send + Sync&gt;;
+
+<span class="attr">#[derive(Default, Debug)]
+</span><span class="kw">pub struct </span>RegionStat {
+    <span class="kw">pub </span>region_id: u64,
+    <span class="kw">pub </span>disk_usage_bytes: u64,
+}
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="table" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (34e6673a0 2023-02-25)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>

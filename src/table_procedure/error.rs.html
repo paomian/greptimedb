@@ -84,9 +84,6 @@
 <a href="#84" id="84">84</a>
 <a href="#85" id="85">85</a>
 <a href="#86" id="86">86</a>
-<a href="#87" id="87">87</a>
-<a href="#88" id="88">88</a>
-<a href="#89" id="89">89</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -105,6 +102,7 @@
 
 <span class="kw">use </span>common_error::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>common_procedure::ProcedureId;
+<span class="kw">use </span>snafu::Location;
 
 <span class="attr">#[derive(Debug, Snafu)]
 #[snafu(visibility(<span class="kw">pub</span>(<span class="kw">crate</span>)))]
@@ -112,13 +110,13 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to serialize procedure to json, source: {}&quot;</span>, source))]
     </span>SerializeProcedure {
         source: serde_json::Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to deserialize procedure from json, source: {}&quot;</span>, source))]
     </span>DeserializeProcedure {
         source: serde_json::Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid raw schema, source: {}&quot;</span>, source))]
@@ -142,7 +140,7 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;Subprocedure {} failed&quot;</span>, subprocedure_id))]
     </span>SubprocedureFailed {
         subprocedure_id: ProcedureId,
-        backtrace: Backtrace,
+        location: Location,
     },
 }
 
@@ -160,10 +158,6 @@
             AccessCatalog { source } =&gt; source.status_code(),
             CatalogNotFound { .. } | SchemaNotFound { .. } =&gt; StatusCode::InvalidArguments,
         }
-    }
-
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
     }
 
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {

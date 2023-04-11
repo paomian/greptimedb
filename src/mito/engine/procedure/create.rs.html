@@ -379,6 +379,14 @@
 <a href="#379" id="379">379</a>
 <a href="#380" id="380">380</a>
 <a href="#381" id="381">381</a>
+<a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
+<a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -424,7 +432,7 @@
     <span class="doccomment">/// Created regions of the table.
     </span>regions: HashMap&lt;RegionNumber, S::Region&gt;,
     <span class="doccomment">/// Schema of the table.
-    </span>table_schema: <span class="prelude-ty">Option</span>&lt;SchemaRef&gt;,
+    </span>table_schema: SchemaRef,
 }
 
 <span class="attr">#[async_trait]
@@ -462,8 +470,14 @@
     <span class="kw">const </span>TYPE_NAME: <span class="kw-2">&amp;</span>str = <span class="string">&quot;mito::CreateMitoTable&quot;</span>;
 
     <span class="doccomment">/// Returns a new [CreateMitoTable].
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(request: CreateTableRequest, engine_inner: Arc&lt;MitoEngineInner&lt;S&gt;&gt;) -&gt; <span class="self">Self </span>{
-        CreateMitoTable {
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(
+        request: CreateTableRequest,
+        engine_inner: Arc&lt;MitoEngineInner&lt;S&gt;&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
+        <span class="kw">let </span>table_schema =
+            Schema::try_from(request.schema.clone()).context(InvalidRawSchemaSnafu)<span class="question-mark">?</span>;
+
+        <span class="prelude-val">Ok</span>(CreateMitoTable {
             data: CreateTableData {
                 state: CreateTableState::Prepare,
                 request,
@@ -471,8 +485,8 @@
             },
             engine_inner,
             regions: HashMap::new(),
-            table_schema: <span class="prelude-val">None</span>,
-        }
+            table_schema: Arc::new(table_schema),
+        })
     }
 
     <span class="doccomment">/// Register the loader of this procedure to the `procedure_manager`.
@@ -496,12 +510,14 @@
     <span class="doccomment">/// Recover the procedure from json.
     </span><span class="kw">fn </span>from_json(json: <span class="kw-2">&amp;</span>str, engine_inner: Arc&lt;MitoEngineInner&lt;S&gt;&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
         <span class="kw">let </span>data: CreateTableData = serde_json::from_str(json).context(FromJsonSnafu)<span class="question-mark">?</span>;
+        <span class="kw">let </span>table_schema =
+            Schema::try_from(data.request.schema.clone()).context(InvalidRawSchemaSnafu)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(CreateMitoTable {
             data,
             engine_inner,
             regions: HashMap::new(),
-            table_schema: <span class="prelude-val">None</span>,
+            table_schema: Arc::new(table_schema),
         })
     }
 
@@ -536,30 +552,31 @@
         <span class="kw">let </span>table_options = <span class="kw-2">&amp;</span><span class="self">self</span>.data.request.table_options;
         <span class="kw">let </span>write_buffer_size = table_options.write_buffer_size.map(|size| size.<span class="number">0 </span><span class="kw">as </span>usize);
         <span class="kw">let </span>ttl = table_options.ttl;
+        <span class="kw">let </span>compaction_time_window = table_options.compaction_time_window;
         <span class="kw">let </span>open_opts = OpenOptions {
             parent_dir: table_dir.clone(),
             write_buffer_size,
             ttl,
+            compaction_time_window,
         };
         <span class="kw">let </span>create_opts = CreateOptions {
             parent_dir: table_dir,
             write_buffer_size,
             ttl,
+            compaction_time_window,
         };
 
-        <span class="kw">let </span>table_schema =
-            Schema::try_from(<span class="self">self</span>.data.request.schema.clone()).context(InvalidRawSchemaSnafu)<span class="question-mark">?</span>;
         <span class="kw">let </span>primary_key_indices = <span class="kw-2">&amp;</span><span class="self">self</span>.data.request.primary_key_indices;
         <span class="kw">let </span>(next_column_id, default_cf) = engine::build_column_family(
             engine::INIT_COLUMN_ID,
             <span class="kw-2">&amp;</span><span class="self">self</span>.data.request.table_name,
-            <span class="kw-2">&amp;</span>table_schema,
+            <span class="kw-2">&amp;</span><span class="self">self</span>.table_schema,
             primary_key_indices,
         )<span class="question-mark">?</span>;
         <span class="kw">let </span>(next_column_id, row_key) = engine::build_row_key_desc(
             next_column_id,
             <span class="kw-2">&amp;</span><span class="self">self</span>.data.request.table_name,
-            <span class="kw-2">&amp;</span>table_schema,
+            <span class="kw-2">&amp;</span><span class="self">self</span>.table_schema,
             primary_key_indices,
         )<span class="question-mark">?</span>;
         <span class="self">self</span>.data.next_column_id = <span class="prelude-val">Some</span>(next_column_id);
@@ -591,6 +608,7 @@
                 .name(region_name.clone())
                 .row_key(row_key.clone())
                 .default_cf(default_cf.clone())
+                .compaction_time_window(compaction_time_window)
                 .build()
                 .context(BuildRegionDescriptorSnafu {
                     table_name: <span class="kw-2">&amp;</span><span class="self">self</span>.data.request.table_name,
@@ -609,7 +627,6 @@
 
         <span class="comment">// All regions are created, moves to the next step.
         </span><span class="self">self</span>.data.state = CreateTableState::WriteTableManifest;
-        <span class="self">self</span>.table_schema = <span class="prelude-val">Some</span>(Arc::new(table_schema));
 
         <span class="prelude-val">Ok</span>(Status::executing(<span class="bool-val">true</span>))
     }
@@ -657,10 +674,9 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;MitoTable&lt;S::Region&gt;&gt; {
         <span class="comment">// Safety: We are in `WriteTableManifest` state.
         </span><span class="kw">let </span>next_column_id = <span class="self">self</span>.data.next_column_id.unwrap();
-        <span class="kw">let </span>table_schema = <span class="self">self</span>.table_schema.clone().unwrap();
 
         <span class="kw">let </span>table_meta = TableMetaBuilder::default()
-            .schema(table_schema)
+            .schema(<span class="self">self</span>.table_schema.clone())
             .engine(engine::MITO_ENGINE)
             .next_column_id(next_column_id)
             .primary_key_indices(<span class="self">self</span>.data.request.primary_key_indices.clone())

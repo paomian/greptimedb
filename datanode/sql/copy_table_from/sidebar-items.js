@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["ACCESS_KEY_ID","ENABLE_VIRTUAL_HOST_STYLE","ENDPOINT_URL","REGION","S3_SCHEMA","SECRET_ACCESS_KEY","SESSION_TOKEN"],"enum":["Source"],"opaque":[""],"struct":["DataSource"]};
+window.SIDEBAR_ITEMS = {"fn":["batch_insert","data_type_equals_ignore_timezone","ensure_schema_matches_ignore_timezone"],"opaque":[""]};

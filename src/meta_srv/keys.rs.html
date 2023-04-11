@@ -379,6 +379,23 @@
 <a href="#379" id="379">379</a>
 <a href="#380" id="380">380</a>
 <a href="#381" id="381">381</a>
+<a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
+<a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
+<a href="#390" id="390">390</a>
+<a href="#391" id="391">391</a>
+<a href="#392" id="392">392</a>
+<a href="#393" id="393">393</a>
+<a href="#394" id="394">394</a>
+<a href="#395" id="395">395</a>
+<a href="#396" id="396">396</a>
+<a href="#397" id="397">397</a>
+<a href="#398" id="398">398</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -559,7 +576,16 @@
     <span class="macro">format!</span>(<span class="string">&quot;{REMOVED_PREFIX}-{key}&quot;</span>)
 }
 
-<span class="attr">#[derive(Eq, PartialEq, Debug, Clone, Hash)]
+<span class="kw">pub fn </span>build_table_route_prefix(catalog: <span class="kw">impl </span>AsRef&lt;str&gt;, schema: <span class="kw">impl </span>AsRef&lt;str&gt;) -&gt; String {
+    <span class="macro">format!</span>(
+        <span class="string">&quot;{}-{}-{}-&quot;</span>,
+        TABLE_ROUTE_PREFIX,
+        catalog.as_ref(),
+        schema.as_ref()
+    )
+}
+
+<span class="attr">#[derive(Eq, PartialEq, Debug, Clone, Hash, Copy)]
 </span><span class="kw">pub struct </span>StatKey {
     <span class="kw">pub </span>cluster_id: u64,
     <span class="kw">pub </span>node_id: u64,
@@ -659,6 +685,14 @@
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
+
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>test_build_prefix() {
+        <span class="macro">assert_eq!</span>(
+            <span class="string">&quot;__meta_table_route-CATALOG-SCHEMA-&quot;</span>,
+            build_table_route_prefix(<span class="string">&quot;CATALOG&quot;</span>, <span class="string">&quot;SCHEMA&quot;</span>)
+        )
+    }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_stat_key_round_trip() {

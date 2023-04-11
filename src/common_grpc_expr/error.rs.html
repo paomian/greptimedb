@@ -115,12 +115,6 @@
 <a href="#115" id="115">115</a>
 <a href="#116" id="116">116</a>
 <a href="#117" id="117">117</a>
-<a href="#118" id="118">118</a>
-<a href="#119" id="119">119</a>
-<a href="#120" id="120">120</a>
-<a href="#121" id="121">121</a>
-<a href="#122" id="122">122</a>
-<a href="#123" id="123">123</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -140,7 +134,7 @@
 <span class="kw">use </span>api::DecodeError;
 <span class="kw">use </span>common_error::ext::ErrorExt;
 <span class="kw">use </span>common_error::prelude::{Snafu, StatusCode};
-<span class="kw">use </span>snafu::{Backtrace, ErrorCompat};
+<span class="kw">use </span>snafu::Location;
 
 <span class="attr">#[derive(Debug, Snafu)]
 #[snafu(visibility(<span class="kw">pub</span>))]
@@ -155,7 +149,7 @@
     </span>DecodeInsert { source: DecodeError },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Illegal insert data&quot;</span>))]
-    </span>IllegalInsertData,
+    </span>IllegalInsertData { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Column datatype error, source: {}&quot;</span>, source))]
     </span>ColumnDataType {
@@ -171,17 +165,14 @@
     </span>DuplicatedTimestampColumn {
         exists: String,
         duplicated: String,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Missing timestamp column, msg: {}&quot;</span>, msg))]
-    </span>MissingTimestampColumn { msg: String, backtrace: Backtrace },
+    </span>MissingTimestampColumn { msg: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid column proto: {}&quot;</span>, err_msg))]
-    </span>InvalidColumnProto {
-        err_msg: String,
-        backtrace: Backtrace,
-    },
+    </span>InvalidColumnProto { err_msg: String, location: Location },
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to create vector, source: {}&quot;</span>, source))]
     </span>CreateVector {
         <span class="attr">#[snafu(backtrace)]
@@ -189,7 +180,7 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Missing required field in protobuf, field: {}&quot;</span>, field))]
-    </span>MissingField { field: String, backtrace: Backtrace },
+    </span>MissingField { field: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid column default constraint, source: {}&quot;</span>, source))]
     </span>ColumnDefaultConstraint {
@@ -235,9 +226,6 @@
             Error::InvalidColumnDef { source, .. } =&gt; source.status_code(),
             Error::UnrecognizedTableOption { .. } =&gt; StatusCode::InvalidArguments,
         }
-    }
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
     }
 
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {

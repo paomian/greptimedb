@@ -74,6 +74,8 @@
 <a href="#74" id="74">74</a>
 <a href="#75" id="75">75</a>
 <a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -91,35 +93,41 @@
 </span><span class="kw">use </span>std::any::Any;
 
 <span class="kw">use </span>common_error::prelude::{ErrorExt, Snafu};
-<span class="kw">use </span>snafu::{Backtrace, ErrorCompat};
-<span class="kw">use </span>tokio::task::JoinError;
+<span class="kw">use </span>common_runtime::error::Error <span class="kw">as </span>RuntimeError;
+<span class="kw">use </span>snafu::Location;
 
 <span class="attr">#[derive(Debug, Snafu)]
 #[snafu(visibility(<span class="kw">pub</span>))]
 </span><span class="kw">pub enum </span>Error {
-    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to wait for gc task to stop, source: {}&quot;</span>, source))]
-    </span>WaitGcTaskStop {
-        source: JoinError,
-        backtrace: Backtrace,
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to start log store gc task, source: {}&quot;</span>, source))]
+    </span>StartGcTask {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: RuntimeError,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to stop log store gc task, source: {}&quot;</span>, source))]
+    </span>StopGcTask {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: RuntimeError,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to add entry to LogBatch, source: {}&quot;</span>, source))]
     </span>AddEntryLogBatch {
         source: raft_engine::Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to perform raft-engine operation, source: {}&quot;</span>, source))]
     </span>RaftEngine {
         source: raft_engine::Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Log store not started yet&quot;</span>))]
-    </span>IllegalState { backtrace: Backtrace },
+    </span>IllegalState { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Namespace is illegal: {}&quot;</span>, ns))]
-    </span>IllegalNamespace { ns: u64, backtrace: Backtrace },
+    </span>IllegalNamespace { ns: u64, location: Location },
 
     <span class="attr">#[snafu(display(
         <span class="string">&quot;Failed to fetch entries from namespace: {}, start: {}, end: {}, max size: {}, source: {}&quot;</span>,
@@ -135,15 +143,11 @@
         end: u64,
         max_size: usize,
         source: raft_engine::Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 }
 
 <span class="kw">impl </span>ErrorExt <span class="kw">for </span>Error {
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
-    }
-
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {
         <span class="self">self
     </span>}

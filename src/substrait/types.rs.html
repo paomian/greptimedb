@@ -215,6 +215,14 @@
 <a href="#215" id="215">215</a>
 <a href="#216" id="216">216</a>
 <a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -237,6 +245,7 @@
 
 </span><span class="kw">use </span>datafusion::scalar::ScalarValue;
 <span class="kw">use </span>datatypes::prelude::ConcreteDataType;
+<span class="kw">use </span>datatypes::types::TimestampType;
 <span class="kw">use </span>substrait_proto::proto::expression::literal::LiteralType;
 <span class="kw">use </span>substrait_proto::proto::r#type::{<span class="self">self </span><span class="kw">as </span>s_type, Kind, Nullability};
 <span class="kw">use </span>substrait_proto::proto::{Type <span class="kw">as </span>SType, Type};
@@ -288,7 +297,14 @@
         Kind::Binary(desc) =&gt; <span class="macro">substrait_kind!</span>(desc, binary_datatype),
         Kind::Timestamp(desc) =&gt; <span class="macro">substrait_kind!</span>(
             desc,
-            ConcreteDataType::timestamp_datatype(Default::default())
+            ConcreteDataType::timestamp_datatype(
+                TimestampType::try_from(desc.type_variation_reference <span class="kw">as </span>u64)
+                    .map_err(|<span class="kw">_</span>| UnsupportedSubstraitTypeSnafu {
+                        ty: <span class="macro">format!</span>(<span class="string">&quot;{kind:?}&quot;</span>)
+                    }
+                    .build())<span class="question-mark">?
+                    </span>.unit()
+            )
         ),
         Kind::Date(desc) =&gt; <span class="macro">substrait_kind!</span>(desc, date_datatype),
         Kind::Time(<span class="kw">_</span>)
@@ -312,7 +328,7 @@
 }
 
 <span class="macro">macro_rules! </span>build_substrait_kind {
-    (<span class="macro-nonterminal">$kind</span>:ident,<span class="macro-nonterminal">$s_type</span>:ident,<span class="macro-nonterminal">$nullable</span>:ident,<span class="macro-nonterminal">$variation</span>:literal) =&gt; {{
+    (<span class="macro-nonterminal">$kind</span>:ident,<span class="macro-nonterminal">$s_type</span>:ident,<span class="macro-nonterminal">$nullable</span>:ident,<span class="macro-nonterminal">$variation</span>:expr) =&gt; {{
         <span class="kw">let </span>nullability = <span class="kw">match </span><span class="macro-nonterminal">$nullable </span>{
             <span class="prelude-val">Some</span>(<span class="bool-val">true</span>) =&gt; Nullability::Nullable,
             <span class="prelude-val">Some</span>(<span class="bool-val">false</span>) =&gt; Nullability::Required,
@@ -346,8 +362,8 @@
         ConcreteDataType::String(<span class="kw">_</span>) =&gt; <span class="macro">build_substrait_kind!</span>(String, String, nullability, <span class="number">0</span>),
         ConcreteDataType::Date(<span class="kw">_</span>) =&gt; <span class="macro">build_substrait_kind!</span>(Date, Date, nullability, <span class="number">0</span>),
         ConcreteDataType::DateTime(<span class="kw">_</span>) =&gt; UnsupportedConcreteTypeSnafu { ty }.fail()<span class="question-mark">?</span>,
-        ConcreteDataType::Timestamp(<span class="kw">_</span>) =&gt; {
-            <span class="macro">build_substrait_kind!</span>(Timestamp, Timestamp, nullability, <span class="number">0</span>)
+        ConcreteDataType::Timestamp(ty) =&gt; {
+            <span class="macro">build_substrait_kind!</span>(Timestamp, Timestamp, nullability, ty.precision() <span class="kw">as </span>u32)
         }
         ConcreteDataType::List(<span class="kw">_</span>) | ConcreteDataType::Dictionary(<span class="kw">_</span>) =&gt; {
             UnsupportedConcreteTypeSnafu { ty }.fail()<span class="question-mark">?

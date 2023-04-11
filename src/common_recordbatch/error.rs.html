@@ -97,6 +97,24 @@
 <a href="#97" id="97">97</a>
 <a href="#98" id="98">98</a>
 <a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -116,6 +134,8 @@
 
 <span class="kw">use </span>common_error::ext::BoxedError;
 <span class="kw">use </span>common_error::prelude::<span class="kw-2">*</span>;
+<span class="kw">use </span>datatypes::prelude::ConcreteDataType;
+<span class="kw">use </span>snafu::Location;
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
 
@@ -125,7 +145,7 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;Fail to create datafusion record batch, source: {}&quot;</span>, source))]
     </span>NewDfRecordBatch {
         source: datatypes::arrow::error::ArrowError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Data types error, source: {}&quot;</span>, source))]
@@ -141,33 +161,50 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to create RecordBatches, reason: {}&quot;</span>, reason))]
-    </span>CreateRecordBatches {
-        reason: String,
-        backtrace: Backtrace,
-    },
+    </span>CreateRecordBatches { reason: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to convert Arrow schema, source: {}&quot;</span>, source))]
     </span>SchemaConversion {
         source: datatypes::error::Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to poll stream, source: {}&quot;</span>, source))]
     </span>PollStream {
         source: datafusion::error::DataFusionError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Fail to format record batch, source: {}&quot;</span>, source))]
     </span>Format {
         source: datatypes::arrow::error::ArrowError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to init Recordbatch stream, source: {}&quot;</span>, source))]
     </span>InitRecordbatchStream {
         source: datafusion_common::DataFusionError,
-        backtrace: Backtrace,
+        location: Location,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Column {} not exists in table {}&quot;</span>, column_name, table_name))]
+    </span>ColumnNotExists {
+        column_name: String,
+        table_name: String,
+        location: Location,
+    },
+
+    <span class="attr">#[snafu(display(
+        <span class="string">&quot;Failed to cast vector of type &#39;{:?}&#39; to type &#39;{:?}&#39;, source: {}&quot;</span>,
+        from_type,
+        to_type,
+        source
+    ))]
+    </span>CastVector {
+        from_type: ConcreteDataType,
+        to_type: ConcreteDataType,
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: datatypes::error::Error,
     },
 }
 
@@ -180,16 +217,15 @@
             | Error::CreateRecordBatches { .. }
             | Error::PollStream { .. }
             | Error::Format { .. }
-            | Error::InitRecordbatchStream { .. } =&gt; StatusCode::Internal,
+            | Error::InitRecordbatchStream { .. }
+            | Error::ColumnNotExists { .. } =&gt; StatusCode::Internal,
 
             Error::External { source } =&gt; source.status_code(),
 
-            Error::SchemaConversion { source, .. } =&gt; source.status_code(),
+            Error::SchemaConversion { source, .. } | Error::CastVector { source, .. } =&gt; {
+                source.status_code()
+            }
         }
-    }
-
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
     }
 
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {

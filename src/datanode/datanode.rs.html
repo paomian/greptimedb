@@ -267,6 +267,74 @@
 <a href="#267" id="267">267</a>
 <a href="#268" id="268">268</a>
 <a href="#269" id="269">269</a>
+<a href="#270" id="270">270</a>
+<a href="#271" id="271">271</a>
+<a href="#272" id="272">272</a>
+<a href="#273" id="273">273</a>
+<a href="#274" id="274">274</a>
+<a href="#275" id="275">275</a>
+<a href="#276" id="276">276</a>
+<a href="#277" id="277">277</a>
+<a href="#278" id="278">278</a>
+<a href="#279" id="279">279</a>
+<a href="#280" id="280">280</a>
+<a href="#281" id="281">281</a>
+<a href="#282" id="282">282</a>
+<a href="#283" id="283">283</a>
+<a href="#284" id="284">284</a>
+<a href="#285" id="285">285</a>
+<a href="#286" id="286">286</a>
+<a href="#287" id="287">287</a>
+<a href="#288" id="288">288</a>
+<a href="#289" id="289">289</a>
+<a href="#290" id="290">290</a>
+<a href="#291" id="291">291</a>
+<a href="#292" id="292">292</a>
+<a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
+<a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
+<a href="#328" id="328">328</a>
+<a href="#329" id="329">329</a>
+<a href="#330" id="330">330</a>
+<a href="#331" id="331">331</a>
+<a href="#332" id="332">332</a>
+<a href="#333" id="333">333</a>
+<a href="#334" id="334">334</a>
+<a href="#335" id="335">335</a>
+<a href="#336" id="336">336</a>
+<a href="#337" id="337">337</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -288,6 +356,7 @@
 <span class="kw">use </span>common_telemetry::info;
 <span class="kw">use </span>meta_client::MetaClientOptions;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
+<span class="kw">use </span>servers::http::HttpOptions;
 <span class="kw">use </span>servers::Mode;
 <span class="kw">use </span>storage::config::EngineConfig <span class="kw">as </span>StorageEngineConfig;
 <span class="kw">use </span>storage::scheduler::SchedulerConfig;
@@ -298,12 +367,23 @@
 
 <span class="kw">pub const </span>DEFAULT_OBJECT_STORE_CACHE_SIZE: ReadableSize = ReadableSize(<span class="number">1024</span>);
 
-<span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
+<span class="doccomment">/// Object storage config
+</span><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = <span class="string">&quot;type&quot;</span>)]
 </span><span class="kw">pub enum </span>ObjectStoreConfig {
     File(FileConfig),
     S3(S3Config),
     Oss(OssConfig),
+}
+
+<span class="doccomment">/// Storage engine config
+</span><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
+</span><span class="kw">pub struct </span>StorageConfig {
+    <span class="attr">#[serde(flatten)]
+    </span><span class="kw">pub </span>store: ObjectStoreConfig,
+    <span class="kw">pub </span>compaction: CompactionConfig,
+    <span class="kw">pub </span>manifest: RegionManifestConfig,
 }
 
 <span class="attr">#[derive(Debug, Clone, Serialize, Default, Deserialize)]
@@ -346,6 +426,7 @@
 }
 
 <span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 </span><span class="kw">pub struct </span>WalConfig {
     <span class="comment">// wal directory
     </span><span class="kw">pub </span>dir: String,
@@ -375,8 +456,33 @@
     }
 }
 
+<span class="doccomment">/// Options for region manifest
+</span><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[serde(default)]
+</span><span class="kw">pub struct </span>RegionManifestConfig {
+    <span class="doccomment">/// Region manifest checkpoint actions margin.
+    /// Manifest service create a checkpoint every [checkpoint_margin] actions.
+    </span><span class="kw">pub </span>checkpoint_margin: <span class="prelude-ty">Option</span>&lt;u16&gt;,
+    <span class="doccomment">/// Region manifest logs and checkpoints gc task execution duration.
+    </span><span class="attr">#[serde(with = <span class="string">&quot;humantime_serde&quot;</span>)]
+    </span><span class="kw">pub </span>gc_duration: <span class="prelude-ty">Option</span>&lt;Duration&gt;,
+    <span class="doccomment">/// Whether to try creating a manifest checkpoint on region opening
+    </span><span class="kw">pub </span>checkpoint_on_startup: bool,
+}
+
+<span class="kw">impl </span>Default <span class="kw">for </span>RegionManifestConfig {
+    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            checkpoint_margin: <span class="prelude-val">Some</span>(<span class="number">10u16</span>),
+            gc_duration: <span class="prelude-val">Some</span>(Duration::from_secs(<span class="number">30</span>)),
+            checkpoint_on_startup: <span class="bool-val">false</span>,
+        }
+    }
+}
+
 <span class="doccomment">/// Options for table compaction
 </span><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[serde(default)]
 </span><span class="kw">pub struct </span>CompactionConfig {
     <span class="doccomment">/// Max task number that can concurrently run.
     </span><span class="kw">pub </span>max_inflight_tasks: usize,
@@ -384,6 +490,8 @@
     </span><span class="kw">pub </span>max_files_in_level0: usize,
     <span class="doccomment">/// Max task number for SST purge task after compaction.
     </span><span class="kw">pub </span>max_purge_tasks: usize,
+    <span class="doccomment">/// Buffer threshold while writing SST files
+    </span><span class="kw">pub </span>sst_write_buffer_size: ReadableSize,
 }
 
 <span class="kw">impl </span>Default <span class="kw">for </span>CompactionConfig {
@@ -392,6 +500,7 @@
             max_inflight_tasks: <span class="number">4</span>,
             max_files_in_level0: <span class="number">8</span>,
             max_purge_tasks: <span class="number">32</span>,
+            sst_write_buffer_size: ReadableSize::mb(<span class="number">8</span>),
         }
     }
 }
@@ -399,7 +508,7 @@
 <span class="kw">impl </span>From&lt;<span class="kw-2">&amp;</span>DatanodeOptions&gt; <span class="kw">for </span>SchedulerConfig {
     <span class="kw">fn </span>from(value: <span class="kw-2">&amp;</span>DatanodeOptions) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
-            max_inflight_tasks: value.compaction.max_inflight_tasks,
+            max_inflight_tasks: value.storage.compaction.max_inflight_tasks,
         }
     }
 }
@@ -407,8 +516,12 @@
 <span class="kw">impl </span>From&lt;<span class="kw-2">&amp;</span>DatanodeOptions&gt; <span class="kw">for </span>StorageEngineConfig {
     <span class="kw">fn </span>from(value: <span class="kw-2">&amp;</span>DatanodeOptions) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
-            max_files_in_l0: value.compaction.max_files_in_level0,
-            max_purge_tasks: value.compaction.max_purge_tasks,
+            manifest_checkpoint_on_startup: value.storage.manifest.checkpoint_on_startup,
+            manifest_checkpoint_margin: value.storage.manifest.checkpoint_margin,
+            manifest_gc_duration: value.storage.manifest.gc_duration,
+            max_files_in_l0: value.storage.compaction.max_files_in_level0,
+            max_purge_tasks: value.storage.compaction.max_purge_tasks,
+            sst_write_buffer_size: value.storage.compaction.sst_write_buffer_size,
         }
     }
 }
@@ -418,11 +531,22 @@
 </span><span class="kw">pub struct </span>ProcedureConfig {
     <span class="doccomment">/// Storage config for procedure manager.
     </span><span class="kw">pub </span>store: ObjectStoreConfig,
+    <span class="doccomment">/// Max retry times of procedure.
+    </span><span class="kw">pub </span>max_retry_times: usize,
+    <span class="doccomment">/// Initial retry delay of procedures, increases exponentially.
+    </span><span class="attr">#[serde(with = <span class="string">&quot;humantime_serde&quot;</span>)]
+    </span><span class="kw">pub </span>retry_delay: Duration,
 }
 
 <span class="kw">impl </span>Default <span class="kw">for </span>ProcedureConfig {
     <span class="kw">fn </span>default() -&gt; ProcedureConfig {
-        ProcedureConfig::from_file_path(<span class="string">&quot;/tmp/greptimedb/procedure/&quot;</span>.to_string())
+        ProcedureConfig {
+            store: ObjectStoreConfig::File(FileConfig {
+                data_dir: <span class="string">&quot;/tmp/greptimedb/procedure/&quot;</span>.to_string(),
+            }),
+            max_retry_times: <span class="number">3</span>,
+            retry_delay: Duration::from_millis(<span class="number">500</span>),
+        }
     }
 }
 
@@ -430,6 +554,7 @@
     <span class="kw">pub fn </span>from_file_path(path: String) -&gt; ProcedureConfig {
         ProcedureConfig {
             store: ObjectStoreConfig::File(FileConfig { data_dir: path }),
+            ..Default::default()
         }
     }
 }
@@ -445,10 +570,10 @@
     <span class="kw">pub </span>rpc_runtime_size: usize,
     <span class="kw">pub </span>mysql_addr: String,
     <span class="kw">pub </span>mysql_runtime_size: usize,
+    <span class="kw">pub </span>http_opts: HttpOptions,
     <span class="kw">pub </span>meta_client_options: <span class="prelude-ty">Option</span>&lt;MetaClientOptions&gt;,
     <span class="kw">pub </span>wal: WalConfig,
-    <span class="kw">pub </span>storage: ObjectStoreConfig,
-    <span class="kw">pub </span>compaction: CompactionConfig,
+    <span class="kw">pub </span>storage: StorageConfig,
     <span class="kw">pub </span>procedure: <span class="prelude-ty">Option</span>&lt;ProcedureConfig&gt;,
 }
 
@@ -463,10 +588,10 @@
             rpc_runtime_size: <span class="number">8</span>,
             mysql_addr: <span class="string">&quot;127.0.0.1:4406&quot;</span>.to_string(),
             mysql_runtime_size: <span class="number">2</span>,
+            http_opts: HttpOptions::default(),
             meta_client_options: <span class="prelude-val">None</span>,
             wal: WalConfig::default(),
-            storage: ObjectStoreConfig::default(),
-            compaction: CompactionConfig::default(),
+            storage: StorageConfig::default(),
             procedure: <span class="prelude-val">None</span>,
         }
     }
@@ -475,14 +600,17 @@
 <span class="doccomment">/// Datanode service.
 </span><span class="kw">pub struct </span>Datanode {
     opts: DatanodeOptions,
-    services: Services,
+    services: <span class="prelude-ty">Option</span>&lt;Services&gt;,
     instance: InstanceRef,
 }
 
 <span class="kw">impl </span>Datanode {
     <span class="kw">pub async fn </span>new(opts: DatanodeOptions) -&gt; <span class="prelude-ty">Result</span>&lt;Datanode&gt; {
         <span class="kw">let </span>instance = Arc::new(Instance::new(<span class="kw-2">&amp;</span>opts).<span class="kw">await</span><span class="question-mark">?</span>);
-        <span class="kw">let </span>services = Services::try_new(instance.clone(), <span class="kw-2">&amp;</span>opts).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>services = <span class="kw">match </span>opts.mode {
+            Mode::Distributed =&gt; <span class="prelude-val">Some</span>(Services::try_new(instance.clone(), <span class="kw-2">&amp;</span>opts).<span class="kw">await</span><span class="question-mark">?</span>),
+            Mode::Standalone =&gt; <span class="prelude-val">None</span>,
+        };
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             opts,
             services,
@@ -503,20 +631,28 @@
 
     <span class="doccomment">/// Start services of datanode. This method call will block until services are shutdown.
     </span><span class="kw">pub async fn </span>start_services(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="self">self</span>.services.start(<span class="kw-2">&amp;</span><span class="self">self</span>.opts).<span class="kw">await
-    </span>}
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(service) = <span class="self">self</span>.services.as_mut() {
+            service.start(<span class="kw-2">&amp;</span><span class="self">self</span>.opts).<span class="kw">await
+        </span>} <span class="kw">else </span>{
+            <span class="prelude-val">Ok</span>(())
+        }
+    }
 
     <span class="kw">pub fn </span>get_instance(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; InstanceRef {
         <span class="self">self</span>.instance.clone()
     }
 
-    <span class="kw">async fn </span>shutdown_instance(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+    <span class="kw">pub async fn </span>shutdown_instance(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="self">self</span>.instance.shutdown().<span class="kw">await
     </span>}
 
     <span class="kw">async fn </span>shutdown_services(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="self">self</span>.services.shutdown().<span class="kw">await
-    </span>}
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(service) = <span class="self">self</span>.services.as_ref() {
+            service.shutdown().<span class="kw">await
+        </span>} <span class="kw">else </span>{
+            <span class="prelude-val">Ok</span>(())
+        }
+    }
 
     <span class="kw">pub async fn </span>shutdown(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="comment">// We must shutdown services first

@@ -576,7 +576,7 @@
         <span class="kw">let </span>stat_val = StatValue { stats: <span class="macro">vec!</span>[stat] }.try_into().unwrap();
 
         <span class="kw">let </span>kv = KeyValue {
-            key: stat_key.clone().into(),
+            key: stat_key.into(),
             value: stat_val,
         };
 

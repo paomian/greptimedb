@@ -144,10 +144,6 @@
 <a href="#144" id="144">144</a>
 <a href="#145" id="145">145</a>
 <a href="#146" id="146">146</a>
-<a href="#147" id="147">147</a>
-<a href="#148" id="148">148</a>
-<a href="#149" id="149">149</a>
-<a href="#150" id="150">150</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -168,7 +164,7 @@
 <span class="kw">use </span>common_error::prelude::ErrorExt;
 <span class="kw">use </span>common_error::status_code::StatusCode;
 <span class="kw">use </span>session::context::UserInfo;
-<span class="kw">use </span>snafu::{Backtrace, ErrorCompat, OptionExt, Snafu};
+<span class="kw">use </span>snafu::{Location, OptionExt, Snafu};
 
 <span class="kw">use </span><span class="kw">crate</span>::auth::user_provider::StaticUserProvider;
 
@@ -241,7 +237,7 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;IO error, source: {}&quot;</span>, source))]
     </span>Io {
         source: std::io::Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Auth failed, source: {}&quot;</span>, source))]
@@ -286,10 +282,6 @@
             Error::UserPasswordMismatch { .. } =&gt; StatusCode::UserPasswordMismatch,
             Error::AccessDenied { .. } =&gt; StatusCode::AccessDenied,
         }
-    }
-
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
     }
 
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>std::any::Any {

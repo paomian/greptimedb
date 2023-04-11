@@ -134,11 +134,6 @@
 <a href="#134" id="134">134</a>
 <a href="#135" id="135">135</a>
 <a href="#136" id="136">136</a>
-<a href="#137" id="137">137</a>
-<a href="#138" id="138">138</a>
-<a href="#139" id="139">139</a>
-<a href="#140" id="140">140</a>
-<a href="#141" id="141">141</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -163,15 +158,13 @@
     BooleanVector, Float64Vector, Helper, Int64Vector, NullVector, StringVector, VectorRef,
 };
 <span class="kw">use </span>rustpython_vm::builtins::{PyBaseExceptionRef, PyBool, PyFloat, PyInt, PyList, PyStr};
-<span class="kw">use </span>rustpython_vm::{PyObjectRef, PyPayload, PyRef, PyResult, VirtualMachine};
-<span class="kw">use </span>snafu::{Backtrace, GenerateImplicitData, OptionExt, ResultExt};
+<span class="kw">use </span>rustpython_vm::{PyObjectRef, PyPayload, PyResult, VirtualMachine};
+<span class="kw">use </span>snafu::{OptionExt, ResultExt};
 
 <span class="kw">use </span><span class="kw">crate</span>::python::error;
 <span class="kw">use </span><span class="kw">crate</span>::python::error::ret_other_error_with;
 <span class="kw">use </span><span class="kw">crate</span>::python::ffi_types::PyVector;
 <span class="kw">use </span><span class="kw">crate</span>::python::rspython::builtins::try_into_columnar_value;
-
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">type </span>PyVectorRef = PyRef&lt;PyVector&gt;;
 
 <span class="doccomment">/// use `rustpython`&#39;s `is_instance` method to check if a PyObject is a instance of class.
 /// if `PyResult` is Err, then this function return `false`
@@ -182,16 +175,13 @@
 <span class="kw">pub fn </span>format_py_error(excep: PyBaseExceptionRef, vm: <span class="kw-2">&amp;</span>VirtualMachine) -&gt; error::Error {
     <span class="kw">let </span><span class="kw-2">mut </span>msg = String::new();
     <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = vm.write_exception(<span class="kw-2">&amp;mut </span>msg, <span class="kw-2">&amp;</span>excep) {
-        <span class="kw">return </span>error::Error::PyRuntime {
+        <span class="kw">return </span>error::PyRuntimeSnafu {
             msg: <span class="macro">format!</span>(<span class="string">&quot;Failed to write exception msg, err: {e}&quot;</span>),
-            backtrace: Backtrace::generate(),
-        };
+        }
+        .build();
     }
 
-    error::Error::PyRuntime {
-        msg,
-        backtrace: Backtrace::generate(),
-    }
+    error::PyRuntimeSnafu { msg }.build()
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>py_obj_to_value(obj: <span class="kw-2">&amp;</span>PyObjectRef, vm: <span class="kw-2">&amp;</span>VirtualMachine) -&gt; PyResult&lt;Value&gt; {

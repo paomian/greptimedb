@@ -50,6 +50,18 @@
 <a href="#50" id="50">50</a>
 <a href="#51" id="51">51</a>
 <a href="#52" id="52">52</a>
+<a href="#53" id="53">53</a>
+<a href="#54" id="54">54</a>
+<a href="#55" id="55">55</a>
+<a href="#56" id="56">56</a>
+<a href="#57" id="57">57</a>
+<a href="#58" id="58">58</a>
+<a href="#59" id="59">59</a>
+<a href="#60" id="60">60</a>
+<a href="#61" id="61">61</a>
+<a href="#62" id="62">62</a>
+<a href="#63" id="63">63</a>
+<a href="#64" id="64">64</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -64,7 +76,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="kw">use </span><span class="kw">crate</span>::ast::{ColumnDef, Ident, ObjectName, SqlOption, TableConstraint, Value <span class="kw">as </span>SqlValue};
+</span><span class="kw">use </span>std::collections::HashMap;
+
+<span class="kw">use </span><span class="kw">crate</span>::ast::{ColumnDef, Ident, ObjectName, SqlOption, TableConstraint, Value <span class="kw">as </span>SqlValue};
 
 <span class="doccomment">/// Time index name, used in table constraints.
 </span><span class="kw">pub const </span>TIME_INDEX: <span class="kw-2">&amp;</span>str = <span class="string">&quot;__time_index&quot;</span>;
@@ -101,6 +115,16 @@
     <span class="kw">pub </span>name: ObjectName,
     <span class="doccomment">/// Create if not exists
     </span><span class="kw">pub </span>if_not_exists: bool,
+}
+
+<span class="attr">#[derive(Debug, PartialEq, Eq, Clone)]
+</span><span class="kw">pub struct </span>CreateExternalTable {
+    <span class="doccomment">/// Table name
+    </span><span class="kw">pub </span>name: ObjectName,
+    <span class="kw">pub </span>columns: Vec&lt;ColumnDef&gt;,
+    <span class="kw">pub </span>constraints: Vec&lt;TableConstraint&gt;,
+    <span class="doccomment">/// Table options in `WITH`.
+    </span><span class="kw">pub </span>options: HashMap&lt;String, String&gt;,
 }
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="sql" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (34e6673a0 2023-02-25)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>

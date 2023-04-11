@@ -89,6 +89,10 @@
 <a href="#89" id="89">89</a>
 <a href="#90" id="90">90</a>
 <a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -109,7 +113,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::error::{ConvertToDfStatementSnafu, Error};
 <span class="kw">use </span><span class="kw">crate</span>::statements::alter::AlterTable;
 <span class="kw">use </span><span class="kw">crate</span>::statements::copy::CopyTable;
-<span class="kw">use </span><span class="kw">crate</span>::statements::create::{CreateDatabase, CreateTable};
+<span class="kw">use </span><span class="kw">crate</span>::statements::create::{CreateDatabase, CreateExternalTable, CreateTable};
 <span class="kw">use </span><span class="kw">crate</span>::statements::delete::Delete;
 <span class="kw">use </span><span class="kw">crate</span>::statements::describe::DescribeTable;
 <span class="kw">use </span><span class="kw">crate</span>::statements::drop::DropTable;
@@ -131,6 +135,8 @@
     </span>Delete(Box&lt;Delete&gt;),
     <span class="doccomment">/// CREATE TABLE
     </span>CreateTable(CreateTable),
+    <span class="comment">// CREATE EXTERNAL TABLE
+    </span>CreateExternalTable(CreateExternalTable),
     <span class="comment">// DROP TABLE
     </span>DropTable(DropTable),
     <span class="comment">// CREATE DATABASE
@@ -170,6 +176,8 @@
         <span class="kw">let </span>s = <span class="kw">match </span>s {
             Statement::Query(query) =&gt; SpStatement::Query(Box::new(query.inner.clone())),
             Statement::Explain(explain) =&gt; explain.inner.clone(),
+            Statement::Insert(insert) =&gt; insert.inner.clone(),
+            Statement::Delete(delete) =&gt; delete.inner.clone(),
             <span class="kw">_ </span>=&gt; {
                 <span class="kw">return </span>ConvertToDfStatementSnafu {
                     statement: <span class="macro">format!</span>(<span class="string">&quot;{s:?}&quot;</span>),

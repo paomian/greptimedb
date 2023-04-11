@@ -95,6 +95,29 @@
 <a href="#95" id="95">95</a>
 <a href="#96" id="96">96</a>
 <a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -113,10 +136,33 @@
 </span><span class="kw">pub mod </span>action;
 
 <span class="kw">use </span>storage::manifest::ManifestImpl;
+<span class="kw">use </span>store_api::manifest::action::{ProtocolAction, ProtocolVersion};
+<span class="kw">use </span>store_api::manifest::{Checkpoint, ManifestVersion};
 
 <span class="kw">use </span><span class="kw">crate</span>::manifest::action::TableMetaActionList;
 
-<span class="kw">pub type </span>TableManifest = ManifestImpl&lt;TableMetaActionList&gt;;
+<span class="attr">#[derive(Debug, Clone)]
+</span><span class="kw">pub struct </span>NoopCheckpoint {}
+
+<span class="kw">impl </span>Checkpoint <span class="kw">for </span>NoopCheckpoint {
+    <span class="kw">type </span>Error = storage::error::Error;
+
+    <span class="kw">fn </span>set_protocol(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _action: ProtocolAction) {}
+
+    <span class="kw">fn </span>last_version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ManifestVersion {
+        <span class="macro">unreachable!</span>();
+    }
+
+    <span class="kw">fn </span>encode(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, <span class="self">Self</span>::Error&gt; {
+        <span class="macro">unreachable!</span>();
+    }
+
+    <span class="kw">fn </span>decode(_bs: <span class="kw-2">&amp;</span>[u8], _reader_version: ProtocolVersion) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Error&gt; {
+        <span class="macro">unreachable!</span>();
+    }
+}
+
+<span class="kw">pub type </span>TableManifest = ManifestImpl&lt;NoopCheckpoint, TableMetaActionList&gt;;
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
@@ -154,7 +200,7 @@
     </span><span class="kw">async fn </span>test_table_manifest() {
         <span class="kw">let </span>(_dir, object_store) = test_util::new_test_object_store(<span class="string">&quot;test_table_manifest&quot;</span>).<span class="kw">await</span>;
 
-        <span class="kw">let </span>manifest = TableManifest::new(<span class="string">&quot;manifest/&quot;</span>, object_store);
+        <span class="kw">let </span>manifest = TableManifest::create(<span class="string">&quot;manifest/&quot;</span>, object_store);
 
         <span class="kw">let </span><span class="kw-2">mut </span>iter = manifest.scan(<span class="number">0</span>, <span class="number">100</span>).<span class="kw">await</span>.unwrap();
         <span class="macro">assert!</span>(iter.next_action().<span class="kw">await</span>.unwrap().is_none());

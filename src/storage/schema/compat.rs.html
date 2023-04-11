@@ -736,10 +736,10 @@
             <span class="comment">// `dest_schema` might be projected, so we need to find out value columns that not be read
             // by the `dest_schema`.
 
-            </span><span class="kw">for </span>(offset, value_column) <span class="kw">in </span>source_schema.value_columns().iter().enumerate() {
+            </span><span class="kw">for </span>(offset, field_column) <span class="kw">in </span>source_schema.field_columns().iter().enumerate() {
                 <span class="comment">// Iterate value columns in source and mark those not in destination as unneeded.
-                </span><span class="kw">if </span>!dest_schema.is_needed(value_column.id()) {
-                    is_source_needed[source_schema.value_column_index_by_offset(offset)] = <span class="bool-val">false</span>;
+                </span><span class="kw">if </span>!dest_schema.is_needed(field_column.id()) {
+                    is_source_needed[source_schema.field_column_index_by_offset(offset)] = <span class="bool-val">false</span>;
                 }
             }
         }
@@ -815,7 +815,7 @@
     </span><span class="kw">pub fn </span>batch_from_parts(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         row_key_columns: Vec&lt;VectorRef&gt;,
-        <span class="kw-2">mut </span>value_columns: Vec&lt;VectorRef&gt;,
+        <span class="kw-2">mut </span>field_columns: Vec&lt;VectorRef&gt;,
         sequences: VectorRef,
         op_types: VectorRef,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Batch&gt; {
@@ -824,8 +824,8 @@
 
         <span class="kw">let </span><span class="kw-2">mut </span>source = row_key_columns;
         <span class="comment">// Reserve space for value, sequence and op_type
-        </span>source.reserve(value_columns.len() + <span class="number">2</span>);
-        source.append(<span class="kw-2">&amp;mut </span>value_columns);
+        </span>source.reserve(field_columns.len() + <span class="number">2</span>);
+        source.append(<span class="kw-2">&amp;mut </span>field_columns);
         <span class="comment">// Internal columns are push in sequence, op_type order.
         </span>source.push(sequences);
         source.push(op_types);
@@ -929,12 +929,12 @@
     <span class="kw">fn </span>call_batch_from_parts(
         adapter: <span class="kw-2">&amp;</span>ReadAdapter,
         batch: <span class="kw-2">&amp;</span>Batch,
-        num_value_columns: usize,
+        num_field_columns: usize,
     ) -&gt; Batch {
         <span class="kw">let </span>key = batch.columns()[<span class="number">0</span>..<span class="number">2</span>].to_vec();
-        <span class="kw">let </span>value = batch.columns()[<span class="number">2</span>..<span class="number">2 </span>+ num_value_columns].to_vec();
-        <span class="kw">let </span>sequence = batch.column(<span class="number">2 </span>+ num_value_columns).clone();
-        <span class="kw">let </span>op_type = batch.column(<span class="number">2 </span>+ num_value_columns + <span class="number">1</span>).clone();
+        <span class="kw">let </span>value = batch.columns()[<span class="number">2</span>..<span class="number">2 </span>+ num_field_columns].to_vec();
+        <span class="kw">let </span>sequence = batch.column(<span class="number">2 </span>+ num_field_columns).clone();
+        <span class="kw">let </span>op_type = batch.column(<span class="number">2 </span>+ num_field_columns + <span class="number">1</span>).clone();
 
         adapter
             .batch_from_parts(key, value, sequence, op_type)
@@ -944,9 +944,9 @@
     <span class="kw">fn </span>check_batch_from_parts_without_padding(
         adapter: <span class="kw-2">&amp;</span>ReadAdapter,
         batch: <span class="kw-2">&amp;</span>Batch,
-        num_value_columns: usize,
+        num_field_columns: usize,
     ) {
-        <span class="kw">let </span>new_batch = call_batch_from_parts(adapter, batch, num_value_columns);
+        <span class="kw">let </span>new_batch = call_batch_from_parts(adapter, batch, num_field_columns);
         <span class="macro">assert_eq!</span>(<span class="kw-2">*</span>batch, new_batch);
     }
 
@@ -1106,7 +1106,7 @@
         <span class="comment">// (k0, timestamp, v0, v1) with version 0.
         </span><span class="kw">let </span>region_schema_old = Arc::new(schema_util::new_region_schema(<span class="number">0</span>, <span class="number">2</span>));
 
-        <span class="kw">let </span><span class="kw-2">mut </span>descriptor = descriptor_util::desc_with_value_columns(tests::REGION_NAME, <span class="number">2</span>);
+        <span class="kw">let </span><span class="kw-2">mut </span>descriptor = descriptor_util::desc_with_field_columns(tests::REGION_NAME, <span class="number">2</span>);
         <span class="comment">// Assign a much larger column id to v0.
         </span>descriptor.default_cf.columns[<span class="number">0</span>].id = descriptor.default_cf.columns.last().unwrap().id + <span class="number">10</span>;
         <span class="kw">let </span>metadata: RegionMetadata = descriptor.try_into().unwrap();

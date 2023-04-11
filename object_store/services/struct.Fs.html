@@ -16,8 +16,6 @@ list</li>
 <del>scan</del></li>
 <li><input disabled="" type="checkbox"/>
 <del>presign</del></li>
-<li><input disabled="" type="checkbox"/>
-<del>multipart</del></li>
 <li><input disabled="" type="checkbox" checked=""/>
 blocking</li>
 </ul>
@@ -31,7 +29,6 @@ blocking</li>
 
 <span class="kw">use </span>anyhow::Result;
 <span class="kw">use </span>opendal::services::Fs;
-<span class="kw">use </span>opendal::Object;
 <span class="kw">use </span>opendal::Operator;
 
 <span class="attr">#[tokio::main]
@@ -44,10 +41,7 @@ blocking</li>
     </span>builder.root(<span class="string">&quot;/tmp&quot;</span>);
 
     <span class="comment">// `Accessor` provides the low level APIs, we will use `Operator` normally.
-    </span><span class="kw">let </span>op: Operator = Operator::create(builder)<span class="question-mark">?</span>.finish();
-
-    <span class="comment">// Create an object handle to start operation on object.
-    </span><span class="kw">let _</span>: Object = op.object(<span class="string">&quot;test_file&quot;</span>);
+    </span><span class="kw">let </span>op: Operator = Operator::new(builder)<span class="question-mark">?</span>.finish();
 
     <span class="prelude-val">Ok</span>(())
 }</code></pre></div>
@@ -56,7 +50,7 @@ blocking</li>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.enable_path_check" class="method"><h4 class="code-header">pub fn <a href="#method.enable_path_check" class="fn">enable_path_check</a>(&amp;mut self) -&gt; &amp;mut <a class="struct" href="struct.Fs.html" title="struct object_store::services::Fs">FsBuilder</a></h4></section></summary><div class="docblock"><p>OpenDAL requires all input path are normalized to make sure the
 behavior is consistent. By enable path check, we can make sure
 fs will behave the same as other services.</p>
-<p>Enabling this feature will lead to etra metadata call in all
+<p>Enabling this feature will lead to extra metadata call in all
 operations.</p>
 </div></details></div></details></div><h2 id="trait-implementations" class="small-section-header">Trait Implementations<a href="#trait-implementations" class="anchor">§</a></h2><div id="trait-implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-Builder-for-FsBuilder" class="impl"><a href="#impl-Builder-for-FsBuilder" class="anchor">§</a><h3 class="code-header">impl <a class="trait" href="../trait.ObjectStoreBuilder.html" title="trait object_store::ObjectStoreBuilder">Builder</a> for <a class="struct" href="struct.Fs.html" title="struct object_store::services::Fs">FsBuilder</a></h3></section></summary><div class="impl-items"><details class="toggle" open><summary><section id="associatedconstant.SCHEME" class="associatedconstant trait-impl"><a href="#associatedconstant.SCHEME" class="anchor">§</a><h4 class="code-header">const <a href="../trait.ObjectStoreBuilder.html#associatedconstant.SCHEME" class="constant">SCHEME</a>: Scheme = Scheme::Fs</h4></section></summary><div class='docblock'>Associated scheme for this builder.</div></details><details class="toggle" open><summary><section id="associatedtype.Accessor" class="associatedtype trait-impl"><a href="#associatedtype.Accessor" class="anchor">§</a><h4 class="code-header">type <a href="../trait.ObjectStoreBuilder.html#associatedtype.Accessor" class="associatedtype">Accessor</a> = FsBackend</h4></section></summary><div class='docblock'>The accessor that built by this builder.</div></details><details class="toggle method-toggle" open><summary><section id="method.from_map" class="method trait-impl"><a href="#method.from_map" class="anchor">§</a><h4 class="code-header">fn <a href="../trait.ObjectStoreBuilder.html#tymethod.from_map" class="fn">from_map</a>(map: <a class="struct" href="https://doc.rust-lang.org/nightly/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a class="struct" href="https://doc.rust-lang.org/nightly/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a class="struct" href="https://doc.rust-lang.org/nightly/std/collections/hash/map/struct.RandomState.html" title="struct std::collections::hash::map::RandomState">RandomState</a>&gt;) -&gt; <a class="struct" href="struct.Fs.html" title="struct object_store::services::Fs">FsBuilder</a></h4></section></summary><div class='docblock'>Construct a builder from given map.</div></details><details class="toggle method-toggle" open><summary><section id="method.build" class="method trait-impl"><a href="#method.build" class="anchor">§</a><h4 class="code-header">fn <a href="../trait.ObjectStoreBuilder.html#tymethod.build" class="fn">build</a>(&amp;mut self) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;&lt;<a class="struct" href="struct.Fs.html" title="struct object_store::services::Fs">FsBuilder</a> as <a class="trait" href="../trait.ObjectStoreBuilder.html" title="trait object_store::ObjectStoreBuilder">Builder</a>&gt;::<a class="associatedtype" href="../trait.ObjectStoreBuilder.html#associatedtype.Accessor" title="type object_store::ObjectStoreBuilder::Accessor">Accessor</a>, <a class="struct" href="../struct.Error.html" title="struct object_store::Error">Error</a>&gt;</h4></section></summary><div class='docblock'>Consume the accessor builder to build a service.</div></details><details class="toggle method-toggle" open><summary><section id="method.from_iter" class="method trait-impl"><a href="#method.from_iter" class="anchor">§</a><h4 class="code-header">fn <a href="../trait.ObjectStoreBuilder.html#method.from_iter" class="fn">from_iter</a>(iter: impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = (<a class="struct" href="https://doc.rust-lang.org/nightly/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>)&gt;) -&gt; Self<span class="where fmt-newline">where
     Self: <a class="trait" href="https://doc.rust-lang.org/nightly/core/marker/trait.Sized.html" title="trait core::marker::Sized">Sized</a>,</span></h4></section></summary><div class='docblock'>Construct a builder from given iterator.</div></details><details class="toggle method-toggle" open><summary><section id="method.from_env" class="method trait-impl"><a href="#method.from_env" class="anchor">§</a><h4 class="code-header">fn <a href="../trait.ObjectStoreBuilder.html#method.from_env" class="fn">from_env</a>() -&gt; Self<span class="where fmt-newline">where

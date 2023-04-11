@@ -1,0 +1,3 @@
+(function() {var implementors = {
+"catalog":[["impl PartitionStream for <a class=\"struct\" href=\"catalog/information_schema/tables/struct.InformationSchemaTables.html\" title=\"struct catalog::information_schema::tables::InformationSchemaTables\">InformationSchemaTables</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

@@ -139,13 +139,6 @@
 <a href="#139" id="139">139</a>
 <a href="#140" id="140">140</a>
 <a href="#141" id="141">141</a>
-<a href="#142" id="142">142</a>
-<a href="#143" id="143">143</a>
-<a href="#144" id="144">144</a>
-<a href="#145" id="145">145</a>
-<a href="#146" id="146">146</a>
-<a href="#147" id="147">147</a>
-<a href="#148" id="148">148</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -166,61 +159,58 @@
 <span class="kw">use </span>datafusion::error::DataFusionError;
 <span class="kw">use </span>datatypes::prelude::ConcreteDataType;
 <span class="kw">use </span>prost::{DecodeError, EncodeError};
-<span class="kw">use </span>snafu::{Backtrace, ErrorCompat, Snafu};
+<span class="kw">use </span>snafu::{Location, Snafu};
 
 <span class="attr">#[derive(Debug, Snafu)]
 #[snafu(visibility(<span class="kw">pub</span>))]
 </span><span class="kw">pub enum </span>Error {
     <span class="attr">#[snafu(display(<span class="string">&quot;Unsupported physical plan: {}&quot;</span>, name))]
-    </span>UnsupportedPlan { name: String, backtrace: Backtrace },
+    </span>UnsupportedPlan { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Unsupported expr: {}&quot;</span>, name))]
-    </span>UnsupportedExpr { name: String, backtrace: Backtrace },
+    </span>UnsupportedExpr { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Unsupported concrete type: {:?}&quot;</span>, ty))]
     </span>UnsupportedConcreteType {
         ty: ConcreteDataType,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Unsupported substrait type: {}&quot;</span>, ty))]
-    </span>UnsupportedSubstraitType { ty: String, backtrace: Backtrace },
+    </span>UnsupportedSubstraitType { ty: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to decode substrait relation, source: {}&quot;</span>, source))]
     </span>DecodeRel {
         source: DecodeError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to encode substrait relation, source: {}&quot;</span>, source))]
     </span>EncodeRel {
         source: EncodeError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Input plan is empty&quot;</span>))]
-    </span>EmptyPlan { backtrace: Backtrace },
+    </span>EmptyPlan { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Input expression is empty&quot;</span>))]
-    </span>EmptyExpr { backtrace: Backtrace },
+    </span>EmptyExpr { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Missing required field in protobuf, field: {}, plan: {}&quot;</span>, field, plan))]
     </span>MissingField {
         field: String,
         plan: String,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid parameters: {}&quot;</span>, reason))]
-    </span>InvalidParameters {
-        reason: String,
-        backtrace: Backtrace,
-    },
+    </span>InvalidParameters { reason: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Internal error from DataFusion: {}&quot;</span>, source))]
     </span>DFInternal {
         source: DataFusionError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Internal error: {}&quot;</span>, source))]
@@ -230,10 +220,10 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Table querying not found: {}&quot;</span>, name))]
-    </span>TableNotFound { name: String, backtrace: Backtrace },
+    </span>TableNotFound { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Cannot convert plan doesn&#39;t belong to GreptimeDB&quot;</span>))]
-    </span>UnknownPlan { backtrace: Backtrace },
+    </span>UnknownPlan { location: Location },
 
     <span class="attr">#[snafu(display(
         <span class="string">&quot;Schema from Substrait proto doesn&#39;t match with the schema in storage.
@@ -245,7 +235,7 @@
     </span>SchemaNotMatch {
         substrait_schema: datafusion::arrow::datatypes::SchemaRef,
         storage_schema: datafusion::arrow::datatypes::SchemaRef,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to convert DataFusion schema, source: {}&quot;</span>, source))]
@@ -284,10 +274,6 @@
             Error::ConvertDfSchema { source } =&gt; source.status_code(),
             Error::ResolveTable { source, .. } =&gt; source.status_code(),
         }
-    }
-
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
     }
 
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {

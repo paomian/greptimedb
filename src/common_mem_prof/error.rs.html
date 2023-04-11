@@ -60,10 +60,6 @@
 <a href="#60" id="60">60</a>
 <a href="#61" id="61">61</a>
 <a href="#62" id="62">62</a>
-<a href="#63" id="63">63</a>
-<a href="#64" id="64">64</a>
-<a href="#65" id="65">65</a>
-<a href="#66" id="66">66</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -82,7 +78,7 @@
 <span class="kw">use </span>std::path::PathBuf;
 
 <span class="kw">use </span>common_error::prelude::{ErrorExt, StatusCode};
-<span class="kw">use </span>snafu::{Backtrace, Snafu};
+<span class="kw">use </span>snafu::{Location, Snafu};
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
 
@@ -96,7 +92,7 @@
     </span>ProfilingNotEnabled,
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to build temp file from given path: {:?}&quot;</span>, path))]
-    </span>BuildTempPath { path: PathBuf, backtrace: Backtrace },
+    </span>BuildTempPath { path: PathBuf, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to open temp file: {}&quot;</span>, path))]
     </span>OpenTempFile {
@@ -120,10 +116,6 @@
             Error::OpenTempFile { .. } =&gt; StatusCode::StorageUnavailable,
             Error::DumpProfileData { .. } =&gt; StatusCode::StorageUnavailable,
         }
-    }
-
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        snafu::ErrorCompat::backtrace(<span class="self">self</span>)
     }
 
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {

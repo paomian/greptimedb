@@ -408,6 +408,15 @@
 <a href="#408" id="408">408</a>
 <a href="#409" id="409">409</a>
 <a href="#410" id="410">410</a>
+<a href="#411" id="411">411</a>
+<a href="#412" id="412">412</a>
+<a href="#413" id="413">413</a>
+<a href="#414" id="414">414</a>
+<a href="#415" id="415">415</a>
+<a href="#416" id="416">416</a>
+<a href="#417" id="417">417</a>
+<a href="#418" id="418">418</a>
+<a href="#419" id="419">419</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -427,9 +436,7 @@
 <span class="kw">use </span>clap::Parser;
 <span class="kw">use </span>common_base::Plugins;
 <span class="kw">use </span>common_telemetry::info;
-<span class="kw">use </span>datanode::datanode::{
-    CompactionConfig, Datanode, DatanodeOptions, ObjectStoreConfig, ProcedureConfig, WalConfig,
-};
+<span class="kw">use </span>datanode::datanode::{Datanode, DatanodeOptions, ProcedureConfig, StorageConfig, WalConfig};
 <span class="kw">use </span>datanode::instance::InstanceRef;
 <span class="kw">use </span>frontend::frontend::FrontendOptions;
 <span class="kw">use </span>frontend::grpc::GrpcOptions;
@@ -446,7 +453,10 @@
 <span class="kw">use </span>servers::Mode;
 <span class="kw">use </span>snafu::ResultExt;
 
-<span class="kw">use </span><span class="kw">crate</span>::error::{Error, IllegalConfigSnafu, <span class="prelude-ty">Result</span>, StartDatanodeSnafu, StartFrontendSnafu};
+<span class="kw">use </span><span class="kw">crate</span>::error::{
+    Error, IllegalConfigSnafu, <span class="prelude-ty">Result</span>, ShutdownDatanodeSnafu, ShutdownFrontendSnafu,
+    StartDatanodeSnafu, StartFrontendSnafu,
+};
 <span class="kw">use </span><span class="kw">crate</span>::frontend::load_frontend_plugins;
 <span class="kw">use </span><span class="kw">crate</span>::toml_loader;
 
@@ -489,8 +499,7 @@
     <span class="kw">pub </span>prometheus_options: <span class="prelude-ty">Option</span>&lt;PrometheusOptions&gt;,
     <span class="kw">pub </span>prom_options: <span class="prelude-ty">Option</span>&lt;PromOptions&gt;,
     <span class="kw">pub </span>wal: WalConfig,
-    <span class="kw">pub </span>storage: ObjectStoreConfig,
-    <span class="kw">pub </span>compaction: CompactionConfig,
+    <span class="kw">pub </span>storage: StorageConfig,
     <span class="kw">pub </span>procedure: <span class="prelude-ty">Option</span>&lt;ProcedureConfig&gt;,
 }
 
@@ -508,8 +517,7 @@
             prometheus_options: <span class="prelude-val">Some</span>(PrometheusOptions::default()),
             prom_options: <span class="prelude-val">Some</span>(PromOptions::default()),
             wal: WalConfig::default(),
-            storage: ObjectStoreConfig::default(),
-            compaction: CompactionConfig::default(),
+            storage: StorageConfig::default(),
             procedure: <span class="prelude-val">None</span>,
         }
     }
@@ -536,7 +544,6 @@
             enable_memory_catalog: <span class="self">self</span>.enable_memory_catalog,
             wal: <span class="self">self</span>.wal,
             storage: <span class="self">self</span>.storage,
-            compaction: <span class="self">self</span>.compaction,
             procedure: <span class="self">self</span>.procedure,
             ..Default::default()
         }
@@ -562,8 +569,18 @@
     }
 
     <span class="kw">pub async fn </span>stop(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="comment">// TODO: handle standalone shutdown
-        </span><span class="prelude-val">Ok</span>(())
+        <span class="self">self</span>.frontend
+            .shutdown()
+            .<span class="kw">await
+            </span>.context(ShutdownFrontendSnafu)<span class="question-mark">?</span>;
+
+        <span class="self">self</span>.datanode
+            .shutdown_instance()
+            .<span class="kw">await
+            </span>.context(ShutdownDatanodeSnafu)<span class="question-mark">?</span>;
+        <span class="macro">info!</span>(<span class="string">&quot;Datanode instance stopped.&quot;</span>);
+
+        <span class="prelude-val">Ok</span>(())
     }
 }
 
@@ -638,8 +655,9 @@
     plugins: Arc&lt;Plugins&gt;,
     datanode_instance: InstanceRef,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;FeInstance&gt; {
-    <span class="kw">let </span><span class="kw-2">mut </span>frontend_instance = FeInstance::new_standalone(datanode_instance.clone());
-    frontend_instance.set_script_handler(datanode_instance);
+    <span class="kw">let </span><span class="kw-2">mut </span>frontend_instance = FeInstance::try_new_standalone(datanode_instance.clone())
+        .<span class="kw">await
+        </span>.context(StartFrontendSnafu)<span class="question-mark">?</span>;
     frontend_instance.set_plugins(plugins.clone());
     <span class="prelude-val">Ok</span>(frontend_instance)
 }

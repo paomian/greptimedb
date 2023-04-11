@@ -572,6 +572,34 @@
 <a href="#572" id="572">572</a>
 <a href="#573" id="573">573</a>
 <a href="#574" id="574">574</a>
+<a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
+<a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
+<a href="#583" id="583">583</a>
+<a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
+<a href="#590" id="590">590</a>
+<a href="#591" id="591">591</a>
+<a href="#592" id="592">592</a>
+<a href="#593" id="593">593</a>
+<a href="#594" id="594">594</a>
+<a href="#595" id="595">595</a>
+<a href="#596" id="596">596</a>
+<a href="#597" id="597">597</a>
+<a href="#598" id="598">598</a>
+<a href="#599" id="599">599</a>
+<a href="#600" id="600">600</a>
+<a href="#601" id="601">601</a>
+<a href="#602" id="602">602</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -592,7 +620,7 @@
 
 <span class="kw">use </span>common_catalog::consts::{
     DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME, INFORMATION_SCHEMA_NAME, MIN_USER_TABLE_ID,
-    SYSTEM_CATALOG_NAME, SYSTEM_CATALOG_TABLE_NAME,
+    MITO_ENGINE, SYSTEM_CATALOG_NAME, SYSTEM_CATALOG_TABLE_NAME,
 };
 <span class="kw">use </span>common_catalog::format_full_table_name;
 <span class="kw">use </span>common_recordbatch::{RecordBatch, SendableRecordBatchStream};
@@ -601,7 +629,8 @@
 <span class="kw">use </span>datatypes::vectors::{BinaryVector, UInt8Vector};
 <span class="kw">use </span>futures_util::lock::Mutex;
 <span class="kw">use </span>snafu::{ensure, OptionExt, ResultExt};
-<span class="kw">use </span>table::engine::{EngineContext, TableEngineRef};
+<span class="kw">use </span>table::engine::manager::TableEngineManagerRef;
+<span class="kw">use </span>table::engine::EngineContext;
 <span class="kw">use </span>table::metadata::TableId;
 <span class="kw">use </span>table::requests::OpenTableRequest;
 <span class="kw">use </span>table::table::numbers::NumbersTable;
@@ -611,7 +640,8 @@
 <span class="kw">use </span><span class="kw">crate</span>::error::{
     <span class="self">self</span>, CatalogNotFoundSnafu, IllegalManagerStateSnafu, OpenTableSnafu, ReadSystemCatalogSnafu,
     <span class="prelude-ty">Result</span>, SchemaExistsSnafu, SchemaNotFoundSnafu, SystemCatalogSnafu,
-    SystemCatalogTypeMismatchSnafu, TableExistsSnafu, TableNotFoundSnafu,
+    SystemCatalogTypeMismatchSnafu, TableEngineNotFoundSnafu, TableExistsSnafu, TableNotExistSnafu,
+    TableNotFoundSnafu,
 };
 <span class="kw">use </span><span class="kw">crate</span>::local::memory::{MemoryCatalogManager, MemoryCatalogProvider, MemorySchemaProvider};
 <span class="kw">use </span><span class="kw">crate</span>::system::{
@@ -629,7 +659,7 @@
 </span><span class="kw">pub struct </span>LocalCatalogManager {
     system: Arc&lt;SystemCatalog&gt;,
     catalogs: Arc&lt;MemoryCatalogManager&gt;,
-    engine: TableEngineRef,
+    engine_manager: TableEngineManagerRef,
     next_table_id: AtomicU32,
     init_lock: Mutex&lt;bool&gt;,
     register_lock: Mutex&lt;()&gt;,
@@ -637,19 +667,20 @@
 }
 
 <span class="kw">impl </span>LocalCatalogManager {
-    <span class="doccomment">/// Create a new [CatalogManager] with given user catalogs and table engine
-    </span><span class="kw">pub async fn </span>try_new(engine: TableEngineRef) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
+    <span class="doccomment">/// Create a new [CatalogManager] with given user catalogs and mito engine
+    </span><span class="kw">pub async fn </span>try_new(engine_manager: TableEngineManagerRef) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
+        <span class="kw">let </span>engine = engine_manager
+            .engine(MITO_ENGINE)
+            .context(TableEngineNotFoundSnafu {
+                engine_name: MITO_ENGINE,
+            })<span class="question-mark">?</span>;
         <span class="kw">let </span>table = SystemCatalogTable::new(engine.clone()).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>memory_catalog_list = <span class="kw">crate</span>::local::memory::new_memory_catalog_list()<span class="question-mark">?</span>;
-        <span class="kw">let </span>system_catalog = Arc::new(SystemCatalog::new(
-            table,
-            memory_catalog_list.clone(),
-            engine.clone(),
-        ));
+        <span class="kw">let </span>system_catalog = Arc::new(SystemCatalog::new(table));
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             system: system_catalog,
             catalogs: memory_catalog_list,
-            engine,
+            engine_manager,
             next_table_id: AtomicU32::new(MIN_USER_TABLE_ID),
             init_lock: Mutex::new(<span class="bool-val">false</span>),
             register_lock: Mutex::new(()),
@@ -674,7 +705,14 @@
 
         <span class="comment">// Processing system table hooks
         </span><span class="kw">let </span><span class="kw-2">mut </span>sys_table_requests = <span class="self">self</span>.system_table_requests.lock().<span class="kw">await</span>;
-        handle_system_table_request(<span class="self">self</span>, <span class="self">self</span>.engine.clone(), <span class="kw-2">&amp;mut </span>sys_table_requests).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>engine = <span class="self">self
+            </span>.engine_manager
+            .engine(MITO_ENGINE)
+            .context(TableEngineNotFoundSnafu {
+                engine_name: MITO_ENGINE,
+            })<span class="question-mark">?</span>;
+
+        handle_system_table_request(<span class="self">self</span>, engine, <span class="kw-2">&amp;mut </span>sys_table_requests).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -827,9 +865,14 @@
             table_name: t.table_name.clone(),
             table_id: t.table_id,
         };
+        <span class="kw">let </span>engine = <span class="self">self
+            </span>.engine_manager
+            .engine(<span class="kw-2">&amp;</span>t.engine)
+            .context(TableEngineNotFoundSnafu {
+                engine_name: <span class="kw-2">&amp;</span>t.engine,
+            })<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>option = <span class="self">self
-            </span>.engine
+        <span class="kw">let </span>option = engine
             .open_table(<span class="kw-2">&amp;</span>context, request)
             .<span class="kw">await
             </span>.with_context(|<span class="kw">_</span>| OpenTableSnafu {
@@ -864,9 +907,7 @@
     }
 
     <span class="kw">fn </span>catalog_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;String&gt;&gt; {
-        <span class="kw">let </span><span class="kw-2">mut </span>res = <span class="self">self</span>.catalogs.catalog_names()<span class="question-mark">?</span>;
-        res.push(SYSTEM_CATALOG_NAME.to_string());
-        <span class="prelude-val">Ok</span>(res)
+        <span class="self">self</span>.catalogs.catalog_names()
     }
 
     <span class="kw">fn </span>catalog(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;CatalogProviderRef&gt;&gt; {
@@ -938,6 +979,7 @@
                 <span class="comment">// Try to register table with same table id, just ignore.
                 </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>)
             } <span class="kw">else </span>{
+                <span class="kw">let </span>engine = request.table.table_info().meta.engine.to_string();
                 <span class="comment">// table does not exist
                 </span><span class="self">self</span>.system
                     .register_table(
@@ -945,6 +987,7 @@
                         schema_name.clone(),
                         request.table_name.clone(),
                         request.table_id,
+                        engine,
                     )
                     .<span class="kw">await</span><span class="question-mark">?</span>;
                 schema.register_table(request.table_name, request.table)<span class="question-mark">?</span>;
@@ -978,6 +1021,14 @@
                 schema: schema_name,
             })<span class="question-mark">?</span>;
 
+        <span class="kw">let </span>old_table = schema
+            .table(<span class="kw-2">&amp;</span>request.table_name)
+            .<span class="kw">await</span><span class="question-mark">?
+            </span>.context(TableNotExistSnafu {
+                table: <span class="kw-2">&amp;</span>request.table_name,
+            })<span class="question-mark">?</span>;
+
+        <span class="kw">let </span>engine = old_table.table_info().meta.engine.to_string();
         <span class="comment">// rename table in system catalog
         </span><span class="self">self</span>.system
             .register_table(
@@ -985,6 +1036,7 @@
                 schema_name.clone(),
                 request.new_table_name.clone(),
                 request.table_id,
+                engine,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(schema
@@ -1104,6 +1156,8 @@
 </span><span class="kw">mod </span>tests {
     <span class="kw">use </span>std::assert_matches::assert_matches;
 
+    <span class="kw">use </span>mito::engine::MITO_ENGINE;
+
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
     <span class="kw">use </span><span class="kw">crate</span>::system::{CatalogEntry, SchemaEntry};
 
@@ -1115,6 +1169,7 @@
                 schema_name: <span class="string">&quot;S1&quot;</span>.to_string(),
                 table_name: <span class="string">&quot;T1&quot;</span>.to_string(),
                 table_id: <span class="number">1</span>,
+                engine: MITO_ENGINE.to_string(),
             }),
             Entry::Catalog(CatalogEntry {
                 catalog_name: <span class="string">&quot;C2&quot;</span>.to_string(),
@@ -1135,6 +1190,7 @@
                 schema_name: <span class="string">&quot;S1&quot;</span>.to_string(),
                 table_name: <span class="string">&quot;T2&quot;</span>.to_string(),
                 table_id: <span class="number">2</span>,
+                engine: MITO_ENGINE.to_string(),
             }),
         ];
         <span class="kw">let </span>res = LocalCatalogManager::sort_entries(vec);

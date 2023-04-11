@@ -869,6 +869,27 @@
 <a href="#869" id="869">869</a>
 <a href="#870" id="870">870</a>
 <a href="#871" id="871">871</a>
+<a href="#872" id="872">872</a>
+<a href="#873" id="873">873</a>
+<a href="#874" id="874">874</a>
+<a href="#875" id="875">875</a>
+<a href="#876" id="876">876</a>
+<a href="#877" id="877">877</a>
+<a href="#878" id="878">878</a>
+<a href="#879" id="879">879</a>
+<a href="#880" id="880">880</a>
+<a href="#881" id="881">881</a>
+<a href="#882" id="882">882</a>
+<a href="#883" id="883">883</a>
+<a href="#884" id="884">884</a>
+<a href="#885" id="885">885</a>
+<a href="#886" id="886">886</a>
+<a href="#887" id="887">887</a>
+<a href="#888" id="888">888</a>
+<a href="#889" id="889">889</a>
+<a href="#890" id="890">890</a>
+<a href="#891" id="891">891</a>
+<a href="#892" id="892">892</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -897,6 +918,7 @@
 
 <span class="kw">use </span><span class="kw">crate</span>::error;
 <span class="kw">use </span><span class="kw">crate</span>::error::{ArithmeticOverflowSnafu, Error, ParseTimestampSnafu, TimestampOverflowSnafu};
+<span class="kw">use </span><span class="kw">crate</span>::util::div_ceil;
 
 <span class="attr">#[derive(Debug, Clone, Default, Copy, Serialize, Deserialize)]
 </span><span class="kw">pub struct </span>Timestamp {
@@ -1014,7 +1036,7 @@
             <span class="prelude-val">Some</span>(Timestamp::new(value, unit))
         } <span class="kw">else </span>{
             <span class="kw">let </span>mul = unit.factor() / <span class="self">self</span>.unit().factor();
-            <span class="prelude-val">Some</span>(Timestamp::new(<span class="self">self</span>.value.div_ceil(mul <span class="kw">as </span>i64), unit))
+            <span class="prelude-val">Some</span>(Timestamp::new(div_ceil(<span class="self">self</span>.value, mul <span class="kw">as </span>i64), unit))
         }
     }
 
@@ -1034,16 +1056,20 @@
     <span class="doccomment">/// Format timestamp to ISO8601 string. If the timestamp exceeds what chrono timestamp can
     /// represent, this function simply print the timestamp unit and value in plain string.
     </span><span class="kw">pub fn </span>to_iso8601_string(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
-        <span class="kw">if let </span>LocalResult::Single(datetime) = <span class="self">self</span>.to_chrono_datetime() {
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, datetime.format(<span class="string">&quot;%Y-%m-%d %H:%M:%S%.f%z&quot;</span>))
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(v) = <span class="self">self</span>.to_chrono_datetime() {
+            <span class="kw">let </span>local = Local {};
+            <span class="macro">format!</span>(
+                <span class="string">&quot;{}&quot;</span>,
+                local.from_utc_datetime(<span class="kw-2">&amp;</span>v).format(<span class="string">&quot;%Y-%m-%d %H:%M:%S%.f%z&quot;</span>)
+            )
         } <span class="kw">else </span>{
             <span class="macro">format!</span>(<span class="string">&quot;[Timestamp{}: {}]&quot;</span>, <span class="self">self</span>.unit, <span class="self">self</span>.value)
         }
     }
 
-    <span class="kw">pub fn </span>to_chrono_datetime(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; LocalResult&lt;DateTime&lt;Utc&gt;&gt; {
+    <span class="kw">pub fn </span>to_chrono_datetime(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;NaiveDateTime&gt; {
         <span class="kw">let </span>(sec, nsec) = <span class="self">self</span>.split();
-        Utc.timestamp_opt(sec, nsec)
+        NaiveDateTime::from_timestamp_opt(sec, nsec)
     }
 }
 
@@ -1506,31 +1532,33 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_to_iso8601_string() {
+        std::env::set_var(<span class="string">&quot;TZ&quot;</span>, <span class="string">&quot;Asia/Shanghai&quot;</span>);
         <span class="kw">let </span>datetime_str = <span class="string">&quot;2020-09-08 13:42:29.042+0000&quot;</span>;
         <span class="kw">let </span>ts = Timestamp::from_str(datetime_str).unwrap();
-        <span class="macro">assert_eq!</span>(datetime_str, ts.to_iso8601_string());
+        <span class="macro">assert_eq!</span>(<span class="string">&quot;2020-09-08 21:42:29.042+0800&quot;</span>, ts.to_iso8601_string());
 
         <span class="kw">let </span>ts_millis = <span class="number">1668070237000</span>;
         <span class="kw">let </span>ts = Timestamp::new_millisecond(ts_millis);
-        <span class="macro">assert_eq!</span>(<span class="string">&quot;2022-11-10 08:50:37+0000&quot;</span>, ts.to_iso8601_string());
+        <span class="macro">assert_eq!</span>(<span class="string">&quot;2022-11-10 16:50:37+0800&quot;</span>, ts.to_iso8601_string());
 
         <span class="kw">let </span>ts_millis = -<span class="number">1000</span>;
         <span class="kw">let </span>ts = Timestamp::new_millisecond(ts_millis);
-        <span class="macro">assert_eq!</span>(<span class="string">&quot;1969-12-31 23:59:59+0000&quot;</span>, ts.to_iso8601_string());
+        <span class="macro">assert_eq!</span>(<span class="string">&quot;1970-01-01 07:59:59+0800&quot;</span>, ts.to_iso8601_string());
 
         <span class="kw">let </span>ts_millis = -<span class="number">1</span>;
         <span class="kw">let </span>ts = Timestamp::new_millisecond(ts_millis);
-        <span class="macro">assert_eq!</span>(<span class="string">&quot;1969-12-31 23:59:59.999+0000&quot;</span>, ts.to_iso8601_string());
+        <span class="macro">assert_eq!</span>(<span class="string">&quot;1970-01-01 07:59:59.999+0800&quot;</span>, ts.to_iso8601_string());
 
         <span class="kw">let </span>ts_millis = -<span class="number">1001</span>;
         <span class="kw">let </span>ts = Timestamp::new_millisecond(ts_millis);
-        <span class="macro">assert_eq!</span>(<span class="string">&quot;1969-12-31 23:59:58.999+0000&quot;</span>, ts.to_iso8601_string());
+        <span class="macro">assert_eq!</span>(<span class="string">&quot;1970-01-01 07:59:58.999+0800&quot;</span>, ts.to_iso8601_string());
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_serialize_to_json_value() {
+        std::env::set_var(<span class="string">&quot;TZ&quot;</span>, <span class="string">&quot;Asia/Shanghai&quot;</span>);
         <span class="macro">assert_eq!</span>(
-            <span class="string">&quot;1970-01-01 00:00:01+0000&quot;</span>,
+            <span class="string">&quot;1970-01-01 08:00:01+0800&quot;</span>,
             <span class="kw">match </span>serde_json::Value::from(Timestamp::new(<span class="number">1</span>, TimeUnit::Second)) {
                 Value::String(s) =&gt; s,
                 <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
@@ -1538,7 +1566,7 @@
         );
 
         <span class="macro">assert_eq!</span>(
-            <span class="string">&quot;1970-01-01 00:00:00.001+0000&quot;</span>,
+            <span class="string">&quot;1970-01-01 08:00:00.001+0800&quot;</span>,
             <span class="kw">match </span>serde_json::Value::from(Timestamp::new(<span class="number">1</span>, TimeUnit::Millisecond)) {
                 Value::String(s) =&gt; s,
                 <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
@@ -1546,7 +1574,7 @@
         );
 
         <span class="macro">assert_eq!</span>(
-            <span class="string">&quot;1970-01-01 00:00:00.000001+0000&quot;</span>,
+            <span class="string">&quot;1970-01-01 08:00:00.000001+0800&quot;</span>,
             <span class="kw">match </span>serde_json::Value::from(Timestamp::new(<span class="number">1</span>, TimeUnit::Microsecond)) {
                 Value::String(s) =&gt; s,
                 <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
@@ -1554,7 +1582,7 @@
         );
 
         <span class="macro">assert_eq!</span>(
-            <span class="string">&quot;1970-01-01 00:00:00.000000001+0000&quot;</span>,
+            <span class="string">&quot;1970-01-01 08:00:00.000000001+0800&quot;</span>,
             <span class="kw">match </span>serde_json::Value::from(Timestamp::new(<span class="number">1</span>, TimeUnit::Nanosecond)) {
                 Value::String(s) =&gt; s,
                 <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
@@ -1738,6 +1766,20 @@
             .unwrap();
         <span class="macro">assert_eq!</span>(<span class="number">1</span>, res.value);
         <span class="macro">assert_eq!</span>(TimeUnit::Second, res.unit);
+    }
+
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>test_parse_in_time_zone() {
+        std::env::set_var(<span class="string">&quot;TZ&quot;</span>, <span class="string">&quot;Asia/Shanghai&quot;</span>);
+        <span class="macro">assert_eq!</span>(
+            Timestamp::new(<span class="number">0</span>, TimeUnit::Nanosecond),
+            Timestamp::from_str(<span class="string">&quot;1970-01-01 08:00:00.000&quot;</span>).unwrap()
+        );
+
+        <span class="macro">assert_eq!</span>(
+            Timestamp::new(<span class="number">0</span>, TimeUnit::Second),
+            Timestamp::from_str(<span class="string">&quot;1970-01-01 08:00:00&quot;</span>).unwrap()
+        );
     }
 }
 </code></pre></div>

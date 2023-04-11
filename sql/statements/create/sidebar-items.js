@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["TIME_INDEX"],"struct":["CreateDatabase","CreateTable","PartitionEntry","Partitions"]};
+window.SIDEBAR_ITEMS = {"constant":["TIME_INDEX"],"struct":["CreateDatabase","CreateExternalTable","CreateTable","PartitionEntry","Partitions"]};

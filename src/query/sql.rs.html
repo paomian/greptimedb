@@ -350,7 +350,7 @@
 <span class="kw">const </span>COLUMN_SEMANTIC_TYPE_COLUMN: <span class="kw-2">&amp;</span>str = <span class="string">&quot;Semantic Type&quot;</span>;
 
 <span class="kw">const </span>SEMANTIC_TYPE_PRIMARY_KEY: <span class="kw-2">&amp;</span>str = <span class="string">&quot;PRIMARY KEY&quot;</span>;
-<span class="kw">const </span>SEMANTIC_TYPE_VALUE: <span class="kw-2">&amp;</span>str = <span class="string">&quot;VALUE&quot;</span>;
+<span class="kw">const </span>SEMANTIC_TYPE_FIELD: <span class="kw-2">&amp;</span>str = <span class="string">&quot;FIELD&quot;</span>;
 <span class="kw">const </span>SEMANTIC_TYPE_TIME_INDEX: <span class="kw-2">&amp;</span>str = <span class="string">&quot;TIME INDEX&quot;</span>;
 
 <span class="kw">const </span>NULLABLE_YES: <span class="kw-2">&amp;</span>str = <span class="string">&quot;YES&quot;</span>;
@@ -529,7 +529,7 @@
                 } <span class="kw">else if </span>cs.is_time_index() {
                     String::from(SEMANTIC_TYPE_TIME_INDEX)
                 } <span class="kw">else </span>{
-                    String::from(SEMANTIC_TYPE_VALUE)
+                    String::from(SEMANTIC_TYPE_FIELD)
                 }
             })
             .collect::&lt;Vec&lt;String&gt;&gt;(),
@@ -554,7 +554,7 @@
     <span class="kw">use </span><span class="kw">crate</span>::error::Result;
     <span class="kw">use </span><span class="kw">crate</span>::sql::{
         describe_table, DESCRIBE_TABLE_OUTPUT_SCHEMA, NULLABLE_NO, NULLABLE_YES,
-        SEMANTIC_TYPE_TIME_INDEX, SEMANTIC_TYPE_VALUE,
+        SEMANTIC_TYPE_FIELD, SEMANTIC_TYPE_TIME_INDEX,
     };
 
     <span class="attr">#[test]
@@ -583,7 +583,7 @@
             Arc::new(StringVector::from(<span class="macro">vec!</span>[NULLABLE_YES, NULLABLE_NO])) <span class="kw">as _</span>,
             Arc::new(StringVector::from(<span class="macro">vec!</span>[<span class="string">&quot;&quot;</span>, <span class="string">&quot;current_timestamp()&quot;</span>])) <span class="kw">as _</span>,
             Arc::new(StringVector::from(<span class="macro">vec!</span>[
-                SEMANTIC_TYPE_VALUE,
+                SEMANTIC_TYPE_FIELD,
                 SEMANTIC_TYPE_TIME_INDEX,
             ])) <span class="kw">as _</span>,
         ];

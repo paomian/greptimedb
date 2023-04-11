@@ -112,6 +112,7 @@
 <a href="#112" id="112">112</a>
 <a href="#113" id="113">113</a>
 <a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -151,6 +152,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_datetime_vector() {
+        std::env::set_var(<span class="string">&quot;TZ&quot;</span>, <span class="string">&quot;Asia/Shanghai&quot;</span>);
         <span class="kw">let </span>v = DateTimeVector::new(PrimitiveArray::from_slice([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]));
         <span class="macro">assert_eq!</span>(ConcreteDataType::datetime_datatype(), v.data_type());
         <span class="macro">assert_eq!</span>(<span class="number">3</span>, v.len());
@@ -177,7 +179,7 @@
             <span class="macro">unreachable!</span>()
         }
         <span class="macro">assert_eq!</span>(
-            <span class="string">&quot;[\&quot;1970-01-01 00:00:01\&quot;,\&quot;1970-01-01 00:00:02\&quot;,\&quot;1970-01-01 00:00:03\&quot;]&quot;</span>,
+            <span class="string">&quot;[\&quot;1970-01-01 08:00:01+0800\&quot;,\&quot;1970-01-01 08:00:02+0800\&quot;,\&quot;1970-01-01 08:00:03+0800\&quot;]&quot;</span>,
             serde_json::to_string(<span class="kw-2">&amp;</span>v.serialize_to_json().unwrap()).unwrap()
         );
     }

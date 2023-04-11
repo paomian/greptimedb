@@ -811,6 +811,18 @@
 <a href="#811" id="811">811</a>
 <a href="#812" id="812">812</a>
 <a href="#813" id="813">813</a>
+<a href="#814" id="814">814</a>
+<a href="#815" id="815">815</a>
+<a href="#816" id="816">816</a>
+<a href="#817" id="817">817</a>
+<a href="#818" id="818">818</a>
+<a href="#819" id="819">819</a>
+<a href="#820" id="820">820</a>
+<a href="#821" id="821">821</a>
+<a href="#822" id="822">822</a>
+<a href="#823" id="823">823</a>
+<a href="#824" id="824">824</a>
+<a href="#825" id="825">825</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1008,6 +1020,7 @@
     table_id: <span class="prelude-ty">Option</span>&lt;TableId&gt;,
     table_name: <span class="kw-2">&amp;</span>str,
     columns: <span class="kw-2">&amp;</span>[Column],
+    engine: <span class="kw-2">&amp;</span>str,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;CreateTableExpr&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>new_columns: HashSet&lt;String&gt; = HashSet::default();
     <span class="kw">let </span><span class="kw-2">mut </span>column_defs = Vec::default();
@@ -1069,7 +1082,8 @@
         table_options: Default::default(),
         table_id: table_id.map(|id| api::v1::TableId { id }),
         region_ids: <span class="macro">vec!</span>[<span class="number">0</span>], <span class="comment">// TODO:(hl): region id should be allocated by frontend
-    </span>};
+        </span>engine: engine.to_string(),
+    };
 
     <span class="prelude-val">Ok</span>(expr)
 }
@@ -1268,6 +1282,7 @@
     <span class="kw">use </span>api::v1::column::{<span class="self">self</span>, SemanticType, Values};
     <span class="kw">use </span>api::v1::{Column, ColumnDataType};
     <span class="kw">use </span>common_base::BitVec;
+    <span class="kw">use </span>common_catalog::consts::MITO_ENGINE;
     <span class="kw">use </span>common_query::physical_plan::PhysicalPlanRef;
     <span class="kw">use </span>common_query::prelude::Expr;
     <span class="kw">use </span>common_time::timestamp::Timestamp;
@@ -1306,13 +1321,22 @@
         <span class="kw">let </span>table_id = <span class="prelude-val">Some</span>(<span class="number">10</span>);
         <span class="kw">let </span>table_name = <span class="string">&quot;test_metric&quot;</span>;
 
-        <span class="macro">assert!</span>(build_create_expr_from_insertion(<span class="string">&quot;&quot;</span>, <span class="string">&quot;&quot;</span>, table_id, table_name, <span class="kw-2">&amp;</span>[]).is_err());
+        <span class="macro">assert!</span>(
+            build_create_expr_from_insertion(<span class="string">&quot;&quot;</span>, <span class="string">&quot;&quot;</span>, table_id, table_name, <span class="kw-2">&amp;</span>[], MITO_ENGINE)
+                .is_err()
+        );
 
         <span class="kw">let </span>insert_batch = mock_insert_batch();
 
-        <span class="kw">let </span>create_expr =
-            build_create_expr_from_insertion(<span class="string">&quot;&quot;</span>, <span class="string">&quot;&quot;</span>, table_id, table_name, <span class="kw-2">&amp;</span>insert_batch.<span class="number">0</span>)
-                .unwrap();
+        <span class="kw">let </span>create_expr = build_create_expr_from_insertion(
+            <span class="string">&quot;&quot;</span>,
+            <span class="string">&quot;&quot;</span>,
+            table_id,
+            table_name,
+            <span class="kw-2">&amp;</span>insert_batch.<span class="number">0</span>,
+            MITO_ENGINE,
+        )
+        .unwrap();
 
         <span class="macro">assert_eq!</span>(table_id, create_expr.table_id.map(|x| x.id));
         <span class="macro">assert_eq!</span>(table_name, create_expr.table_name);

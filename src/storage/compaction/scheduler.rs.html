@@ -111,6 +111,25 @@
 <a href="#111" id="111">111</a>
 <a href="#112" id="112">112</a>
 <a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -128,12 +147,14 @@
 </span><span class="kw">use </span>std::sync::Arc;
 <span class="kw">use </span>std::time::Duration;
 
+<span class="kw">use </span>common_base::readable_size::ReadableSize;
 <span class="kw">use </span>common_telemetry::{debug, error, info};
 <span class="kw">use </span>store_api::logstore::LogStore;
 <span class="kw">use </span>store_api::storage::RegionId;
+<span class="kw">use </span>tokio::sync::oneshot::Sender;
 <span class="kw">use </span>tokio::sync::Notify;
 
-<span class="kw">use </span><span class="kw">crate</span>::compaction::picker::{Picker, PickerContext};
+<span class="kw">use </span><span class="kw">crate</span>::compaction::picker::Picker;
 <span class="kw">use </span><span class="kw">crate</span>::compaction::task::CompactionTask;
 <span class="kw">use </span><span class="kw">crate</span>::error::Result;
 <span class="kw">use </span><span class="kw">crate</span>::manifest::region::RegionManifest;
@@ -152,6 +173,13 @@
     </span><span class="kw">fn </span>key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; RegionId {
         <span class="self">self</span>.region_id
     }
+
+    <span class="kw">fn </span>complete(<span class="self">self</span>, result: <span class="prelude-ty">Result</span>&lt;()&gt;) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(sender) = <span class="self">self</span>.sender {
+            <span class="comment">// We don&#39;t care the send result as
+            </span><span class="kw">let _ </span>= sender.send(result);
+        }
+    }
 }
 
 <span class="doccomment">/// Region compaction request.
@@ -163,6 +191,11 @@
     <span class="kw">pub </span>manifest: RegionManifest,
     <span class="kw">pub </span>wal: Wal&lt;S&gt;,
     <span class="kw">pub </span>ttl: <span class="prelude-ty">Option</span>&lt;Duration&gt;,
+    <span class="kw">pub </span>compaction_time_window: <span class="prelude-ty">Option</span>&lt;i64&gt;,
+    <span class="doccomment">/// Compaction result sender.
+    </span><span class="kw">pub </span>sender: <span class="prelude-ty">Option</span>&lt;Sender&lt;<span class="prelude-ty">Result</span>&lt;()&gt;&gt;&gt;,
+
+    <span class="kw">pub </span>sst_write_buffer_size: ReadableSize,
 }
 
 <span class="kw">impl</span>&lt;S: LogStore&gt; CompactionRequestImpl&lt;S&gt; {
@@ -201,8 +234,9 @@
         finish_notifier: Arc&lt;Notify&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="kw">let </span>region_id = req.key();
-        <span class="kw">let </span><span class="prelude-val">Some</span>(task) = <span class="self">self</span>.picker.pick(<span class="kw-2">&amp;</span>PickerContext {}, <span class="kw-2">&amp;</span>req)<span class="question-mark">? </span><span class="kw">else </span>{
+        <span class="kw">let </span><span class="prelude-val">Some</span>(task) = <span class="self">self</span>.picker.pick(<span class="kw-2">&amp;</span>req)<span class="question-mark">? </span><span class="kw">else </span>{
             <span class="macro">info!</span>(<span class="string">&quot;No file needs compaction in region: {:?}&quot;</span>, region_id);
+            req.complete(<span class="prelude-val">Ok</span>(()));
             <span class="kw">return </span><span class="prelude-val">Ok</span>(());
         };
 
@@ -212,8 +246,12 @@
             <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = task.run().<span class="kw">await </span>{
                 <span class="comment">// TODO(hl): maybe resubmit compaction task on failure?
                 </span><span class="macro">error!</span>(e; <span class="string">&quot;Failed to compact region: {:?}&quot;</span>, region_id);
+
+                req.complete(<span class="prelude-val">Err</span>(e));
             } <span class="kw">else </span>{
                 <span class="macro">info!</span>(<span class="string">&quot;Successfully compacted region: {:?}&quot;</span>, region_id);
+
+                req.complete(<span class="prelude-val">Ok</span>(()));
             }
             <span class="comment">// releases rate limit token
             </span>token.try_release();

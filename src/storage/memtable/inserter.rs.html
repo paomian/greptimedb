@@ -389,7 +389,7 @@
     <span class="kw">fn </span>new_region_schema() -&gt; RegionSchemaRef {
         <span class="kw">let </span>desc = RegionDescBuilder::new(<span class="string">&quot;test&quot;</span>)
             .timestamp((<span class="string">&quot;ts&quot;</span>, LogicalTypeId::TimestampMillisecond, <span class="bool-val">false</span>))
-            .push_value_column((<span class="string">&quot;value&quot;</span>, LogicalTypeId::Int64, <span class="bool-val">true</span>))
+            .push_field_column((<span class="string">&quot;value&quot;</span>, LogicalTypeId::Int64, <span class="bool-val">true</span>))
             .enable_version_column(<span class="bool-val">false</span>)
             .build();
         <span class="kw">let </span>metadata: RegionMetadata = desc.try_into().unwrap();

@@ -218,7 +218,7 @@
 
     <span class="kw">for </span>table_name <span class="kw">in </span>table_names {
         <span class="kw">let </span>resolved_name = table_provider
-            .resolve_table_ref(table_name.as_table_reference())
+            .resolve_table_ref(table_name.clone())
             .context(CatalogSnafu)<span class="question-mark">?</span>;
 
         <span class="kw">if let </span>Entry::Vacant(v) = tables.entry(resolved_name.to_string()) {

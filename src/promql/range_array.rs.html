@@ -397,6 +397,19 @@
 <a href="#397" id="397">397</a>
 <a href="#398" id="398">398</a>
 <a href="#399" id="399">399</a>
+<a href="#400" id="400">400</a>
+<a href="#401" id="401">401</a>
+<a href="#402" id="402">402</a>
+<a href="#403" id="403">403</a>
+<a href="#404" id="404">404</a>
+<a href="#405" id="405">405</a>
+<a href="#406" id="406">406</a>
+<a href="#407" id="407">407</a>
+<a href="#408" id="408">408</a>
+<a href="#409" id="409">409</a>
+<a href="#410" id="410">410</a>
+<a href="#411" id="411">411</a>
+<a href="#412" id="412">412</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -413,7 +426,8 @@
 
 //！An extended &quot;array&quot; based on [DictionaryArray].
 
-</span><span class="kw">use </span>datafusion::arrow::datatypes::Field;
+</span><span class="kw">use </span>datafusion::arrow::buffer::NullBuffer;
+<span class="kw">use </span>datafusion::arrow::datatypes::Field;
 <span class="kw">use </span>datatypes::arrow::array::{Array, ArrayData, ArrayRef, DictionaryArray, Int64Array};
 <span class="kw">use </span>datatypes::arrow::datatypes::{DataType, Int64Type};
 <span class="kw">use </span>snafu::{ensure, OptionExt};
@@ -523,10 +537,10 @@
         .len(key_array.len())
         .add_buffer(key_array.data().buffers()[<span class="number">0</span>].clone())
         .add_child_data(values.data().clone());
-        <span class="kw">match </span>key_array.data().null_buffer() {
+        <span class="kw">match </span>key_array.data().nulls() {
             <span class="prelude-val">Some</span>(buffer) <span class="kw">if </span>key_array.data().null_count() &gt; <span class="number">0 </span>=&gt; {
                 data = data
-                    .null_bit_buffer(<span class="prelude-val">Some</span>(buffer.clone()))
+                    .nulls(<span class="prelude-val">Some</span>(buffer.clone()))
                     .null_count(key_array.data().null_count());
             }
             <span class="kw">_ </span>=&gt; data = data.null_count(<span class="number">0</span>),
@@ -621,6 +635,18 @@
 
     <span class="kw">fn </span>into_data(<span class="self">self</span>) -&gt; ArrayData {
         <span class="self">self</span>.array.into_data()
+    }
+
+    <span class="kw">fn </span>to_data(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ArrayData {
+        <span class="self">self</span>.array.to_data()
+    }
+
+    <span class="kw">fn </span>slice(<span class="kw-2">&amp;</span><span class="self">self</span>, offset: usize, length: usize) -&gt; ArrayRef {
+        <span class="self">self</span>.array.slice(offset, length)
+    }
+
+    <span class="kw">fn </span>nulls(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>NullBuffer&gt; {
+        <span class="self">self</span>.array.nulls()
     }
 }
 

@@ -60,6 +60,23 @@
 <a href="#60" id="60">60</a>
 <a href="#61" id="61">61</a>
 <a href="#62" id="62">62</a>
+<a href="#63" id="63">63</a>
+<a href="#64" id="64">64</a>
+<a href="#65" id="65">65</a>
+<a href="#66" id="66">66</a>
+<a href="#67" id="67">67</a>
+<a href="#68" id="68">68</a>
+<a href="#69" id="69">69</a>
+<a href="#70" id="70">70</a>
+<a href="#71" id="71">71</a>
+<a href="#72" id="72">72</a>
+<a href="#73" id="73">73</a>
+<a href="#74" id="74">74</a>
+<a href="#75" id="75">75</a>
+<a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -74,11 +91,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="kw">use </span>catalog::DeregisterTableRequest;
+</span><span class="kw">use </span>catalog::error::TableNotExistSnafu;
+<span class="kw">use </span>catalog::DeregisterTableRequest;
 <span class="kw">use </span>common_error::prelude::BoxedError;
 <span class="kw">use </span>common_query::Output;
 <span class="kw">use </span>common_telemetry::info;
-<span class="kw">use </span>snafu::ResultExt;
+<span class="kw">use </span>snafu::{OptionExt, ResultExt};
 <span class="kw">use </span>table::engine::{EngineContext, TableReference};
 <span class="kw">use </span>table::requests::DropTableRequest;
 
@@ -100,20 +118,36 @@
         };
         <span class="kw">let </span>table_full_name = table_reference.to_string();
 
+        <span class="kw">let </span>table = <span class="self">self
+            </span>.catalog_manager
+            .table(<span class="kw-2">&amp;</span>req.catalog_name, <span class="kw-2">&amp;</span>req.schema_name, <span class="kw-2">&amp;</span>req.table_name)
+            .<span class="kw">await
+            </span>.context(error::CatalogSnafu)<span class="question-mark">?
+            </span>.context(TableNotExistSnafu {
+                table: <span class="kw-2">&amp;</span>table_full_name,
+            })
+            .map_err(BoxedError::new)
+            .context(error::DropTableSnafu {
+                table_name: <span class="kw-2">&amp;</span>table_full_name,
+            })<span class="question-mark">?</span>;
+
         <span class="self">self</span>.catalog_manager
             .deregister_table(deregister_table_req)
             .<span class="kw">await
             </span>.map_err(BoxedError::new)
             .context(error::DropTableSnafu {
-                table_name: table_full_name.clone(),
+                table_name: <span class="kw-2">&amp;</span>table_full_name,
             })<span class="question-mark">?</span>;
 
         <span class="kw">let </span>ctx = EngineContext {};
-        <span class="self">self</span>.table_engine()
+
+        <span class="kw">let </span>engine = <span class="self">self</span>.table_engine(table)<span class="question-mark">?</span>;
+
+        engine
             .drop_table(<span class="kw-2">&amp;</span>ctx, req)
             .<span class="kw">await
             </span>.map_err(BoxedError::new)
-            .context(error::DropTableSnafu {
+            .with_context(|<span class="kw">_</span>| error::DropTableSnafu {
                 table_name: table_full_name.clone(),
             })<span class="question-mark">?</span>;
 

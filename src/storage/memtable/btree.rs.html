@@ -666,7 +666,7 @@
             .map(|column_meta| column_meta.desc.data_type.clone());
         <span class="kw">let </span>value_data_types = <span class="self">self
             </span>.schema
-            .value_columns()
+            .field_columns()
             .map(|column_meta| column_meta.desc.data_type.clone());
 
         <span class="kw">let </span>key_columns = rows_to_vectors(
@@ -674,7 +674,7 @@
             <span class="self">self</span>.adapter.source_key_needed(),
             keys.as_slice(),
         );
-        <span class="kw">let </span>value_columns = rows_to_vectors(
+        <span class="kw">let </span>field_columns = rows_to_vectors(
             value_data_types,
             <span class="self">self</span>.adapter.source_value_needed(),
             values.as_slice(),
@@ -682,7 +682,7 @@
 
         <span class="kw">let </span>batch = <span class="self">self</span>.adapter.batch_from_parts(
             key_columns,
-            value_columns,
+            field_columns,
             Arc::new(sequences),
             Arc::new(op_types),
         )<span class="question-mark">?</span>;

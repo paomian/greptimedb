@@ -52,6 +52,21 @@
 <a href="#52" id="52">52</a>
 <a href="#53" id="53">53</a>
 <a href="#54" id="54">54</a>
+<a href="#55" id="55">55</a>
+<a href="#56" id="56">56</a>
+<a href="#57" id="57">57</a>
+<a href="#58" id="58">58</a>
+<a href="#59" id="59">59</a>
+<a href="#60" id="60">60</a>
+<a href="#61" id="61">61</a>
+<a href="#62" id="62">62</a>
+<a href="#63" id="63">63</a>
+<a href="#64" id="64">64</a>
+<a href="#65" id="65">65</a>
+<a href="#66" id="66">66</a>
+<a href="#67" id="67">67</a>
+<a href="#68" id="68">68</a>
+<a href="#69" id="69">69</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -72,7 +87,7 @@
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>table::TableRef;
 
-<span class="kw">use </span><span class="kw">crate</span>::error::Result;
+<span class="kw">use </span><span class="kw">crate</span>::error::{NotSupportedSnafu, <span class="prelude-ty">Result</span>};
 
 <span class="doccomment">/// Represents a schema, comprising a number of named tables.
 </span><span class="attr">#[async_trait]
@@ -89,15 +104,30 @@
 
     <span class="doccomment">/// If supported by the implementation, adds a new table to this schema.
     /// If a table of the same name existed before, it returns &quot;Table already exists&quot; error.
-    </span><span class="kw">fn </span>register_table(<span class="kw-2">&amp;</span><span class="self">self</span>, name: String, table: TableRef) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;TableRef&gt;&gt;;
+    </span><span class="kw">fn </span>register_table(<span class="kw-2">&amp;</span><span class="self">self</span>, name: String, _table: TableRef) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;TableRef&gt;&gt; {
+        NotSupportedSnafu {
+            op: <span class="macro">format!</span>(<span class="string">&quot;register_table({name}, &lt;table&gt;)&quot;</span>),
+        }
+        .fail()
+    }
 
     <span class="doccomment">/// If supported by the implementation, renames an existing table from this schema and returns it.
     /// If no table of that name exists, returns &quot;Table not found&quot; error.
-    </span><span class="kw">fn </span>rename_table(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str, new_name: String) -&gt; <span class="prelude-ty">Result</span>&lt;TableRef&gt;;
+    </span><span class="kw">fn </span>rename_table(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str, new_name: String) -&gt; <span class="prelude-ty">Result</span>&lt;TableRef&gt; {
+        NotSupportedSnafu {
+            op: <span class="macro">format!</span>(<span class="string">&quot;rename_table({name}, {new_name})&quot;</span>),
+        }
+        .fail()
+    }
 
     <span class="doccomment">/// If supported by the implementation, removes an existing table from this schema and returns it.
     /// If no table of that name exists, returns Ok(None).
-    </span><span class="kw">fn </span>deregister_table(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;TableRef&gt;&gt;;
+    </span><span class="kw">fn </span>deregister_table(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;TableRef&gt;&gt; {
+        NotSupportedSnafu {
+            op: <span class="macro">format!</span>(<span class="string">&quot;deregister_table({name})&quot;</span>),
+        }
+        .fail()
+    }
 
     <span class="doccomment">/// If supported by the implementation, checks the table exist in the schema provider or not.
     /// If no matched table in the schema provider, return false.

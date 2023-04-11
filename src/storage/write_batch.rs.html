@@ -610,7 +610,6 @@
 <a href="#610" id="610">610</a>
 <a href="#611" id="611">611</a>
 <a href="#612" id="612">612</a>
-<a href="#613" id="613">613</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1026,7 +1025,6 @@
 
     <span class="kw">fn </span>check_err(err: Error, msg: <span class="kw-2">&amp;</span>str) {
         <span class="macro">assert_eq!</span>(StatusCode::InvalidArguments, err.status_code());
-        <span class="macro">assert!</span>(err.backtrace_opt().is_some());
         <span class="macro">assert!</span>(
             err.to_string().contains(msg),
             <span class="string">&quot;&lt;{err}&gt; does not contain {msg}&quot;</span>,

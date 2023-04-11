@@ -182,10 +182,6 @@
 <a href="#182" id="182">182</a>
 <a href="#183" id="183">183</a>
 <a href="#184" id="184">184</a>
-<a href="#185" id="185">185</a>
-<a href="#186" id="186">186</a>
-<a href="#187" id="187">187</a>
-<a href="#188" id="188">188</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -200,18 +196,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="kw">use </span>std::io;
-<span class="kw">use </span>std::num::NonZeroUsize;
+</span><span class="kw">use </span>std::num::NonZeroUsize;
 <span class="kw">use </span>std::ops::DerefMut;
-<span class="kw">use </span>std::pin::Pin;
 <span class="kw">use </span>std::sync::Arc;
-<span class="kw">use </span>std::task::{Context, Poll};
 
 <span class="kw">use </span>async_trait::async_trait;
-<span class="kw">use </span>futures::AsyncRead;
+<span class="kw">use </span>bytes::Bytes;
 <span class="kw">use </span>lru::LruCache;
-<span class="kw">use </span>opendal::ops::<span class="kw-2">*</span>;
-<span class="kw">use </span>opendal::raw::<span class="kw-2">*</span>;
+<span class="kw">use </span>opendal::ops::{OpDelete, OpList, OpRead, OpScan, OpWrite};
+<span class="kw">use </span>opendal::raw::oio::{Read, Reader, Write};
+<span class="kw">use </span>opendal::raw::{Accessor, Layer, LayeredAccessor, RpDelete, RpList, RpRead, RpScan, RpWrite};
 <span class="kw">use </span>opendal::{ErrorKind, <span class="prelude-ty">Result</span>};
 <span class="kw">use </span>tokio::sync::Mutex;
 
@@ -256,11 +250,15 @@
     }
 }
 
+<span class="kw">use </span>opendal::raw::oio::ReadExt;
+
 <span class="attr">#[async_trait]
 </span><span class="kw">impl</span>&lt;I: Accessor, C: Accessor&gt; LayeredAccessor <span class="kw">for </span>LruCacheAccessor&lt;I, C&gt; {
     <span class="kw">type </span>Inner = I;
-    <span class="kw">type </span>Reader = output::Reader;
+    <span class="kw">type </span>Reader = Box&lt;<span class="kw">dyn </span>Read&gt;;
     <span class="kw">type </span>BlockingReader = I::BlockingReader;
+    <span class="kw">type </span>Writer = I::Writer;
+    <span class="kw">type </span>BlockingWriter = I::BlockingWriter;
     <span class="kw">type </span>Pager = I::Pager;
     <span class="kw">type </span>BlockingPager = I::BlockingPager;
 
@@ -280,17 +278,18 @@
                 lru_cache.get_or_insert(cache_path.clone(), || ());
                 <span class="prelude-val">Ok</span>(to_output_reader((rp, r)))
             }
-            <span class="prelude-val">Err</span>(err) <span class="kw">if </span>err.kind() == ErrorKind::ObjectNotFound =&gt; {
-                <span class="kw">let </span>(rp, reader) = <span class="self">self</span>.inner.read(<span class="kw-2">&amp;</span>path, args.clone()).<span class="kw">await</span><span class="question-mark">?</span>;
+            <span class="prelude-val">Err</span>(err) <span class="kw">if </span>err.kind() == ErrorKind::NotFound =&gt; {
+                <span class="kw">let </span>(rp, <span class="kw-2">mut </span>reader) = <span class="self">self</span>.inner.read(<span class="kw-2">&amp;</span>path, args.clone()).<span class="kw">await</span><span class="question-mark">?</span>;
                 <span class="kw">let </span>size = rp.clone().into_metadata().content_length();
-                <span class="kw">let _ </span>= <span class="self">self
-                    </span>.cache
-                    .write(
-                        <span class="kw-2">&amp;</span>cache_path,
-                        OpWrite::new(size),
-                        Box::new(ReadWrapper(reader)),
-                    )
-                    .<span class="kw">await</span><span class="question-mark">?</span>;
+                <span class="kw">let </span>(<span class="kw">_</span>, <span class="kw-2">mut </span>writer) = <span class="self">self</span>.cache.write(<span class="kw-2">&amp;</span>cache_path, OpWrite::new()).<span class="kw">await</span><span class="question-mark">?</span>;
+
+                <span class="comment">// TODO(hl): We can use [Writer::append](https://docs.rs/opendal/0.30.4/opendal/struct.Writer.html#method.append)
+                // here to avoid loading whole file into memory once all our backend supports `Writer`.
+                </span><span class="kw">let </span><span class="kw-2">mut </span>buf = <span class="macro">vec!</span>[<span class="number">0</span>; size <span class="kw">as </span>usize];
+                reader.read(<span class="kw-2">&amp;mut </span>buf).<span class="kw">await</span><span class="question-mark">?</span>;
+                writer.write(Bytes::from(buf)).<span class="kw">await</span><span class="question-mark">?</span>;
+                writer.close().<span class="kw">await</span><span class="question-mark">?</span>;
+
                 <span class="kw">match </span><span class="self">self</span>.cache.read(<span class="kw-2">&amp;</span>cache_path, OpRead::default()).<span class="kw">await </span>{
                     <span class="prelude-val">Ok</span>((rp, reader)) =&gt; {
                         <span class="kw">let </span>r = {
@@ -311,9 +310,9 @@
         }
     }
 
-    <span class="kw">fn </span>blocking_read(<span class="kw-2">&amp;</span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>str, args: OpRead) -&gt; <span class="prelude-ty">Result</span>&lt;(RpRead, <span class="self">Self</span>::BlockingReader)&gt; {
-        <span class="self">self</span>.inner.blocking_read(path, args)
-    }
+    <span class="kw">async fn </span>write(<span class="kw-2">&amp;</span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>str, args: OpWrite) -&gt; <span class="prelude-ty">Result</span>&lt;(RpWrite, <span class="self">Self</span>::Writer)&gt; {
+        <span class="self">self</span>.inner.write(path, args).<span class="kw">await
+    </span>}
 
     <span class="kw">async fn </span>delete(<span class="kw-2">&amp;</span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>str, args: OpDelete) -&gt; <span class="prelude-ty">Result</span>&lt;RpDelete&gt; {
         <span class="kw">let </span>path = path.to_string();
@@ -346,6 +345,14 @@
         <span class="self">self</span>.inner.scan(path, args).<span class="kw">await
     </span>}
 
+    <span class="kw">fn </span>blocking_read(<span class="kw-2">&amp;</span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>str, args: OpRead) -&gt; <span class="prelude-ty">Result</span>&lt;(RpRead, <span class="self">Self</span>::BlockingReader)&gt; {
+        <span class="self">self</span>.inner.blocking_read(path, args)
+    }
+
+    <span class="kw">fn </span>blocking_write(<span class="kw-2">&amp;</span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>str, args: OpWrite) -&gt; <span class="prelude-ty">Result</span>&lt;(RpWrite, <span class="self">Self</span>::BlockingWriter)&gt; {
+        <span class="self">self</span>.inner.blocking_write(path, args)
+    }
+
     <span class="kw">fn </span>blocking_list(<span class="kw-2">&amp;</span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>str, args: OpList) -&gt; <span class="prelude-ty">Result</span>&lt;(RpList, <span class="self">Self</span>::BlockingPager)&gt; {
         <span class="self">self</span>.inner.blocking_list(path, args)
     }
@@ -355,23 +362,8 @@
     }
 }
 
-<span class="doccomment">/// TODO: Workaround for output::Read doesn&#39;t implement input::Read
-///
-/// Should be remove after opendal fixed it.
-</span><span class="kw">struct </span>ReadWrapper&lt;R&gt;(R);
-
-<span class="kw">impl</span>&lt;R: output::Read&gt; AsyncRead <span class="kw">for </span>ReadWrapper&lt;R&gt; {
-    <span class="kw">fn </span>poll_read(
-        <span class="kw-2">mut </span><span class="self">self</span>: Pin&lt;<span class="kw-2">&amp;mut </span><span class="self">Self</span>&gt;,
-        cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
-        buf: <span class="kw-2">&amp;mut </span>[u8],
-    ) -&gt; Poll&lt;io::Result&lt;usize&gt;&gt; {
-        <span class="self">self</span>.<span class="number">0</span>.poll_read(cx, buf)
-    }
-}
-
 <span class="attr">#[inline]
-</span><span class="kw">fn </span>to_output_reader&lt;R: output::Read + <span class="lifetime">&#39;static</span>&gt;(input: (RpRead, R)) -&gt; (RpRead, output::Reader) {
+</span><span class="kw">fn </span>to_output_reader&lt;R: Read + <span class="lifetime">&#39;static</span>&gt;(input: (RpRead, R)) -&gt; (RpRead, Reader) {
     (input.<span class="number">0</span>, Box::new(input.<span class="number">1</span>))
 }
 </code></pre></div>

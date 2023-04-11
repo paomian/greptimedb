@@ -71,15 +71,6 @@
 <a href="#71" id="71">71</a>
 <a href="#72" id="72">72</a>
 <a href="#73" id="73">73</a>
-<a href="#74" id="74">74</a>
-<a href="#75" id="75">75</a>
-<a href="#76" id="76">76</a>
-<a href="#77" id="77">77</a>
-<a href="#78" id="78">78</a>
-<a href="#79" id="79">79</a>
-<a href="#80" id="80">80</a>
-<a href="#81" id="81">81</a>
-<a href="#82" id="82">82</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -100,7 +91,7 @@
 <span class="kw">use </span>chrono::ParseError;
 <span class="kw">use </span>common_error::ext::ErrorExt;
 <span class="kw">use </span>common_error::prelude::StatusCode;
-<span class="kw">use </span>snafu::{Backtrace, ErrorCompat, Snafu};
+<span class="kw">use </span>snafu::{Location, Snafu};
 
 <span class="attr">#[derive(Debug, Snafu)]
 #[snafu(visibility(<span class="kw">pub</span>))]
@@ -108,17 +99,20 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to parse string to date, raw: {}, source: {}&quot;</span>, raw, source))]
     </span>ParseDateStr { raw: String, source: ParseError },
 
+    <span class="attr">#[snafu(display(<span class="string">&quot;Invalid date string, raw: {}&quot;</span>, raw))]
+    </span>InvalidDateStr { raw: String, location: Location },
+
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to parse a string into Timestamp, raw string: {}&quot;</span>, raw))]
-    </span>ParseTimestamp { raw: String, backtrace: Backtrace },
+    </span>ParseTimestamp { raw: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Current timestamp overflow, source: {}&quot;</span>, source))]
     </span>TimestampOverflow {
         source: TryFromIntError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Timestamp arithmetic overflow, msg: {}&quot;</span>, msg))]
-    </span>ArithmeticOverflow { msg: String, backtrace: Backtrace },
+    </span>ArithmeticOverflow { msg: String, location: Location },
 }
 
 <span class="kw">impl </span>ErrorExt <span class="kw">for </span>Error {
@@ -128,39 +122,27 @@
                 StatusCode::InvalidArguments
             }
             Error::TimestampOverflow { .. } =&gt; StatusCode::Internal,
-            Error::ArithmeticOverflow { .. } =&gt; StatusCode::InvalidArguments,
+            Error::InvalidDateStr { .. } | Error::ArithmeticOverflow { .. } =&gt; {
+                StatusCode::InvalidArguments
+            }
         }
-    }
-
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
     }
 
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {
         <span class="self">self
     </span>}
+
+    <span class="kw">fn </span>location_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;common_error::snafu::Location&gt; {
+        <span class="kw">match </span><span class="self">self </span>{
+            Error::ParseTimestamp { location, .. }
+            | Error::TimestampOverflow { location, .. }
+            | Error::ArithmeticOverflow { location, .. } =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>location),
+            Error::ParseDateStr { .. } =&gt; <span class="prelude-val">None</span>,
+            Error::InvalidDateStr { location, .. } =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>location),
+        }
+    }
 }
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
-
-<span class="attr">#[cfg(test)]
-</span><span class="kw">mod </span>tests {
-    <span class="kw">use </span>chrono::NaiveDateTime;
-    <span class="kw">use </span>snafu::ResultExt;
-
-    <span class="kw">use super</span>::<span class="kw-2">*</span>;
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>test_errors() {
-        <span class="kw">let </span>raw = <span class="string">&quot;2020-09-08T13:42:29.190855Z&quot;</span>;
-        <span class="kw">let </span>result = NaiveDateTime::parse_from_str(raw, <span class="string">&quot;%F&quot;</span>).context(ParseDateStrSnafu { raw });
-        <span class="macro">assert!</span>(<span class="macro">matches!</span>(result.err().unwrap(), Error::ParseDateStr { .. }));
-
-        <span class="macro">assert_eq!</span>(
-            <span class="string">&quot;Failed to parse a string into Timestamp, raw string: 2020-09-08T13:42:29.190855Z&quot;</span>,
-            ParseTimestampSnafu { raw }.build().to_string()
-        );
-    }
-}
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="common_time" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (34e6673a0 2023-02-25)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>

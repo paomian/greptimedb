@@ -276,6 +276,13 @@
 <a href="#276" id="276">276</a>
 <a href="#277" id="277">277</a>
 <a href="#278" id="278">278</a>
+<a href="#279" id="279">279</a>
+<a href="#280" id="280">280</a>
+<a href="#281" id="281">281</a>
+<a href="#282" id="282">282</a>
+<a href="#283" id="283">283</a>
+<a href="#284" id="284">284</a>
+<a href="#285" id="285">285</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -301,6 +308,7 @@
 <span class="kw">use </span>store_api::storage::SequenceNumber;
 
 <span class="kw">use </span><span class="kw">crate</span>::background::{Context, Job, JobHandle, JobPoolRef};
+<span class="kw">use </span><span class="kw">crate</span>::config::EngineConfig;
 <span class="kw">use </span><span class="kw">crate</span>::error::{CancelledSnafu, <span class="prelude-ty">Result</span>};
 <span class="kw">use </span><span class="kw">crate</span>::manifest::action::<span class="kw-2">*</span>;
 <span class="kw">use </span><span class="kw">crate</span>::manifest::region::RegionManifest;
@@ -452,6 +460,8 @@
     </span><span class="kw">pub </span>manifest: RegionManifest,
     <span class="doccomment">/// Callbacks that get invoked on flush success.
     </span><span class="kw">pub </span>on_success: <span class="prelude-ty">Option</span>&lt;FlushCallback&gt;,
+    <span class="doccomment">/// Storage engine config
+    </span><span class="kw">pub </span>engine_config: Arc&lt;EngineConfig&gt;,
 }
 
 <span class="kw">impl</span>&lt;S: LogStore&gt; FlushJob&lt;S&gt; {
@@ -468,6 +478,7 @@
             </span>batch_size: WRITE_ROW_GROUP_SIZE,
             ..Default::default()
         };
+
         <span class="kw">for </span>m <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.memtables {
             <span class="comment">// skip empty memtable
             </span><span class="kw">if </span>m.num_rows() == <span class="number">0 </span>{
@@ -478,30 +489,33 @@
             <span class="comment">// TODO(hl): Check if random file name already exists in meta.
             </span><span class="kw">let </span>iter = m.iter(<span class="kw-2">&amp;</span>iter_ctx)<span class="question-mark">?</span>;
             <span class="kw">let </span>sst_layer = <span class="self">self</span>.sst_layer.clone();
-
+            <span class="kw">let </span>write_options = WriteOptions {
+                sst_write_buffer_size: <span class="self">self</span>.engine_config.sst_write_buffer_size,
+            };
             futures.push(<span class="kw">async move </span>{
-                <span class="kw">let </span>SstInfo {
-                    time_range,
-                    file_size,
-                } = sst_layer
-                    .write_sst(file_id, Source::Iter(iter), <span class="kw-2">&amp;</span>WriteOptions::default())
-                    .<span class="kw">await</span><span class="question-mark">?</span>;
-
-                <span class="prelude-val">Ok</span>(FileMeta {
-                    region_id,
-                    file_id,
-                    time_range,
-                    level: <span class="number">0</span>,
-                    file_size,
-                })
+                <span class="prelude-val">Ok</span>(sst_layer
+                    .write_sst(file_id, Source::Iter(iter), <span class="kw-2">&amp;</span>write_options)
+                    .<span class="kw">await</span><span class="question-mark">?
+                    </span>.map(
+                        |SstInfo {
+                             time_range,
+                             file_size,
+                             ..
+                         }| FileMeta {
+                            region_id,
+                            file_id,
+                            time_range,
+                            level: <span class="number">0</span>,
+                            file_size,
+                        },
+                    ))
             });
         }
 
-        <span class="kw">let </span>metas = futures_util::future::join_all(futures)
-            .<span class="kw">await
+        <span class="kw">let </span>metas = futures_util::future::try_join_all(futures)
+            .<span class="kw">await</span><span class="question-mark">?
             </span>.into_iter()
-            .collect::&lt;<span class="prelude-ty">Result</span>&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;&gt;()<span class="question-mark">?
-            </span>.into_iter()
+            .flatten()
             .collect();
 
         <span class="macro">logging::info!</span>(<span class="string">&quot;Successfully flush memtables to files: {:?}&quot;</span>, metas);

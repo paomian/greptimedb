@@ -490,13 +490,13 @@
     }
 
     <span class="attr">#[inline]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>value_columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>[ColumnMetadata] {
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>field_columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>[ColumnMetadata] {
         <span class="kw-2">&amp;</span><span class="self">self</span>.columns[<span class="self">self</span>.row_key_end..<span class="self">self</span>.user_column_end]
     }
 
     <span class="doccomment">/// Returns the index of the value column according its `offset`.
     </span><span class="attr">#[inline]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>value_column_index_by_offset(<span class="kw-2">&amp;</span><span class="self">self</span>, offset: usize) -&gt; usize {
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>field_column_index_by_offset(<span class="kw-2">&amp;</span><span class="self">self</span>, offset: usize) -&gt; usize {
         <span class="self">self</span>.row_key_end + offset
     }
 

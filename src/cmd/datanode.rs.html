@@ -286,6 +286,37 @@
 <a href="#286" id="286">286</a>
 <a href="#287" id="287">287</a>
 <a href="#288" id="288">288</a>
+<a href="#289" id="289">289</a>
+<a href="#290" id="290">290</a>
+<a href="#291" id="291">291</a>
+<a href="#292" id="292">292</a>
+<a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -300,7 +331,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="kw">use </span>clap::Parser;
+</span><span class="kw">use </span>std::time::Duration;
+
+<span class="kw">use </span>clap::Parser;
 <span class="kw">use </span>common_telemetry::logging;
 <span class="kw">use </span>datanode::datanode::{
     Datanode, DatanodeOptions, FileConfig, ObjectStoreConfig, ProcedureConfig,
@@ -309,7 +342,7 @@
 <span class="kw">use </span>servers::Mode;
 <span class="kw">use </span>snafu::ResultExt;
 
-<span class="kw">use </span><span class="kw">crate</span>::error::{Error, MissingConfigSnafu, <span class="prelude-ty">Result</span>, StartDatanodeSnafu};
+<span class="kw">use </span><span class="kw">crate</span>::error::{Error, MissingConfigSnafu, <span class="prelude-ty">Result</span>, ShutdownDatanodeSnafu, StartDatanodeSnafu};
 <span class="kw">use </span><span class="kw">crate</span>::toml_loader;
 
 <span class="kw">pub struct </span>Instance {
@@ -322,8 +355,10 @@
     }
 
     <span class="kw">pub async fn </span>stop(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="comment">// TODO: handle datanode shutdown
-        </span><span class="prelude-val">Ok</span>(())
+        <span class="self">self</span>.datanode
+            .shutdown()
+            .<span class="kw">await
+            </span>.context(ShutdownDatanodeSnafu)
     }
 }
 
@@ -372,6 +407,10 @@
     </span>wal_dir: <span class="prelude-ty">Option</span>&lt;String&gt;,
     <span class="attr">#[clap(long)]
     </span>procedure_dir: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="attr">#[clap(long)]
+    </span>http_addr: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="attr">#[clap(long)]
+    </span>http_timeout: <span class="prelude-ty">Option</span>&lt;u64&gt;,
 }
 
 <span class="kw">impl </span>StartCommand {
@@ -432,16 +471,24 @@
         }
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(data_dir) = cmd.data_dir {
-            opts.storage = ObjectStoreConfig::File(FileConfig { data_dir });
+            opts.storage.store = ObjectStoreConfig::File(FileConfig { data_dir });
         }
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(wal_dir) = cmd.wal_dir {
             opts.wal.dir = wal_dir;
         }
-
         <span class="kw">if let </span><span class="prelude-val">Some</span>(procedure_dir) = cmd.procedure_dir {
             opts.procedure = <span class="prelude-val">Some</span>(ProcedureConfig::from_file_path(procedure_dir));
         }
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(http_addr) = cmd.http_addr {
+            opts.http_opts.addr = http_addr
+        }
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(http_timeout) = cmd.http_timeout {
+            opts.http_opts.timeout = Duration::from_secs(http_timeout)
+        }
+
+        <span class="comment">// Disable dashboard in datanode.
+        </span>opts.http_opts.disable_dashboard = <span class="bool-val">true</span>;
 
         <span class="prelude-val">Ok</span>(opts)
     }
@@ -453,8 +500,9 @@
     <span class="kw">use </span>std::io::Write;
     <span class="kw">use </span>std::time::Duration;
 
+    <span class="kw">use </span>common_base::readable_size::ReadableSize;
     <span class="kw">use </span>common_test_util::temp_dir::create_named_temp_file;
-    <span class="kw">use </span>datanode::datanode::{CompactionConfig, ObjectStoreConfig};
+    <span class="kw">use </span>datanode::datanode::{CompactionConfig, ObjectStoreConfig, RegionManifestConfig};
     <span class="kw">use </span>servers::Mode;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
@@ -490,10 +538,15 @@
             type = &quot;File&quot;
             data_dir = &quot;/tmp/greptimedb/data/&quot;
 
-            [compaction]
-            max_inflight_tasks = 4
-            max_files_in_level0 = 8
+            [storage.compaction]
+            max_inflight_tasks = 3
+            max_files_in_level0 = 7
             max_purge_tasks = 32
+
+            [storage.manifest]
+            checkpoint_margin = 9
+            gc_duration = &#39;7s&#39;
+            checkpoint_on_startup = true
         &quot;#</span>;
         <span class="macro">write!</span>(file, <span class="string">&quot;{}&quot;</span>, toml_str).unwrap();
 
@@ -524,9 +577,9 @@
         <span class="macro">assert_eq!</span>(<span class="number">3000</span>, timeout_millis);
         <span class="macro">assert!</span>(tcp_nodelay);
 
-        <span class="kw">match </span>options.storage {
-            ObjectStoreConfig::File(FileConfig { data_dir }) =&gt; {
-                <span class="macro">assert_eq!</span>(<span class="string">&quot;/tmp/greptimedb/data/&quot;</span>.to_string(), data_dir)
+        <span class="kw">match </span><span class="kw-2">&amp;</span>options.storage.store {
+            ObjectStoreConfig::File(FileConfig { data_dir, .. }) =&gt; {
+                <span class="macro">assert_eq!</span>(<span class="string">&quot;/tmp/greptimedb/data/&quot;</span>, data_dir)
             }
             ObjectStoreConfig::S3 { .. } =&gt; <span class="macro">unreachable!</span>(),
             ObjectStoreConfig::Oss { .. } =&gt; <span class="macro">unreachable!</span>(),
@@ -534,11 +587,20 @@
 
         <span class="macro">assert_eq!</span>(
             CompactionConfig {
-                max_inflight_tasks: <span class="number">4</span>,
-                max_files_in_level0: <span class="number">8</span>,
+                max_inflight_tasks: <span class="number">3</span>,
+                max_files_in_level0: <span class="number">7</span>,
                 max_purge_tasks: <span class="number">32</span>,
+                sst_write_buffer_size: ReadableSize::mb(<span class="number">8</span>),
             },
-            options.compaction
+            options.storage.compaction,
+        );
+        <span class="macro">assert_eq!</span>(
+            RegionManifestConfig {
+                checkpoint_margin: <span class="prelude-val">Some</span>(<span class="number">9</span>),
+                gc_duration: <span class="prelude-val">Some</span>(Duration::from_secs(<span class="number">7</span>)),
+                checkpoint_on_startup: <span class="bool-val">true</span>,
+            },
+            options.storage.manifest,
         );
     }
 

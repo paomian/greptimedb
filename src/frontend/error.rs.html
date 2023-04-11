@@ -469,16 +469,6 @@
 <a href="#469" id="469">469</a>
 <a href="#470" id="470">470</a>
 <a href="#471" id="471">471</a>
-<a href="#472" id="472">472</a>
-<a href="#473" id="473">473</a>
-<a href="#474" id="474">474</a>
-<a href="#475" id="475">475</a>
-<a href="#476" id="476">476</a>
-<a href="#477" id="477">477</a>
-<a href="#478" id="478">478</a>
-<a href="#479" id="479">479</a>
-<a href="#480" id="480">480</a>
-<a href="#481" id="481">481</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -496,6 +486,7 @@
 </span><span class="kw">use </span>std::any::Any;
 
 <span class="kw">use </span>common_error::prelude::<span class="kw-2">*</span>;
+<span class="kw">use </span>snafu::Location;
 <span class="kw">use </span>store_api::storage::RegionId;
 
 <span class="attr">#[derive(Debug, Snafu)]
@@ -544,7 +535,7 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Missing insert values&quot;</span>))]
-    </span>MissingInsertValues { backtrace: Backtrace },
+    </span>MissingInsertValues { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Column datatype error, source: {}&quot;</span>, source))]
     </span>ColumnDataType {
@@ -575,46 +566,34 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid SQL, error: {}&quot;</span>, err_msg))]
-    </span>InvalidSql {
-        err_msg: String,
-        backtrace: Backtrace,
-    },
+    </span>InvalidSql { err_msg: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Illegal Frontend state: {}&quot;</span>, err_msg))]
-    </span>IllegalFrontendState {
-        err_msg: String,
-        backtrace: Backtrace,
-    },
+    </span>IllegalFrontendState { err_msg: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Incomplete GRPC result: {}&quot;</span>, err_msg))]
-    </span>IncompleteGrpcResult {
-        err_msg: String,
-        backtrace: Backtrace,
-    },
+    </span>IncompleteGrpcResult { err_msg: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to find Datanode by region: {:?}&quot;</span>, region))]
     </span>FindDatanode {
         region: RegionId,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid InsertRequest, reason: {}&quot;</span>, reason))]
-    </span>InvalidInsertRequest {
-        reason: String,
-        backtrace: Backtrace,
-    },
+    </span>InvalidInsertRequest { reason: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Table `{}` not exist&quot;</span>, table_name))]
     </span>TableNotFound {
         table_name: String,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Column {} not found in table {}&quot;</span>, column_name, table_name))]
     </span>ColumnNotFound {
         column_name: String,
         table_name: String,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(
@@ -625,13 +604,13 @@
     </span>ColumnValuesNumberMismatch {
         columns: usize,
         values: usize,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to join task, source: {}&quot;</span>, source))]
     </span>JoinTask {
         source: common_runtime::JoinError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;General catalog error: {}&quot;</span>, source))]
@@ -661,7 +640,7 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to create table route for table {}&quot;</span>, table_name))]
     </span>CreateTableRoute {
         table_name: String,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to find table route for table {}&quot;</span>, table_name))]
@@ -695,17 +674,17 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to find catalog by name: {}&quot;</span>, catalog_name))]
     </span>CatalogNotFound {
         catalog_name: String,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to find schema, schema info: {}&quot;</span>, schema_info))]
     </span>SchemaNotFound {
         schema_info: String,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Schema {} already exists&quot;</span>, name))]
-    </span>SchemaExists { name: String, backtrace: Backtrace },
+    </span>SchemaExists { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Table occurs error, source: {}&quot;</span>, source))]
     </span>Table {
@@ -716,11 +695,11 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to find region route for table {}&quot;</span>, table_name))]
     </span>FindRegionRoute {
         table_name: String,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Cannot find primary key column by name: {}&quot;</span>, msg))]
-    </span>PrimaryKeyNotFound { msg: String, backtrace: Backtrace },
+    </span>PrimaryKeyNotFound { msg: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to execute statement, source: {}&quot;</span>, source))]
     </span>ExecuteStatement {
@@ -749,7 +728,7 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to build DataFusion logical plan, source: {}&quot;</span>, source))]
     </span>BuildDfLogicalPlan {
         source: datafusion_common::DataFusionError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;{source}&quot;</span>))]
@@ -759,7 +738,7 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Missing meta_client_options section in config&quot;</span>))]
-    </span>MissingMetasrvOpts { backtrace: Backtrace },
+    </span>MissingMetasrvOpts { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to convert AlterExpr to AlterRequest, source: {}&quot;</span>, source))]
     </span>AlterExprToRequest {
@@ -768,10 +747,10 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to find leaders when altering table, table: {}&quot;</span>, table))]
-    </span>LeaderNotFound { table: String, backtrace: Backtrace },
+    </span>LeaderNotFound { table: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Table already exists: `{}`&quot;</span>, table))]
-    </span>TableAlreadyExist { table: String, backtrace: Backtrace },
+    </span>TableAlreadyExist { table: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to encode Substrait logical plan, source: {}&quot;</span>, source))]
     </span>EncodeSubstraitLogicalPlan {
@@ -780,7 +759,7 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to found context value: {}&quot;</span>, key))]
-    </span>ContextValueNotFound { key: String, backtrace: Backtrace },
+    </span>ContextValueNotFound { key: String, location: Location },
 
     <span class="attr">#[snafu(display(
         <span class="string">&quot;Failed to build table meta for table: {}, source: {}&quot;</span>,
@@ -790,7 +769,7 @@
     </span>BuildTableMeta {
         table_name: String,
         source: table::metadata::TableMetaBuilderError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Not supported: {}&quot;</span>, feat))]
@@ -817,10 +796,7 @@
         <span class="string">&quot;No valid default value can be built automatically, column: {}&quot;</span>,
         column,
     ))]
-    </span>ColumnNoneDefaultValue {
-        column: String,
-        backtrace: Backtrace,
-    },
+    </span>ColumnNoneDefaultValue { column: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;SQL execution intercepted, source: {}&quot;</span>, source))]
     </span>SqlExecIntercepted {
@@ -852,12 +828,18 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Illegal primary keys definition: {}&quot;</span>, msg))]
-    </span>IllegalPrimaryKeysDef { msg: String, backtrace: Backtrace },
+    </span>IllegalPrimaryKeysDef { msg: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Unrecognized table option: {}&quot;</span>, source))]
     </span>UnrecognizedTableOption {
         <span class="attr">#[snafu(backtrace)]
         </span>source: table::error::Error,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to start script manager, source: {}&quot;</span>, source))]
+    </span>StartScriptManager {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: script::error::Error,
     },
 }
 
@@ -943,11 +925,9 @@
                 source.status_code()
             }
             Error::UnrecognizedTableOption { .. } =&gt; StatusCode::InvalidArguments,
-        }
-    }
 
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
+            Error::StartScriptManager { source } =&gt; source.status_code(),
+        }
     }
 
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {

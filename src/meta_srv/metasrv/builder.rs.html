@@ -155,6 +155,18 @@
 <a href="#155" id="155">155</a>
 <a href="#156" id="156">156</a>
 <a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
+<a href="#163" id="163">163</a>
+<a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -172,13 +184,16 @@
 </span><span class="kw">use </span>std::sync::atomic::AtomicBool;
 <span class="kw">use </span>std::sync::Arc;
 
+<span class="kw">use </span>common_procedure::local::{LocalManager, ManagerConfig};
+
 <span class="kw">use </span><span class="kw">crate</span>::cluster::MetaPeerClient;
 <span class="kw">use </span><span class="kw">crate</span>::handler::{
     CheckLeaderHandler, CollectStatsHandler, HeartbeatHandlerGroup, KeepLeaseHandler,
-    OnLeaderStartHandler, PersistStatsHandler, ResponseHeaderHandler,
+    OnLeaderStartHandler, PersistStatsHandler, RegionFailureHandler, ResponseHeaderHandler,
 };
 <span class="kw">use </span><span class="kw">crate</span>::lock::DistLockRef;
 <span class="kw">use </span><span class="kw">crate</span>::metasrv::{ElectionRef, MetaSrv, MetaSrvOptions, SelectorRef, TABLE_ID_SEQ};
+<span class="kw">use </span><span class="kw">crate</span>::procedure::state_store::MetaStateStore;
 <span class="kw">use </span><span class="kw">crate</span>::selector::lease_based::LeaseBasedSelector;
 <span class="kw">use </span><span class="kw">crate</span>::sequence::Sequence;
 <span class="kw">use </span><span class="kw">crate</span>::service::store::kv::{KvStoreRef, ResettableKvStoreRef};
@@ -275,6 +290,9 @@
         <span class="kw">let </span>handler_group = <span class="kw">match </span>handler_group {
             <span class="prelude-val">Some</span>(handler_group) =&gt; handler_group,
             <span class="prelude-val">None </span>=&gt; {
+                <span class="kw">let </span><span class="kw-2">mut </span>region_failure_handler = RegionFailureHandler::new(election.clone());
+                region_failure_handler.start().<span class="kw">await</span>;
+
                 <span class="kw">let </span>group = HeartbeatHandlerGroup::default();
                 <span class="kw">let </span>keep_lease_handler = KeepLeaseHandler::new(kv_store.clone());
                 group.add_handler(ResponseHeaderHandler::default()).<span class="kw">await</span>;
@@ -284,13 +302,18 @@
                 </span>group.add_handler(keep_lease_handler).<span class="kw">await</span>;
                 group.add_handler(CheckLeaderHandler::default()).<span class="kw">await</span>;
                 group.add_handler(OnLeaderStartHandler::default()).<span class="kw">await</span>;
-                group.add_handler(CollectStatsHandler::default()).<span class="kw">await</span>;
+                group.add_handler(CollectStatsHandler).<span class="kw">await</span>;
+                group.add_handler(region_failure_handler).<span class="kw">await</span>;
                 group.add_handler(PersistStatsHandler::default()).<span class="kw">await</span>;
                 group
             }
         };
 
         <span class="kw">let </span>table_id_sequence = Arc::new(Sequence::new(TABLE_ID_SEQ, <span class="number">1024</span>, <span class="number">10</span>, kv_store.clone()));
+
+        <span class="kw">let </span>config = ManagerConfig::default();
+        <span class="kw">let </span>state_store = Arc::new(MetaStateStore::new(kv_store.clone()));
+        <span class="kw">let </span>procedure_manager = Arc::new(LocalManager::new(config, state_store));
 
         MetaSrv {
             started,
@@ -303,6 +326,7 @@
             election,
             meta_peer_client,
             lock,
+            procedure_manager,
         }
     }
 }

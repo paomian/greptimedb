@@ -1402,6 +1402,22 @@
 <a href="#1402" id="1402">1402</a>
 <a href="#1403" id="1403">1403</a>
 <a href="#1404" id="1404">1404</a>
+<a href="#1405" id="1405">1405</a>
+<a href="#1406" id="1406">1406</a>
+<a href="#1407" id="1407">1407</a>
+<a href="#1408" id="1408">1408</a>
+<a href="#1409" id="1409">1409</a>
+<a href="#1410" id="1410">1410</a>
+<a href="#1411" id="1411">1411</a>
+<a href="#1412" id="1412">1412</a>
+<a href="#1413" id="1413">1413</a>
+<a href="#1414" id="1414">1414</a>
+<a href="#1415" id="1415">1415</a>
+<a href="#1416" id="1416">1416</a>
+<a href="#1417" id="1417">1417</a>
+<a href="#1418" id="1418">1418</a>
+<a href="#1419" id="1419">1419</a>
+<a href="#1420" id="1420">1420</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1425,7 +1441,7 @@
 <span class="kw">use </span>datatypes::data_type::ConcreteDataType;
 <span class="kw">use </span>datatypes::schema::{ColumnSchema, Metadata};
 <span class="kw">use </span>serde::{Deserialize, Serialize};
-<span class="kw">use </span>snafu::{ensure, OptionExt};
+<span class="kw">use </span>snafu::{ensure, Location, OptionExt};
 <span class="kw">use </span>store_api::storage::consts::{<span class="self">self</span>, ReservedColumnId};
 <span class="kw">use </span>store_api::storage::{
     AddColumn, AlterOperation, AlterRequest, ColumnDescriptor, ColumnDescriptorBuilder,
@@ -1442,16 +1458,16 @@
 #[snafu(visibility(<span class="kw">pub</span>(<span class="kw">crate</span>)))]
 </span><span class="kw">pub enum </span>Error {
     <span class="attr">#[snafu(display(<span class="string">&quot;Column name {} already exists&quot;</span>, name))]
-    </span>ColNameExists { name: String, backtrace: Backtrace },
+    </span>ColNameExists { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Column family name {} already exists&quot;</span>, name))]
-    </span>CfNameExists { name: String, backtrace: Backtrace },
+    </span>CfNameExists { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Column family id {} already exists&quot;</span>, id))]
-    </span>CfIdExists { id: ColumnId, backtrace: Backtrace },
+    </span>CfIdExists { id: ColumnId, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Column id {} already exists&quot;</span>, id))]
-    </span>ColIdExists { id: ColumnId, backtrace: Backtrace },
+    </span>ColIdExists { id: ColumnId, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to build schema, source: {}&quot;</span>, source))]
     </span>InvalidSchema {
@@ -1460,10 +1476,10 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Column name {} is reserved by the system&quot;</span>, name))]
-    </span>ReservedColumn { name: String, backtrace: Backtrace },
+    </span>ReservedColumn { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Missing timestamp key column&quot;</span>))]
-    </span>MissingTimestamp { backtrace: Backtrace },
+    </span>MissingTimestamp { location: Location },
 
     <span class="comment">// Variants for validating `AlterRequest`, which won&#39;t have a backtrace.
     </span><span class="attr">#[snafu(display(<span class="string">&quot;Expect altering metadata with version {}, given {}&quot;</span>, expect, given))]
@@ -1503,16 +1519,16 @@
         <span class="comment">// Store key and value in one string to reduce the enum size.
         </span>key_value: String,
         source: std::num::ParseIntError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Metadata of {} not found&quot;</span>, key))]
-    </span>MetaNotFound { key: String, backtrace: Backtrace },
+    </span>MetaNotFound { key: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to build column descriptor, source: {}&quot;</span>, source))]
     </span>BuildColumnDescriptor {
         source: ColumnDescriptorBuilderError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to convert from arrow schema, source: {}&quot;</span>, source))]
@@ -1522,7 +1538,7 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid internal column index in arrow schema&quot;</span>))]
-    </span>InvalidIndex { backtrace: Backtrace },
+    </span>InvalidIndex { location: Location },
 
     <span class="attr">#[snafu(display(
         <span class="string">&quot;Failed to convert arrow chunk to batch, name: {}, source: {}&quot;</span>,
@@ -1542,7 +1558,7 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid projection, {}&quot;</span>, msg))]
-    </span>InvalidProjection { msg: String, backtrace: Backtrace },
+    </span>InvalidProjection { msg: String, location: Location },
 }
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
@@ -1550,10 +1566,6 @@
 <span class="kw">impl </span>ErrorExt <span class="kw">for </span>Error {
     <span class="kw">fn </span>status_code(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StatusCode {
         StatusCode::InvalidArguments
-    }
-
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
     }
 
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>std::any::Any {
@@ -1602,6 +1614,8 @@
     <span class="kw">pub </span>columns: ColumnsMetadataRef,
     column_families: ColumnFamiliesMetadata,
     version: VersionNumber,
+    <span class="doccomment">/// Time window for compaction
+    </span>compaction_time_window: <span class="prelude-ty">Option</span>&lt;i64&gt;,
 }
 
 <span class="kw">impl </span>RegionMetadata {
@@ -1618,6 +1632,11 @@
     <span class="attr">#[inline]
     </span><span class="kw">pub fn </span>schema(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>RegionSchemaRef {
         <span class="kw-2">&amp;</span><span class="self">self</span>.schema
+    }
+
+    <span class="attr">#[inline]
+    </span><span class="kw">pub fn </span>compaction_time_window(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;i64&gt; {
+        <span class="self">self</span>.compaction_time_window
     }
 
     <span class="attr">#[inline]
@@ -1721,7 +1740,8 @@
         <span class="kw">let </span><span class="kw-2">mut </span>builder = RegionDescriptorBuilder::default()
             .id(<span class="self">self</span>.id)
             .name(<span class="kw-2">&amp;</span><span class="self">self</span>.name)
-            .row_key(row_key);
+            .row_key(row_key)
+            .compaction_time_window(<span class="self">self</span>.compaction_time_window);
 
         <span class="kw">for </span>(cf_id, cf) <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.column_families.id_to_cfs {
             <span class="kw">let </span><span class="kw-2">mut </span>cf_builder = ColumnFamilyDescriptorBuilder::default()
@@ -1754,6 +1774,7 @@
             columns: RawColumnsMetadata::from(<span class="kw-2">&amp;*</span>data.columns),
             column_families: RawColumnFamiliesMetadata::from(<span class="kw-2">&amp;</span>data.column_families),
             version: data.version,
+            compaction_time_window: data.compaction_time_window,
         }
     }
 }
@@ -1772,6 +1793,7 @@
             columns,
             column_families: raw.column_families.into(),
             version: raw.version,
+            compaction_time_window: raw.compaction_time_window,
         })
     }
 }
@@ -1898,7 +1920,7 @@
     }
 
     <span class="doccomment">/// Returns an iterator to all value columns (internal columns are excluded).
-    </span><span class="kw">pub fn </span>iter_value_columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">impl </span>Iterator&lt;Item = <span class="kw-2">&amp;</span>ColumnMetadata&gt; {
+    </span><span class="kw">pub fn </span>iter_field_columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">impl </span>Iterator&lt;Item = <span class="kw-2">&amp;</span>ColumnMetadata&gt; {
         <span class="self">self</span>.columns[<span class="self">self</span>.row_key_end..<span class="self">self</span>.user_column_end].iter()
     }
 
@@ -1917,7 +1939,7 @@
     }
 
     <span class="attr">#[inline]
-    </span><span class="kw">pub fn </span>num_value_columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
+    </span><span class="kw">pub fn </span>num_field_columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
         <span class="self">self</span>.user_column_end - <span class="self">self</span>.row_key_end
     }
 
@@ -2039,7 +2061,8 @@
             .name(desc.name)
             .id(desc.id)
             .row_key(desc.row_key)<span class="question-mark">?
-            </span>.add_column_family(desc.default_cf)<span class="question-mark">?</span>;
+            </span>.compaction_time_window(desc.compaction_time_window)
+            .add_column_family(desc.default_cf)<span class="question-mark">?</span>;
         <span class="kw">for </span>cf <span class="kw">in </span>desc.extra_cfs {
             builder = builder.add_column_family(cf)<span class="question-mark">?</span>;
         }
@@ -2096,16 +2119,16 @@
     }
 
     <span class="kw">fn </span>push_row_key_column(<span class="kw-2">&amp;mut </span><span class="self">self</span>, desc: ColumnDescriptor) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;mut </span><span class="self">Self</span>&gt; {
-        <span class="self">self</span>.push_value_column(consts::KEY_CF_ID, desc)
+        <span class="self">self</span>.push_field_column(consts::KEY_CF_ID, desc)
     }
 
-    <span class="kw">fn </span>push_value_column(
+    <span class="kw">fn </span>push_field_column(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         cf_id: ColumnFamilyId,
         desc: ColumnDescriptor,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;mut </span><span class="self">Self</span>&gt; {
         <span class="macro">ensure!</span>(
-            !is_internal_value_column(<span class="kw-2">&amp;</span>desc.name),
+            !is_internal_field_column(<span class="kw-2">&amp;</span>desc.name),
             ReservedColumnSnafu { name: <span class="kw-2">&amp;</span>desc.name }
         );
 
@@ -2195,6 +2218,7 @@
     columns_meta_builder: ColumnsMetadataBuilder,
     cfs_meta_builder: ColumnFamiliesMetadataBuilder,
     version: VersionNumber,
+    compaction_time_window: <span class="prelude-ty">Option</span>&lt;i64&gt;,
 }
 
 <span class="kw">impl </span>Default <span class="kw">for </span>RegionMetadataBuilder {
@@ -2211,6 +2235,7 @@
             columns_meta_builder: ColumnsMetadataBuilder::default(),
             cfs_meta_builder: ColumnFamiliesMetadataBuilder::default(),
             version: Schema::INITIAL_VERSION,
+            compaction_time_window: <span class="prelude-val">None</span>,
         }
     }
 
@@ -2235,6 +2260,11 @@
         <span class="prelude-val">Ok</span>(<span class="self">self</span>)
     }
 
+    <span class="kw">fn </span>compaction_time_window(<span class="kw-2">mut </span><span class="self">self</span>, compaction_time_window: <span class="prelude-ty">Option</span>&lt;i64&gt;) -&gt; <span class="self">Self </span>{
+        <span class="self">self</span>.compaction_time_window = compaction_time_window;
+        <span class="self">self
+    </span>}
+
     <span class="kw">fn </span>add_column_family(<span class="kw-2">mut </span><span class="self">self</span>, cf: ColumnFamilyDescriptor) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
         <span class="kw">let </span>column_index_start = <span class="self">self</span>.columns_meta_builder.columns.len();
         <span class="kw">let </span>column_index_end = column_index_start + cf.columns.len();
@@ -2248,7 +2278,7 @@
         <span class="self">self</span>.cfs_meta_builder.add_column_family(cf_meta)<span class="question-mark">?</span>;
 
         <span class="kw">for </span>col <span class="kw">in </span>cf.columns {
-            <span class="self">self</span>.columns_meta_builder.push_value_column(cf.cf_id, col)<span class="question-mark">?</span>;
+            <span class="self">self</span>.columns_meta_builder.push_field_column(cf.cf_id, col)<span class="question-mark">?</span>;
         }
 
         <span class="prelude-val">Ok</span>(<span class="self">self</span>)
@@ -2265,6 +2295,7 @@
             columns,
             column_families: <span class="self">self</span>.cfs_meta_builder.build(),
             version: <span class="self">self</span>.version,
+            compaction_time_window: <span class="self">self</span>.compaction_time_window,
         })
     }
 }
@@ -2303,7 +2334,7 @@
 
 <span class="doccomment">/// Returns true if this is an internal column for value column.
 </span><span class="attr">#[inline]
-</span><span class="kw">fn </span>is_internal_value_column(column_name: <span class="kw-2">&amp;</span>str) -&gt; bool {
+</span><span class="kw">fn </span>is_internal_field_column(column_name: <span class="kw-2">&amp;</span>str) -&gt; bool {
     <span class="macro">matches!</span>(
         column_name,
         consts::SEQUENCE_COLUMN_NAME | consts::OP_TYPE_COLUMN_NAME
@@ -2333,7 +2364,7 @@
             .timestamp((<span class="string">&quot;ts&quot;</span>, LogicalTypeId::TimestampMillisecond, <span class="bool-val">false</span>))
             .enable_version_column(<span class="bool-val">false</span>)
             .push_key_column((<span class="string">&quot;k1&quot;</span>, LogicalTypeId::Int32, <span class="bool-val">false</span>))
-            .push_value_column((<span class="string">&quot;v1&quot;</span>, LogicalTypeId::Float32, <span class="bool-val">true</span>))
+            .push_field_column((<span class="string">&quot;v1&quot;</span>, LogicalTypeId::Float32, <span class="bool-val">true</span>))
             .build();
 
         <span class="kw">let </span>expect_schema = schema_util::new_schema_ref(
@@ -2349,7 +2380,7 @@
         <span class="macro">assert_eq!</span>(region_name, metadata.name);
         <span class="macro">assert_eq!</span>(expect_schema, <span class="kw-2">*</span>metadata.user_schema());
         <span class="macro">assert_eq!</span>(<span class="number">2</span>, metadata.columns.num_row_key_columns());
-        <span class="macro">assert_eq!</span>(<span class="number">1</span>, metadata.columns.num_value_columns());
+        <span class="macro">assert_eq!</span>(<span class="number">1</span>, metadata.columns.num_field_columns());
     }
 
     <span class="attr">#[test]
@@ -2469,6 +2500,7 @@
             .unwrap();
         RegionMetadataBuilder::new()
             .name(TEST_REGION)
+            .compaction_time_window(<span class="prelude-val">None</span>)
             .row_key(row_key)
             .unwrap()
             .add_column_family(cf)
@@ -2504,10 +2536,10 @@
             .collect();
         <span class="macro">assert_eq!</span>([<span class="string">&quot;k1&quot;</span>, <span class="string">&quot;ts&quot;</span>], <span class="kw-2">&amp;</span>row_key_names[..]);
         <span class="comment">// 1 value column
-        </span><span class="macro">assert_eq!</span>(<span class="number">1</span>, metadata.columns.num_value_columns());
+        </span><span class="macro">assert_eq!</span>(<span class="number">1</span>, metadata.columns.num_field_columns());
         <span class="kw">let </span>value_names: Vec&lt;<span class="kw">_</span>&gt; = metadata
             .columns
-            .iter_value_columns()
+            .iter_field_columns()
             .map(|column| <span class="kw-2">&amp;</span>column.desc.name)
             .collect();
         <span class="macro">assert_eq!</span>([<span class="string">&quot;v1&quot;</span>], <span class="kw-2">&amp;</span>value_names[..]);
@@ -2555,10 +2587,10 @@
             <span class="kw-2">&amp;</span>row_key_names[..]
         );
         <span class="comment">// 1 value column
-        </span><span class="macro">assert_eq!</span>(<span class="number">1</span>, metadata.columns.num_value_columns());
+        </span><span class="macro">assert_eq!</span>(<span class="number">1</span>, metadata.columns.num_field_columns());
         <span class="kw">let </span>value_names: Vec&lt;<span class="kw">_</span>&gt; = metadata
             .columns
-            .iter_value_columns()
+            .iter_field_columns()
             .map(|column| <span class="kw-2">&amp;</span>column.desc.name)
             .collect();
         <span class="macro">assert_eq!</span>([<span class="string">&quot;v1&quot;</span>], <span class="kw-2">&amp;</span>value_names[..]);
@@ -2583,7 +2615,7 @@
         <span class="kw">let </span>builder = RegionDescBuilder::new(region_name)
             .enable_version_column(<span class="bool-val">false</span>)
             .push_key_column((<span class="string">&quot;k1&quot;</span>, LogicalTypeId::Int32, <span class="bool-val">false</span>))
-            .push_value_column((<span class="string">&quot;v1&quot;</span>, LogicalTypeId::Float32, <span class="bool-val">true</span>));
+            .push_field_column((<span class="string">&quot;v1&quot;</span>, LogicalTypeId::Float32, <span class="bool-val">true</span>));
         <span class="kw">let </span>last_column_id = builder.last_column_id();
         <span class="kw">let </span>metadata: RegionMetadata = builder.build().try_into().unwrap();
 
@@ -2620,9 +2652,9 @@
         <span class="kw">let </span>builder: RegionMetadataBuilder = RegionDescBuilder::new(region_name)
             .enable_version_column(<span class="bool-val">false</span>)
             .push_key_column((<span class="string">&quot;k1&quot;</span>, LogicalTypeId::Int32, <span class="bool-val">false</span>))
-            .push_value_column((<span class="string">&quot;v1&quot;</span>, LogicalTypeId::Float32, <span class="bool-val">true</span>))
+            .push_field_column((<span class="string">&quot;v1&quot;</span>, LogicalTypeId::Float32, <span class="bool-val">true</span>))
             .push_key_column((<span class="string">&quot;k2&quot;</span>, LogicalTypeId::Int32, <span class="bool-val">true</span>))
-            .push_value_column((<span class="string">&quot;v2&quot;</span>, LogicalTypeId::Float32, <span class="bool-val">true</span>))
+            .push_field_column((<span class="string">&quot;v2&quot;</span>, LogicalTypeId::Float32, <span class="bool-val">true</span>))
             .build()
             .try_into()
             .unwrap();
@@ -2637,8 +2669,8 @@
             .enable_version_column(<span class="bool-val">false</span>)
             .push_key_column((<span class="string">&quot;k1&quot;</span>, LogicalTypeId::Int32, <span class="bool-val">false</span>))
             .push_key_column((<span class="string">&quot;k2&quot;</span>, LogicalTypeId::Int32, <span class="bool-val">false</span>))
-            .push_value_column((<span class="string">&quot;v1&quot;</span>, LogicalTypeId::Float32, <span class="bool-val">true</span>))
-            .push_value_column((<span class="string">&quot;v2&quot;</span>, LogicalTypeId::Float32, <span class="bool-val">true</span>))
+            .push_field_column((<span class="string">&quot;v1&quot;</span>, LogicalTypeId::Float32, <span class="bool-val">true</span>))
+            .push_field_column((<span class="string">&quot;v2&quot;</span>, LogicalTypeId::Float32, <span class="bool-val">true</span>))
             .build()
             .try_into()
             .unwrap();
@@ -2661,7 +2693,7 @@
         <span class="kw">let </span>last_column_id = builder.last_column_id() + <span class="number">1</span>;
         <span class="kw">let </span>builder: RegionMetadataBuilder = builder
             .set_last_column_id(last_column_id) <span class="comment">// This id is reserved for v1
-            </span>.push_value_column((<span class="string">&quot;v2&quot;</span>, LogicalTypeId::Float32, <span class="bool-val">true</span>))
+            </span>.push_field_column((<span class="string">&quot;v2&quot;</span>, LogicalTypeId::Float32, <span class="bool-val">true</span>))
             .build()
             .try_into()
             .unwrap();
@@ -2675,8 +2707,8 @@
             .enable_version_column(<span class="bool-val">false</span>)
             .timestamp((<span class="string">&quot;ts&quot;</span>, LogicalTypeId::TimestampMillisecond, <span class="bool-val">false</span>))
             .push_key_column((<span class="string">&quot;k0&quot;</span>, LogicalTypeId::Int32, <span class="bool-val">false</span>))
-            .push_value_column((<span class="string">&quot;v0&quot;</span>, LogicalTypeId::Float32, <span class="bool-val">true</span>))
-            .push_value_column((<span class="string">&quot;v1&quot;</span>, LogicalTypeId::Float32, <span class="bool-val">true</span>));
+            .push_field_column((<span class="string">&quot;v0&quot;</span>, LogicalTypeId::Float32, <span class="bool-val">true</span>))
+            .push_field_column((<span class="string">&quot;v1&quot;</span>, LogicalTypeId::Float32, <span class="bool-val">true</span>));
         <span class="kw">let </span>last_column_id = builder.last_column_id();
         <span class="kw">let </span>metadata: RegionMetadata = builder.build().try_into().unwrap();
 

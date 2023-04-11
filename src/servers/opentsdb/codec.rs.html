@@ -309,7 +309,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::error::{<span class="self">self</span>, <span class="prelude-ty">Result</span>};
 
 <span class="kw">pub const </span>OPENTSDB_TIMESTAMP_COLUMN_NAME: <span class="kw-2">&amp;</span>str = <span class="string">&quot;greptime_timestamp&quot;</span>;
-<span class="kw">pub const </span>OPENTSDB_VALUE_COLUMN_NAME: <span class="kw-2">&amp;</span>str = <span class="string">&quot;greptime_value&quot;</span>;
+<span class="kw">pub const </span>OPENTSDB_FIELD_COLUMN_NAME: <span class="kw-2">&amp;</span>str = <span class="string">&quot;greptime_value&quot;</span>;
 
 <span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>DataPoint {
@@ -430,8 +430,8 @@
         };
         columns.push(ts_column);
 
-        <span class="kw">let </span>value_column = Column {
-            column_name: OPENTSDB_VALUE_COLUMN_NAME.to_string(),
+        <span class="kw">let </span>field_column = Column {
+            column_name: OPENTSDB_FIELD_COLUMN_NAME.to_string(),
             values: <span class="prelude-val">Some</span>(column::Values {
                 f64_values: <span class="macro">vec!</span>[<span class="self">self</span>.value],
                 ..Default::default()
@@ -440,7 +440,7 @@
             datatype: ColumnDataType::Float64 <span class="kw">as </span>i32,
             ..Default::default()
         };
-        columns.push(value_column);
+        columns.push(field_column);
 
         <span class="kw">for </span>(tagk, tagv) <span class="kw">in </span><span class="self">self</span>.tags.iter() {
             columns.push(Column {
@@ -564,7 +564,7 @@
             <span class="macro">vec!</span>[<span class="number">1000</span>]
         );
 
-        <span class="macro">assert_eq!</span>(columns[<span class="number">1</span>].column_name, OPENTSDB_VALUE_COLUMN_NAME);
+        <span class="macro">assert_eq!</span>(columns[<span class="number">1</span>].column_name, OPENTSDB_FIELD_COLUMN_NAME);
         <span class="macro">assert_eq!</span>(columns[<span class="number">1</span>].values.as_ref().unwrap().f64_values, <span class="macro">vec!</span>[<span class="number">1.0</span>]);
 
         <span class="macro">assert_eq!</span>(columns[<span class="number">2</span>].column_name, <span class="string">&quot;tagk1&quot;</span>);

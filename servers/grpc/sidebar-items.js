@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["GRPC_SERVER"],"mod":["flight"],"static":["CALLSITE","META"],"struct":["GrpcServer"]};
+window.SIDEBAR_ITEMS = {"constant":["GRPC_SERVER"],"mod":["database","flight","handler"],"static":["CALLSITE","META"],"struct":["GrpcServer","HealthCheckHandler"],"type":["TonicResult"]};

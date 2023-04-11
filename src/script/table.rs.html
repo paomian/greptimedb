@@ -247,6 +247,9 @@
 <a href="#247" id="247">247</a>
 <a href="#248" id="248">248</a>
 <a href="#249" id="249">249</a>
+<a href="#250" id="250">250</a>
+<a href="#251" id="251">251</a>
+<a href="#252" id="252">252</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -266,7 +269,9 @@
 <span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>catalog::{CatalogManagerRef, RegisterSystemTableRequest};
-<span class="kw">use </span>common_catalog::consts::{DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME, SCRIPTS_TABLE_ID};
+<span class="kw">use </span>common_catalog::consts::{
+    DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME, MITO_ENGINE, SCRIPTS_TABLE_ID,
+};
 <span class="kw">use </span>common_catalog::format_full_table_name;
 <span class="kw">use </span>common_query::Output;
 <span class="kw">use </span>common_recordbatch::util <span class="kw">as </span>record_util;
@@ -314,6 +319,7 @@
             </span>primary_key_indices: <span class="macro">vec!</span>[<span class="number">0</span>, <span class="number">1</span>],
             create_if_not_exists: <span class="bool-val">true</span>,
             table_options: TableOptions::default(),
+            engine: MITO_ENGINE.to_string(),
         };
 
         catalog_manager
@@ -416,7 +422,7 @@
 
         <span class="kw">let </span>stream = <span class="kw">match </span><span class="self">self
             </span>.query_engine
-            .execute(<span class="kw-2">&amp;</span>plan)
+            .execute(plan, QueryContext::arc())
             .<span class="kw">await
             </span>.context(FindScriptSnafu { name })<span class="question-mark">?
         </span>{
@@ -454,7 +460,7 @@
 }
 
 <span class="doccomment">/// Build scripts table
-</span><span class="kw">fn </span>build_scripts_schema() -&gt; RawSchema {
+</span><span class="kw">pub fn </span>build_scripts_schema() -&gt; RawSchema {
     <span class="kw">let </span>cols = <span class="macro">vec!</span>[
         ColumnSchema::new(
             <span class="string">&quot;schema&quot;</span>.to_string(),

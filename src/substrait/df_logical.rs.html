@@ -634,6 +634,11 @@
 <a href="#634" id="634">634</a>
 <a href="#635" id="635">635</a>
 <a href="#636" id="636">636</a>
+<a href="#637" id="637">637</a>
+<a href="#638" id="638">638</a>
+<a href="#639" id="639">639</a>
+<a href="#640" id="640">640</a>
+<a href="#641" id="641">641</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -658,9 +663,10 @@
 <span class="kw">use </span>common_catalog::format_full_table_name;
 <span class="kw">use </span>common_telemetry::debug;
 <span class="kw">use </span>datafusion::arrow::datatypes::SchemaRef <span class="kw">as </span>ArrowSchemaRef;
-<span class="kw">use </span>datafusion::common::{DFField, DFSchema, OwnedTableReference};
+<span class="kw">use </span>datafusion::common::{DFField, DFSchema};
 <span class="kw">use </span>datafusion::datasource::DefaultTableSource;
 <span class="kw">use </span>datafusion::physical_plan::project_schema;
+<span class="kw">use </span>datafusion::sql::TableReference;
 <span class="kw">use </span>datafusion_expr::{Filter, LogicalPlan, TableScan};
 <span class="kw">use </span>prost::Message;
 <span class="kw">use </span>session::context::QueryContext;
@@ -876,13 +882,13 @@
             .projection
             .map(|mask_expr| <span class="self">self</span>.convert_mask_expression(mask_expr));
 
-        <span class="kw">let </span>table_ref = OwnedTableReference::Full {
-            catalog: catalog_name.clone(),
-            schema: schema_name.clone(),
-            table: table_name.clone(),
-        };
+        <span class="kw">let </span>table_ref = TableReference::full(
+            catalog_name.clone(),
+            schema_name.clone(),
+            table_name.clone(),
+        );
         <span class="kw">let </span>adapter = table_provider
-            .resolve_table(table_ref)
+            .resolve_table(table_ref.clone())
             .<span class="kw">await
             </span>.with_context(|<span class="kw">_</span>| ResolveTableSnafu {
                 table_name: format_full_table_name(<span class="kw-2">&amp;</span>catalog_name, <span class="kw-2">&amp;</span>schema_name, <span class="kw-2">&amp;</span>table_name),
@@ -908,14 +914,13 @@
         };
 
         <span class="comment">// Calculate the projected schema
-        </span><span class="kw">let </span>qualified = <span class="kw-2">&amp;</span>format_full_table_name(<span class="kw-2">&amp;</span>catalog_name, <span class="kw-2">&amp;</span>schema_name, <span class="kw-2">&amp;</span>table_name);
-        <span class="kw">let </span>projected_schema = Arc::new(
+        </span><span class="kw">let </span>projected_schema = Arc::new(
             project_schema(<span class="kw-2">&amp;</span>stored_schema, projection.as_ref())
                 .and_then(|x| {
                     DFSchema::new_with_metadata(
                         x.fields()
                             .iter()
-                            .map(|f| DFField::from_qualified(qualified, f.clone()))
+                            .map(|f| DFField::from_qualified(table_ref.clone(), f.clone()))
                             .collect(),
                         x.metadata().clone(),
                     )
@@ -927,7 +932,7 @@
 
         <span class="comment">// TODO(ruihang): Support limit(fetch)
         </span><span class="prelude-val">Ok</span>(LogicalPlan::TableScan(TableScan {
-            table_name: qualified.to_string(),
+            table_name: table_ref,
             source: adapter,
             projection,
             projected_schema,
@@ -1034,7 +1039,6 @@
             | LogicalPlan::CreateCatalog(<span class="kw">_</span>)
             | LogicalPlan::DropView(<span class="kw">_</span>)
             | LogicalPlan::Distinct(<span class="kw">_</span>)
-            | LogicalPlan::SetVariable(<span class="kw">_</span>)
             | LogicalPlan::CreateExternalTable(<span class="kw">_</span>)
             | LogicalPlan::CreateMemoryTable(<span class="kw">_</span>)
             | LogicalPlan::DropTable(<span class="kw">_</span>)
@@ -1045,7 +1049,8 @@
             | LogicalPlan::Prepare(<span class="kw">_</span>)
             | LogicalPlan::Dml(<span class="kw">_</span>)
             | LogicalPlan::DescribeTable(<span class="kw">_</span>)
-            | LogicalPlan::Unnest(<span class="kw">_</span>) =&gt; InvalidParametersSnafu {
+            | LogicalPlan::Unnest(<span class="kw">_</span>)
+            | LogicalPlan::Statement(<span class="kw">_</span>) =&gt; InvalidParametersSnafu {
                 reason: <span class="macro">format!</span>(
                     <span class="string">&quot;Trying to convert DDL/DML plan to substrait proto, plan: {plan:?}&quot;</span>,
                 ),
@@ -1171,10 +1176,11 @@
 </span><span class="kw">mod </span>test {
     <span class="kw">use </span>catalog::local::{LocalCatalogManager, MemoryCatalogProvider, MemorySchemaProvider};
     <span class="kw">use </span>catalog::{CatalogList, CatalogProvider, RegisterTableRequest};
-    <span class="kw">use </span>common_catalog::consts::{DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME};
+    <span class="kw">use </span>common_catalog::consts::{DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME, MITO_ENGINE};
     <span class="kw">use </span>datafusion::common::{DFSchema, ToDFSchema};
     <span class="kw">use </span>datafusion_expr::TableSource;
     <span class="kw">use </span>datatypes::schema::RawSchema;
+    <span class="kw">use </span>table::engine::manager::MemoryTableEngineManager;
     <span class="kw">use </span>table::requests::CreateTableRequest;
     <span class="kw">use </span>table::test_util::{EmptyTable, MockTableEngine};
 
@@ -1185,11 +1191,11 @@
 
     <span class="kw">async fn </span>build_mock_catalog_manager() -&gt; CatalogManagerRef {
         <span class="kw">let </span>mock_table_engine = Arc::new(MockTableEngine::new());
-        <span class="kw">let </span>catalog_manager = Arc::new(
-            LocalCatalogManager::try_new(mock_table_engine)
-                .<span class="kw">await
-                </span>.unwrap(),
-        );
+        <span class="kw">let </span>engine_manager = Arc::new(MemoryTableEngineManager::alias(
+            MITO_ENGINE.to_string(),
+            mock_table_engine.clone(),
+        ));
+        <span class="kw">let </span>catalog_manager = Arc::new(LocalCatalogManager::try_new(engine_manager).<span class="kw">await</span>.unwrap());
         <span class="kw">let </span>schema_provider = Arc::new(MemorySchemaProvider::new());
         <span class="kw">let </span>catalog_provider = Arc::new(MemoryCatalogProvider::new());
         catalog_provider
@@ -1215,6 +1221,7 @@
             primary_key_indices: <span class="macro">vec!</span>[],
             create_if_not_exists: <span class="bool-val">true</span>,
             table_options: Default::default(),
+            engine: MITO_ENGINE.to_string(),
         }
     }
 
@@ -1256,10 +1263,13 @@
         <span class="kw">let </span>projected_schema =
             Arc::new(DFSchema::new_with_metadata(projected_fields, Default::default()).unwrap());
 
+        <span class="kw">let </span>table_name = TableReference::full(
+            DEFAULT_CATALOG_NAME,
+            DEFAULT_SCHEMA_NAME,
+            DEFAULT_TABLE_NAME,
+        );
         <span class="kw">let </span>table_scan_plan = LogicalPlan::TableScan(TableScan {
-            table_name: <span class="macro">format!</span>(
-                <span class="string">&quot;{DEFAULT_CATALOG_NAME}.{DEFAULT_SCHEMA_NAME}.{DEFAULT_TABLE_NAME}&quot;</span>,
-            ),
+            table_name,
             source: adapter,
             projection: <span class="prelude-val">Some</span>(projection),
             projected_schema,

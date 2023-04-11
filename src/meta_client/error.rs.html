@@ -97,18 +97,6 @@
 <a href="#97" id="97">97</a>
 <a href="#98" id="98">98</a>
 <a href="#99" id="99">99</a>
-<a href="#100" id="100">100</a>
-<a href="#101" id="101">101</a>
-<a href="#102" id="102">102</a>
-<a href="#103" id="103">103</a>
-<a href="#104" id="104">104</a>
-<a href="#105" id="105">105</a>
-<a href="#106" id="106">106</a>
-<a href="#107" id="107">107</a>
-<a href="#108" id="108">108</a>
-<a href="#109" id="109">109</a>
-<a href="#110" id="110">110</a>
-<a href="#111" id="111">111</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -124,6 +112,7 @@
 // limitations under the License.
 
 </span><span class="kw">use </span>common_error::prelude::<span class="kw-2">*</span>;
+<span class="kw">use </span>snafu::Location;
 
 <span class="attr">#[derive(Debug, Snafu)]
 #[snafu(visibility(<span class="kw">pub</span>))]
@@ -132,26 +121,23 @@
     </span>ConnectFailed {
         url: String,
         source: tonic::transport::Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Illegal GRPC client state: {}&quot;</span>, err_msg))]
-    </span>IllegalGrpcClientState {
-        err_msg: String,
-        backtrace: Backtrace,
-    },
+    </span>IllegalGrpcClientState { err_msg: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Tonic internal error, source: {}&quot;</span>, source))]
     </span>TonicStatus {
         source: tonic::Status,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to ask leader from all endpoints&quot;</span>))]
-    </span>AskLeader { backtrace: Backtrace },
+    </span>AskLeader { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;No leader, should ask leader first&quot;</span>))]
-    </span>NoLeader { backtrace: Backtrace },
+    </span>NoLeader { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to create gRPC channel, source: {}&quot;</span>, source))]
     </span>CreateChannel {
@@ -160,34 +146,28 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;{} not started&quot;</span>, name))]
-    </span>NotStarted { name: String, backtrace: Backtrace },
+    </span>NotStarted { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to send heartbeat: {}&quot;</span>, err_msg))]
-    </span>SendHeartbeat {
-        err_msg: String,
-        backtrace: Backtrace,
-    },
+    </span>SendHeartbeat { err_msg: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed create heartbeat stream to server&quot;</span>))]
-    </span>CreateHeartbeatStream { backtrace: Backtrace },
+    </span>CreateHeartbeatStream { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Route info corrupted: {}&quot;</span>, err_msg))]
-    </span>RouteInfoCorrupted {
-        err_msg: String,
-        backtrace: Backtrace,
-    },
+    </span>RouteInfoCorrupted { err_msg: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Illegal state from server, code: {}, error: {}&quot;</span>, code, err_msg))]
     </span>IllegalServerState {
         code: i32,
         err_msg: String,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to serde json, source: {}&quot;</span>, source))]
     </span>SerdeJson {
         source: serde_json::error::Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 }
 
@@ -195,10 +175,6 @@
 </span><span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
 
 <span class="kw">impl </span>ErrorExt <span class="kw">for </span>Error {
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
-    }
-
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>std::any::Any {
         <span class="self">self
     </span>}

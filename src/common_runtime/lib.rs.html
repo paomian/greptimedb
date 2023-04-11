@@ -24,6 +24,8 @@
 <a href="#24" id="24">24</a>
 <a href="#25" id="25">25</a>
 <a href="#26" id="26">26</a>
+<a href="#27" id="27">27</a>
+<a href="#28" id="28">28</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -40,7 +42,8 @@
 
 </span><span class="kw">pub mod </span>error;
 <span class="kw">mod </span>global;
-<span class="kw">pub mod </span>metric;
+<span class="kw">mod </span>metrics;
+<span class="kw">mod </span>repeated_task;
 <span class="kw">pub mod </span>runtime;
 
 <span class="kw">pub use </span>global::{
@@ -49,6 +52,7 @@
     spawn_read, spawn_write, write_runtime,
 };
 
+<span class="kw">pub use </span><span class="kw">crate</span>::repeated_task::{RepeatedTask, TaskFunction, TaskFunctionRef};
 <span class="kw">pub use </span><span class="kw">crate</span>::runtime::{Builder, JoinError, JoinHandle, Runtime};
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="common_runtime" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (34e6673a0 2023-02-25)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>

@@ -72,6 +72,23 @@
 <a href="#72" id="72">72</a>
 <a href="#73" id="73">73</a>
 <a href="#74" id="74">74</a>
+<a href="#75" id="75">75</a>
+<a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
+<a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a>
+<a href="#86" id="86">86</a>
+<a href="#87" id="87">87</a>
+<a href="#88" id="88">88</a>
+<a href="#89" id="89">89</a>
+<a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -92,9 +109,12 @@
 
 <span class="kw">use </span>common_runtime::Builder <span class="kw">as </span>RuntimeBuilder;
 <span class="kw">use </span>servers::grpc::GrpcServer;
+<span class="kw">use </span>servers::http::{HttpServer, HttpServerBuilder};
+<span class="kw">use </span>servers::metrics_handler::MetricsHandler;
 <span class="kw">use </span>servers::query_handler::grpc::ServerGrpcQueryHandlerAdaptor;
 <span class="kw">use </span>servers::server::Server;
 <span class="kw">use </span>snafu::ResultExt;
+<span class="kw">use </span>tokio::select;
 
 <span class="kw">use </span><span class="kw">crate</span>::datanode::DatanodeOptions;
 <span class="kw">use </span><span class="kw">crate</span>::error::{
@@ -107,6 +127,7 @@
 <span class="doccomment">/// All rpc services.
 </span><span class="kw">pub struct </span>Services {
     grpc_server: GrpcServer,
+    http_server: HttpServer,
 }
 
 <span class="kw">impl </span>Services {
@@ -125,6 +146,9 @@
                 <span class="prelude-val">None</span>,
                 grpc_runtime,
             ),
+            http_server: HttpServerBuilder::new(opts.http_opts.clone())
+                .with_metrics_handler(MetricsHandler)
+                .build(),
         })
     }
 
@@ -132,10 +156,15 @@
         <span class="kw">let </span>grpc_addr: SocketAddr = opts.rpc_addr.parse().context(ParseAddrSnafu {
             addr: <span class="kw-2">&amp;</span>opts.rpc_addr,
         })<span class="question-mark">?</span>;
-        <span class="self">self</span>.grpc_server
-            .start(grpc_addr)
-            .<span class="kw">await
-            </span>.context(StartServerSnafu)<span class="question-mark">?</span>;
+        <span class="kw">let </span>http_addr = opts.http_opts.addr.parse().context(ParseAddrSnafu {
+            addr: <span class="kw-2">&amp;</span>opts.http_opts.addr,
+        })<span class="question-mark">?</span>;
+        <span class="kw">let </span>grpc = <span class="self">self</span>.grpc_server.start(grpc_addr);
+        <span class="kw">let </span>http = <span class="self">self</span>.http_server.start(http_addr);
+        <span class="macro">select!</span>(
+            v = grpc =&gt; v.context(StartServerSnafu)<span class="question-mark">?</span>,
+            v = http =&gt; v.context(StartServerSnafu)<span class="question-mark">?</span>,
+        );
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -143,7 +172,12 @@
         <span class="self">self</span>.grpc_server
             .shutdown()
             .<span class="kw">await
-            </span>.context(ShutdownServerSnafu)
+            </span>.context(ShutdownServerSnafu)<span class="question-mark">?</span>;
+        <span class="self">self</span>.http_server
+            .shutdown()
+            .<span class="kw">await
+            </span>.context(ShutdownServerSnafu)<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(())
     }
 }
 </code></pre></div>

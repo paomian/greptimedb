@@ -501,6 +501,24 @@
 <a href="#501" id="501">501</a>
 <a href="#502" id="502">502</a>
 <a href="#503" id="503">503</a>
+<a href="#504" id="504">504</a>
+<a href="#505" id="505">505</a>
+<a href="#506" id="506">506</a>
+<a href="#507" id="507">507</a>
+<a href="#508" id="508">508</a>
+<a href="#509" id="509">509</a>
+<a href="#510" id="510">510</a>
+<a href="#511" id="511">511</a>
+<a href="#512" id="512">512</a>
+<a href="#513" id="513">513</a>
+<a href="#514" id="514">514</a>
+<a href="#515" id="515">515</a>
+<a href="#516" id="516">516</a>
+<a href="#517" id="517">517</a>
+<a href="#518" id="518">518</a>
+<a href="#519" id="519">519</a>
+<a href="#520" id="520">520</a>
+<a href="#521" id="521">521</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -523,7 +541,6 @@
 <span class="kw">use </span>std::sync::{Arc, Weak};
 
 <span class="kw">use </span>common_recordbatch::{RecordBatch, RecordBatches};
-<span class="kw">use </span>datatypes::arrow::array::Array;
 <span class="kw">use </span>datatypes::arrow::compute;
 <span class="kw">use </span>datatypes::data_type::{ConcreteDataType, DataType};
 <span class="kw">use </span>datatypes::schema::{ColumnSchema, Schema, SchemaRef};
@@ -538,6 +555,7 @@
 <span class="kw">use </span>rustpython_vm <span class="kw">as </span>vm;
 <span class="attr">#[cfg(test)]
 </span><span class="kw">use </span>serde::Deserialize;
+<span class="kw">use </span>session::context::QueryContext;
 <span class="kw">use </span>snafu::{OptionExt, ResultExt};
 <span class="kw">use </span>vm::builtins::{PyList, PyListRef};
 <span class="kw">use </span>vm::convert::ToPyObject;
@@ -643,7 +661,7 @@
             cols.len() == names.len() &amp;&amp; names.len() == anno.len(),
             OtherSnafu {
                 reason: <span class="macro">format!</span>(
-                    <span class="string">&quot;Unmatched length for cols({}), names({}) and anno({})&quot;</span>,
+                    <span class="string">&quot;Unmatched length for cols({}), names({}) and annotation({})&quot;</span>,
                     cols.len(),
                     names.len(),
                     anno.len()
@@ -745,15 +763,14 @@
     );
     <span class="kw">for </span>(idx, arg) <span class="kw">in </span>args.iter().enumerate() {
         <span class="kw">let </span>anno_ty = copr.arg_types[idx].clone();
-        <span class="kw">let </span>real_ty = arg.to_arrow_array().data_type().clone();
-        <span class="kw">let </span>real_ty = ConcreteDataType::from_arrow_type(<span class="kw-2">&amp;</span>real_ty);
+        <span class="kw">let </span>real_ty = arg.data_type();
         <span class="kw">let </span>arg_name = arg_names[idx].clone();
-        <span class="kw">let </span>col_idx = rb.schema.column_index_by_name(<span class="kw-2">&amp;</span>arg_name).ok_or(
+        <span class="kw">let </span>col_idx = rb.schema.column_index_by_name(<span class="kw-2">&amp;</span>arg_name).ok_or_else(|| {
             OtherSnafu {
                 reason: <span class="macro">format!</span>(<span class="string">&quot;Can&#39;t find column by name {arg_name}&quot;</span>),
             }
-            .build(),
-        )<span class="question-mark">?</span>;
+            .build()
+        })<span class="question-mark">?</span>;
         <span class="kw">let </span>is_nullable: bool = rb.schema.column_schemas()[col_idx].is_nullable();
         <span class="macro">ensure!</span>(
             anno_ty
@@ -763,11 +780,12 @@
                 .unwrap_or(<span class="bool-val">true</span>),
             OtherSnafu {
                 reason: <span class="macro">format!</span>(
-                    <span class="string">&quot;column {}&#39;s Type annotation is {:?}, but actual type is {:?}&quot;</span>,
+                    <span class="string">&quot;column {}&#39;s Type annotation is {:?}, but actual type is {:?} with nullable=={}&quot;</span>,
                     <span class="comment">// It&#39;s safe to unwrap here, we already ensure the args and types number is the same when parsing
                     </span>copr.deco_args.arg_names.as_ref().unwrap()[idx],
                     anno_ty,
-                    real_ty
+                    real_ty,
+                    is_nullable
                 )
             }
         )
@@ -838,7 +856,7 @@
 
 <span class="attr">#[cfg_attr(feature = <span class="string">&quot;pyo3_backend&quot;</span>, pyo3class(name = <span class="string">&quot;query_engine&quot;</span>))]
 #[rspyclass(module = <span class="bool-val">false</span>, name = <span class="string">&quot;query_engine&quot;</span>)]
-#[derive(Debug, PyPayload)]
+#[derive(Debug, PyPayload, Clone)]
 </span><span class="kw">pub struct </span>PyQueryEngine {
     inner: QueryEngineWeakRef,
 }
@@ -846,20 +864,33 @@
     Rb(RecordBatches),
     AffectedRows(usize),
 }
+
+<span class="kw">impl </span>PyQueryEngine {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>sql_to_rb(<span class="kw-2">&amp;</span><span class="self">self</span>, sql: String) -&gt; StdResult&lt;RecordBatch, String&gt; {
+        <span class="kw">let </span>res = <span class="self">self</span>.query_with_new_thread(sql.clone())<span class="question-mark">?</span>;
+        <span class="kw">match </span>res {
+            Either::Rb(rbs) =&gt; {
+                <span class="kw">let </span>rb = compute::concat_batches(
+                    rbs.schema().arrow_schema(),
+                    rbs.iter().map(|r| r.df_record_batch()),
+                )
+                .map_err(|e| <span class="macro">format!</span>(<span class="string">&quot;Concat batches failed for query {sql}: {e}&quot;</span>))<span class="question-mark">?</span>;
+
+                RecordBatch::try_from_df_record_batch(rbs.schema(), rb)
+                    .map_err(|e| <span class="macro">format!</span>(<span class="string">&quot;Convert datafusion record batch to record batch failed for query {sql}: {e}&quot;</span>))
+            }
+            Either::AffectedRows(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">&quot;Expect actual results from query {sql}&quot;</span>)),
+        }
+    }
+}
+
 <span class="attr">#[rspyclass]
 </span><span class="kw">impl </span>PyQueryEngine {
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>from_weakref(inner: QueryEngineWeakRef) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ inner }
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;pyo3_backend&quot;</span>)]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;Arc&lt;<span class="kw">dyn </span>QueryEngine&gt;&gt; {
-        <span class="self">self</span>.inner.<span class="number">0</span>.upgrade()
-    }
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>query_with_new_thread(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        query: <span class="prelude-ty">Option</span>&lt;Arc&lt;<span class="kw">dyn </span>QueryEngine&gt;&gt;,
-        s: String,
-    ) -&gt; StdResult&lt;Either, String&gt; {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>query_with_new_thread(<span class="kw-2">&amp;</span><span class="self">self</span>, s: String) -&gt; StdResult&lt;Either, String&gt; {
+        <span class="kw">let </span>query = <span class="self">self</span>.inner.<span class="number">0</span>.upgrade();
         <span class="kw">let </span>thread_handle = std::thread::spawn(<span class="kw">move </span>|| -&gt; std::result::Result&lt;<span class="kw">_</span>, String&gt; {
             <span class="kw">if let </span><span class="prelude-val">Some</span>(engine) = query {
                 <span class="kw">let </span>stmt = QueryLanguageParser::parse_sql(<span class="kw-2">&amp;</span>s).map_err(|e| e.to_string())<span class="question-mark">?</span>;
@@ -876,7 +907,7 @@
                         </span>.map_err(|e| e.to_string())<span class="question-mark">?</span>;
                     <span class="kw">let </span>res = engine
                         .clone()
-                        .execute(<span class="kw-2">&amp;</span>plan)
+                        .execute(plan, QueryContext::arc())
                         .<span class="kw">await
                         </span>.map_err(|e| e.to_string());
                     <span class="kw">match </span>res {
@@ -900,32 +931,37 @@
             .map_err(|e| <span class="macro">format!</span>(<span class="string">&quot;Dedicated thread for sql query panic: {e:?}&quot;</span>))<span class="question-mark">?
     </span>}
     <span class="comment">// TODO(discord9): find a better way to call sql query api, now we don&#39;t if we are in async context or not
-    </span><span class="doccomment">/// return sql query results in List[List[PyVector]], or List[usize] for AffectedRows number if no recordbatches is returned
+    </span><span class="doccomment">/// return sql query results in List[PyVector], or List[usize] for AffectedRows number if no recordbatches is returned
     </span><span class="attr">#[pymethod]
     </span><span class="kw">fn </span>sql(<span class="kw-2">&amp;</span><span class="self">self</span>, s: String, vm: <span class="kw-2">&amp;</span>VirtualMachine) -&gt; PyResult&lt;PyListRef&gt; {
-        <span class="kw">let </span>query = <span class="self">self</span>.inner.<span class="number">0</span>.upgrade();
-        <span class="self">self</span>.query_with_new_thread(query, s)
+        <span class="self">self</span>.query_with_new_thread(s)
             .map_err(|e| vm.new_system_error(e))
             .map(|rbs| <span class="kw">match </span>rbs {
                 Either::Rb(rbs) =&gt; {
-                    <span class="kw">let </span><span class="kw-2">mut </span>top_vec = Vec::with_capacity(rbs.iter().count());
-                    <span class="kw">for </span>rb <span class="kw">in </span>rbs.iter() {
-                        <span class="kw">let </span><span class="kw-2">mut </span>vec_of_vec = Vec::with_capacity(rb.columns().len());
-                        <span class="kw">for </span>v <span class="kw">in </span>rb.columns() {
-                            <span class="kw">let </span>v = PyVector::from(v.clone());
-                            vec_of_vec.push(v.to_pyobject(vm));
-                        }
-                        <span class="kw">let </span>vec_of_vec = PyList::new_ref(vec_of_vec, vm.as_ref()).to_pyobject(vm);
-                        top_vec.push(vec_of_vec);
-                    }
-                    <span class="kw">let </span>top_vec = PyList::new_ref(top_vec, vm.as_ref());
-                    top_vec
+                    <span class="kw">let </span>rb = compute::concat_batches(
+                        rbs.schema().arrow_schema(),
+                        rbs.iter().map(|rb| rb.df_record_batch()),
+                    )
+                    .map_err(|e| {
+                        vm.new_runtime_error(<span class="macro">format!</span>(<span class="string">&quot;Failed to concat batches: {e:#?}&quot;</span>))
+                    })<span class="question-mark">?</span>;
+                    <span class="kw">let </span>rb =
+                        RecordBatch::try_from_df_record_batch(rbs.schema(), rb).map_err(|e| {
+                            vm.new_runtime_error(<span class="macro">format!</span>(<span class="string">&quot;Failed to cast recordbatch: {e:#?}&quot;</span>))
+                        })<span class="question-mark">?</span>;
+                    <span class="kw">let </span>columns_vectors = rb
+                        .columns()
+                        .iter()
+                        .map(|v| PyVector::from(v.clone()).to_pyobject(vm))
+                        .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+                    <span class="prelude-val">Ok</span>(PyList::new_ref(columns_vectors, vm.as_ref()))
                 }
-                Either::AffectedRows(cnt) =&gt; {
-                    PyList::new_ref(<span class="macro">vec!</span>[vm.ctx.new_int(cnt).into()], vm.as_ref())
-                }
-            })
-    }
+                Either::AffectedRows(cnt) =&gt; <span class="prelude-val">Ok</span>(PyList::new_ref(
+                    <span class="macro">vec!</span>[vm.ctx.new_int(cnt).into()],
+                    vm.as_ref(),
+                )),
+            })<span class="question-mark">?
+    </span>}
 }
 
 <span class="doccomment">/// using a parsed `Coprocessor` struct as input to execute python code

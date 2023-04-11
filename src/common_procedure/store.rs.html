@@ -514,7 +514,7 @@
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">use </span><span class="kw">crate</span>::store::state_store::{ObjectStateStore, StateStoreRef};
 <span class="kw">use crate</span>::{BoxedProcedure, ProcedureId};
 
-<span class="kw">mod </span>state_store;
+<span class="kw">pub mod </span>state_store;
 
 <span class="doccomment">/// Serialized data of a procedure.
 </span><span class="attr">#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -736,15 +736,15 @@
     <span class="kw">use </span>async_trait::async_trait;
     <span class="kw">use </span>common_test_util::temp_dir::{create_temp_dir, TempDir};
     <span class="kw">use </span>object_store::services::Fs <span class="kw">as </span>Builder;
-    <span class="kw">use </span>object_store::ObjectStoreBuilder;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
     <span class="kw">use crate</span>::{Context, LockKey, Procedure, Status};
 
     <span class="kw">fn </span>procedure_store_for_test(dir: <span class="kw-2">&amp;</span>TempDir) -&gt; ProcedureStore {
         <span class="kw">let </span>store_dir = dir.path().to_str().unwrap();
-        <span class="kw">let </span>accessor = Builder::default().root(store_dir).build().unwrap();
-        <span class="kw">let </span>object_store = ObjectStore::new(accessor).finish();
+        <span class="kw">let </span><span class="kw-2">mut </span>builder = Builder::default();
+        builder.root(store_dir);
+        <span class="kw">let </span>object_store = ObjectStore::new(builder).unwrap().finish();
 
         ProcedureStore::from(object_store)
     }

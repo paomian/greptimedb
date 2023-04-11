@@ -138,6 +138,18 @@
 <a href="#138" id="138">138</a>
 <a href="#139" id="139">139</a>
 <a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -175,14 +187,24 @@
     <span class="kw">type </span>Request: Request;
     <span class="kw">type </span>Task: CompactionTask;
 
-    <span class="kw">fn </span>pick(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        ctx: <span class="kw-2">&amp;</span>PickerContext,
-        req: <span class="kw-2">&amp;</span><span class="self">Self</span>::Request,
-    ) -&gt; <span class="kw">crate</span>::error::Result&lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Task&gt;&gt;;
+    <span class="kw">fn </span>pick(<span class="kw-2">&amp;</span><span class="self">self</span>, req: <span class="kw-2">&amp;</span><span class="self">Self</span>::Request) -&gt; <span class="kw">crate</span>::error::Result&lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Task&gt;&gt;;
 }
 
-<span class="kw">pub struct </span>PickerContext {}
+<span class="kw">pub struct </span>PickerContext {
+    compaction_time_window: <span class="prelude-ty">Option</span>&lt;i64&gt;,
+}
+
+<span class="kw">impl </span>PickerContext {
+    <span class="kw">pub fn </span>with(compaction_time_window: <span class="prelude-ty">Option</span>&lt;i64&gt;) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            compaction_time_window,
+        }
+    }
+
+    <span class="kw">pub fn </span>compaction_time_window(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;i64&gt; {
+        <span class="self">self</span>.compaction_time_window
+    }
+}
 
 <span class="doccomment">/// L0 -&gt; L1 compaction based on time windows.
 </span><span class="kw">pub struct </span>SimplePicker&lt;S&gt; {
@@ -229,7 +251,6 @@
 
     <span class="kw">fn </span>pick(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        ctx: <span class="kw-2">&amp;</span>PickerContext,
         req: <span class="kw-2">&amp;</span>CompactionRequestImpl&lt;S&gt;,
     ) -&gt; <span class="kw">crate</span>::error::Result&lt;<span class="prelude-ty">Option</span>&lt;CompactionTaskImpl&lt;S&gt;&gt;&gt; {
         <span class="kw">let </span>levels = <span class="kw-2">&amp;</span>req.levels();
@@ -250,9 +271,10 @@
             </span>expired_ssts.iter().for_each(|f| f.mark_compacting(<span class="bool-val">true</span>));
         }
 
+        <span class="kw">let </span>ctx = <span class="kw-2">&amp;</span>PickerContext::with(req.compaction_time_window);
         <span class="kw">for </span>level_num <span class="kw">in </span><span class="number">0</span>..levels.level_num() {
             <span class="kw">let </span>level = levels.level(level_num <span class="kw">as </span>u8);
-            <span class="kw">let </span>outputs = <span class="self">self</span>.strategy.pick(ctx, level);
+            <span class="kw">let </span>(compaction_time_window, outputs) = <span class="self">self</span>.strategy.pick(ctx, level);
 
             <span class="kw">if </span>outputs.is_empty() {
                 <span class="macro">debug!</span>(<span class="string">&quot;No SST file can be compacted at level {}&quot;</span>, level_num);
@@ -272,6 +294,8 @@
                 wal: req.wal.clone(),
                 manifest: req.manifest.clone(),
                 expired_ssts,
+                sst_write_buffer_size: req.sst_write_buffer_size,
+                compaction_time_window,
             }));
         }
 

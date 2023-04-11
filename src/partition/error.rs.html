@@ -141,18 +141,6 @@
 <a href="#141" id="141">141</a>
 <a href="#142" id="142">142</a>
 <a href="#143" id="143">143</a>
-<a href="#144" id="144">144</a>
-<a href="#145" id="145">145</a>
-<a href="#146" id="146">146</a>
-<a href="#147" id="147">147</a>
-<a href="#148" id="148">148</a>
-<a href="#149" id="149">149</a>
-<a href="#150" id="150">150</a>
-<a href="#151" id="151">151</a>
-<a href="#152" id="152">152</a>
-<a href="#153" id="153">153</a>
-<a href="#154" id="154">154</a>
-<a href="#155" id="155">155</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -172,17 +160,14 @@
 <span class="kw">use </span>common_error::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>common_query::prelude::Expr;
 <span class="kw">use </span>datafusion_common::ScalarValue;
-<span class="kw">use </span>snafu::Snafu;
+<span class="kw">use </span>snafu::{Location, Snafu};
 <span class="kw">use </span>store_api::storage::RegionId;
 
 <span class="attr">#[derive(Debug, Snafu)]
 #[snafu(visibility(<span class="kw">pub</span>))]
 </span><span class="kw">pub enum </span>Error {
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to get meta info from cache, error: {}&quot;</span>, err_msg))]
-    </span>GetCache {
-        err_msg: String,
-        backtrace: Backtrace,
-    },
+    </span>GetCache { err_msg: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to request Meta, source: {}&quot;</span>, source))]
     </span>RequestMeta {
@@ -194,13 +179,13 @@
     </span>FindDatanode {
         table: String,
         region: RegionId,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to find table routes for table {}&quot;</span>, table_name))]
     </span>FindTableRoutes {
         table_name: String,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(
@@ -211,51 +196,45 @@
     </span>FindRegionRoutes {
         table_name: String,
         region_id: u64,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to serialize value to json, source: {}&quot;</span>, source))]
     </span>SerializeJson {
         source: serde_json::Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to deserialize value from json, source: {}&quot;</span>, source))]
     </span>DeserializeJson {
         source: serde_json::Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Expect {} region keys, actual {}&quot;</span>, expect, actual))]
     </span>RegionKeysSize {
         expect: usize,
         actual: usize,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to find region, reason: {}&quot;</span>, reason))]
-    </span>FindRegion {
-        reason: String,
-        backtrace: Backtrace,
-    },
+    </span>FindRegion { reason: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to find regions by filters: {:?}&quot;</span>, filters))]
     </span>FindRegions {
         filters: Vec&lt;Expr&gt;,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to find partition column: {}&quot;</span>, column_name))]
     </span>FindPartitionColumn {
         column_name: String,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid InsertRequest, reason: {}&quot;</span>, reason))]
-    </span>InvalidInsertRequest {
-        reason: String,
-        backtrace: Backtrace,
-    },
+    </span>InvalidInsertRequest { reason: String, location: Location },
 
     <span class="attr">#[snafu(display(
         <span class="string">&quot;Invalid table route data in meta, table name: {}, msg: {}&quot;</span>,
@@ -265,7 +244,7 @@
     </span>InvalidTableRouteData {
         table_name: String,
         err_msg: String,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(
@@ -297,9 +276,6 @@
             Error::ConvertScalarValue { .. } =&gt; StatusCode::Internal,
             Error::FindDatanode { .. } =&gt; StatusCode::InvalidArguments,
         }
-    }
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
     }
 
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {

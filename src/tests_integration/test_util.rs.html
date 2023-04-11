@@ -365,6 +365,17 @@
 <a href="#365" id="365">365</a>
 <a href="#366" id="366">366</a>
 <a href="#367" id="367">367</a>
+<a href="#368" id="368">368</a>
+<a href="#369" id="369">369</a>
+<a href="#370" id="370">370</a>
+<a href="#371" id="371">371</a>
+<a href="#372" id="372">372</a>
+<a href="#373" id="373">373</a>
+<a href="#374" id="374">374</a>
+<a href="#375" id="375">375</a>
+<a href="#376" id="376">376</a>
+<a href="#377" id="377">377</a>
+<a href="#378" id="378">378</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -387,25 +398,28 @@
 
 <span class="kw">use </span>axum::Router;
 <span class="kw">use </span>catalog::CatalogManagerRef;
-<span class="kw">use </span>common_catalog::consts::{DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME, MIN_USER_TABLE_ID};
+<span class="kw">use </span>common_catalog::consts::{
+    DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME, MIN_USER_TABLE_ID, MITO_ENGINE,
+};
 <span class="kw">use </span>common_runtime::Builder <span class="kw">as </span>RuntimeBuilder;
 <span class="kw">use </span>common_test_util::temp_dir::{create_temp_dir, TempDir};
 <span class="kw">use </span>datanode::datanode::{
-    DatanodeOptions, FileConfig, ObjectStoreConfig, OssConfig, S3Config, WalConfig,
+    DatanodeOptions, FileConfig, ObjectStoreConfig, OssConfig, S3Config, StorageConfig, WalConfig,
 };
 <span class="kw">use </span>datanode::error::{CreateTableSnafu, <span class="prelude-ty">Result</span>};
-<span class="kw">use </span>datanode::instance::{Instance, InstanceRef};
+<span class="kw">use </span>datanode::instance::Instance;
 <span class="kw">use </span>datanode::sql::SqlHandler;
 <span class="kw">use </span>datatypes::data_type::ConcreteDataType;
 <span class="kw">use </span>datatypes::schema::{ColumnSchema, RawSchema};
 <span class="kw">use </span>frontend::instance::Instance <span class="kw">as </span>FeInstance;
 <span class="kw">use </span>object_store::services::{Oss, S3};
 <span class="kw">use </span>object_store::test_util::TempFolder;
-<span class="kw">use </span>object_store::{ObjectStore, ObjectStoreBuilder};
+<span class="kw">use </span>object_store::ObjectStore;
 <span class="kw">use </span>once_cell::sync::OnceCell;
 <span class="kw">use </span>rand::Rng;
 <span class="kw">use </span>servers::grpc::GrpcServer;
-<span class="kw">use </span>servers::http::{HttpOptions, HttpServer};
+<span class="kw">use </span>servers::http::{HttpOptions, HttpServerBuilder};
+<span class="kw">use </span>servers::metrics_handler::MetricsHandler;
 <span class="kw">use </span>servers::prom::PromServer;
 <span class="kw">use </span>servers::query_handler::grpc::ServerGrpcQueryHandlerAdaptor;
 <span class="kw">use </span>servers::query_handler::sql::ServerSqlQueryHandlerAdaptor;
@@ -467,22 +481,20 @@
                 access_key_secret: env::var(<span class="string">&quot;GT_OSS_ACCESS_KEY&quot;</span>).unwrap(),
                 bucket: env::var(<span class="string">&quot;GT_OSS_BUCKET&quot;</span>).unwrap(),
                 endpoint: env::var(<span class="string">&quot;GT_OSS_ENDPOINT&quot;</span>).unwrap(),
-                cache_path: <span class="prelude-val">None</span>,
-                cache_capacity: <span class="prelude-val">None</span>,
+                ..Default::default()
             };
 
-            <span class="kw">let </span>accessor = Oss::default()
+            <span class="kw">let </span><span class="kw-2">mut </span>builder = Oss::default();
+            builder
                 .root(<span class="kw-2">&amp;</span>oss_config.root)
                 .endpoint(<span class="kw-2">&amp;</span>oss_config.endpoint)
                 .access_key_id(<span class="kw-2">&amp;</span>oss_config.access_key_id)
                 .access_key_secret(<span class="kw-2">&amp;</span>oss_config.access_key_secret)
-                .bucket(<span class="kw-2">&amp;</span>oss_config.bucket)
-                .build()
-                .unwrap();
+                .bucket(<span class="kw-2">&amp;</span>oss_config.bucket);
 
             <span class="kw">let </span>config = ObjectStoreConfig::Oss(oss_config);
 
-            <span class="kw">let </span>store = ObjectStore::new(accessor).finish();
+            <span class="kw">let </span>store = ObjectStore::new(builder).unwrap().finish();
 
             (
                 config,
@@ -495,23 +507,19 @@
                 access_key_id: env::var(<span class="string">&quot;GT_S3_ACCESS_KEY_ID&quot;</span>).unwrap(),
                 secret_access_key: env::var(<span class="string">&quot;GT_S3_ACCESS_KEY&quot;</span>).unwrap(),
                 bucket: env::var(<span class="string">&quot;GT_S3_BUCKET&quot;</span>).unwrap(),
-                endpoint: <span class="prelude-val">None</span>,
-                region: <span class="prelude-val">None</span>,
-                cache_path: <span class="prelude-val">None</span>,
-                cache_capacity: <span class="prelude-val">None</span>,
+                ..Default::default()
             };
 
-            <span class="kw">let </span>accessor = S3::default()
+            <span class="kw">let </span><span class="kw-2">mut </span>builder = S3::default();
+            builder
                 .root(<span class="kw-2">&amp;</span>s3_config.root)
                 .access_key_id(<span class="kw-2">&amp;</span>s3_config.access_key_id)
                 .secret_access_key(<span class="kw-2">&amp;</span>s3_config.secret_access_key)
-                .bucket(<span class="kw-2">&amp;</span>s3_config.bucket)
-                .build()
-                .unwrap();
+                .bucket(<span class="kw-2">&amp;</span>s3_config.bucket);
 
             <span class="kw">let </span>config = ObjectStoreConfig::S3(s3_config);
 
-            <span class="kw">let </span>store = ObjectStore::new(accessor).finish();
+            <span class="kw">let </span>store = ObjectStore::new(builder).unwrap().finish();
 
             (config, <span class="prelude-val">Some</span>(TempDirGuard::S3(TempFolder::new(<span class="kw-2">&amp;</span>store, <span class="string">&quot;/&quot;</span>))))
         }
@@ -558,14 +566,17 @@
 ) -&gt; (DatanodeOptions, TestGuard) {
     <span class="kw">let </span>wal_tmp_dir = create_temp_dir(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;gt_wal_{name}&quot;</span>));
 
-    <span class="kw">let </span>(storage, data_tmp_dir) = get_test_store_config(<span class="kw-2">&amp;</span>store_type, name);
+    <span class="kw">let </span>(store, data_tmp_dir) = get_test_store_config(<span class="kw-2">&amp;</span>store_type, name);
 
     <span class="kw">let </span>opts = DatanodeOptions {
         wal: WalConfig {
             dir: wal_tmp_dir.path().to_str().unwrap().to_string(),
             ..Default::default()
         },
-        storage,
+        storage: StorageConfig {
+            store,
+            ..Default::default()
+        },
         mode: Mode::Standalone,
         ..Default::default()
     };
@@ -591,7 +602,10 @@
     ];
 
     <span class="kw">let </span>table_name = <span class="string">&quot;demo&quot;</span>;
-    <span class="kw">let </span>table_engine: TableEngineRef = sql_handler.table_engine();
+    <span class="kw">let </span>table_engine: TableEngineRef = sql_handler
+        .table_engine_manager()
+        .engine(MITO_ENGINE)
+        .unwrap();
     <span class="kw">let </span>table = table_engine
         .create_table(
             <span class="kw-2">&amp;</span>EngineContext::default(),
@@ -606,6 +620,7 @@
                 primary_key_indices: <span class="macro">vec!</span>[<span class="number">0</span>], <span class="comment">// &quot;host&quot; is in primary keys
                 </span>table_options: TableOptions::default(),
                 region_numbers: <span class="macro">vec!</span>[<span class="number">0</span>],
+                engine: MITO_ENGINE.to_string(),
             },
         )
         .<span class="kw">await
@@ -624,16 +639,9 @@
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="kw">fn </span>build_frontend_instance(datanode_instance: InstanceRef) -&gt; FeInstance {
-    <span class="kw">let </span><span class="kw-2">mut </span>frontend_instance = FeInstance::new_standalone(datanode_instance.clone());
-    frontend_instance.set_script_handler(datanode_instance);
-    frontend_instance
-}
-
 <span class="kw">pub async fn </span>setup_test_http_app(store_type: StorageType, name: <span class="kw-2">&amp;</span>str) -&gt; (Router, TestGuard) {
     <span class="kw">let </span>(opts, guard) = create_tmp_dir_and_datanode_opts(store_type, name);
     <span class="kw">let </span>instance = Arc::new(Instance::with_mock_meta_client(<span class="kw-2">&amp;</span>opts).<span class="kw">await</span>.unwrap());
-    instance.start().<span class="kw">await</span>.unwrap();
     create_test_table(
         instance.catalog_manager(),
         instance.sql_handler(),
@@ -641,10 +649,17 @@
     )
     .<span class="kw">await
     </span>.unwrap();
-    <span class="kw">let </span>http_server = HttpServer::new(
-        ServerSqlQueryHandlerAdaptor::arc(Arc::new(build_frontend_instance(instance))),
-        HttpOptions::default(),
-    );
+    <span class="kw">let </span>frontend_instance = FeInstance::try_new_standalone(instance.clone())
+        .<span class="kw">await
+        </span>.unwrap();
+    instance.start().<span class="kw">await</span>.unwrap();
+    <span class="kw">let </span>http_server = HttpServerBuilder::new(HttpOptions::default())
+        .with_sql_handler(ServerSqlQueryHandlerAdaptor::arc(Arc::new(
+            frontend_instance,
+        )))
+        .with_grpc_handler(ServerGrpcQueryHandlerAdaptor::arc(instance.clone()))
+        .with_metrics_handler(MetricsHandler)
+        .build();
     (http_server.make_app(), guard)
 }
 
@@ -654,7 +669,9 @@
 ) -&gt; (Router, TestGuard) {
     <span class="kw">let </span>(opts, guard) = create_tmp_dir_and_datanode_opts(store_type, name);
     <span class="kw">let </span>instance = Arc::new(Instance::with_mock_meta_client(<span class="kw-2">&amp;</span>opts).<span class="kw">await</span>.unwrap());
-    <span class="kw">let </span>frontend = build_frontend_instance(instance.clone());
+    <span class="kw">let </span>frontend = FeInstance::try_new_standalone(instance.clone())
+        .<span class="kw">await
+        </span>.unwrap();
     instance.start().<span class="kw">await</span>.unwrap();
     create_test_table(
         frontend.catalog_manager(),
@@ -663,11 +680,12 @@
     )
     .<span class="kw">await
     </span>.unwrap();
-    <span class="kw">let </span><span class="kw-2">mut </span>http_server = HttpServer::new(
-        ServerSqlQueryHandlerAdaptor::arc(Arc::new(frontend)),
-        HttpOptions::default(),
-    );
-    http_server.set_script_handler(instance.clone());
+    <span class="kw">let </span>frontend_ref = Arc::new(frontend);
+    <span class="kw">let </span>http_server = HttpServerBuilder::new(HttpOptions::default())
+        .with_sql_handler(ServerSqlQueryHandlerAdaptor::arc(frontend_ref.clone()))
+        .with_grpc_handler(ServerGrpcQueryHandlerAdaptor::arc(frontend_ref.clone()))
+        .with_script_handler(frontend_ref)
+        .build();
     <span class="kw">let </span>app = http_server.make_app();
     (app, guard)
 }
@@ -678,7 +696,9 @@
 ) -&gt; (Router, TestGuard) {
     <span class="kw">let </span>(opts, guard) = create_tmp_dir_and_datanode_opts(store_type, name);
     <span class="kw">let </span>instance = Arc::new(Instance::with_mock_meta_client(<span class="kw-2">&amp;</span>opts).<span class="kw">await</span>.unwrap());
-    <span class="kw">let </span>frontend = build_frontend_instance(instance.clone());
+    <span class="kw">let </span>frontend = FeInstance::try_new_standalone(instance.clone())
+        .<span class="kw">await
+        </span>.unwrap();
     instance.start().<span class="kw">await</span>.unwrap();
     create_test_table(
         frontend.catalog_manager(),
@@ -700,7 +720,6 @@
 
     <span class="kw">let </span>(opts, guard) = create_tmp_dir_and_datanode_opts(store_type, name);
     <span class="kw">let </span>instance = Arc::new(Instance::with_mock_meta_client(<span class="kw-2">&amp;</span>opts).<span class="kw">await</span>.unwrap());
-    instance.start().<span class="kw">await</span>.unwrap();
 
     <span class="kw">let </span>runtime = Arc::new(
         RuntimeBuilder::default()
@@ -712,7 +731,10 @@
 
     <span class="kw">let </span>fe_grpc_addr = <span class="macro">format!</span>(<span class="string">&quot;127.0.0.1:{}&quot;</span>, get_port());
 
-    <span class="kw">let </span>fe_instance = frontend::instance::Instance::new_standalone(instance.clone());
+    <span class="kw">let </span>fe_instance = FeInstance::try_new_standalone(instance.clone())
+        .<span class="kw">await
+        </span>.unwrap();
+    instance.start().<span class="kw">await</span>.unwrap();
     <span class="kw">let </span>fe_instance_ref = Arc::new(fe_instance);
     <span class="kw">let </span>fe_grpc_server = Arc::new(GrpcServer::new(
         ServerGrpcQueryHandlerAdaptor::arc(fe_instance_ref),

@@ -145,6 +145,10 @@
 <a href="#145" id="145">145</a>
 <a href="#146" id="146">146</a>
 <a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -164,36 +168,37 @@
 <span class="kw">use </span>common_error::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>datafusion::error::DataFusionError;
 <span class="kw">use </span>promql_parser::parser::{Expr <span class="kw">as </span>PromExpr, TokenType};
+<span class="kw">use </span>snafu::Location;
 
 <span class="attr">#[derive(Debug, Snafu)]
 #[snafu(visibility(<span class="kw">pub</span>))]
 </span><span class="kw">pub enum </span>Error {
     <span class="attr">#[snafu(display(<span class="string">&quot;Unsupported expr type: {}&quot;</span>, name))]
-    </span>UnsupportedExpr { name: String, backtrace: Backtrace },
+    </span>UnsupportedExpr { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Unexpected token: {:?}&quot;</span>, token))]
     </span>UnexpectedToken {
         token: TokenType,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Internal error during build DataFusion plan, error: {}&quot;</span>, source))]
     </span>DataFusionPlanning {
         source: datafusion::error::DataFusionError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Unexpected plan or expression: {}&quot;</span>, desc))]
-    </span>UnexpectedPlanExpr { desc: String, backtrace: Backtrace },
+    </span>UnexpectedPlanExpr { desc: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Unknown table type, downcast failed&quot;</span>))]
-    </span>UnknownTable { backtrace: Backtrace },
+    </span>UnknownTable { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Cannot find time index column in table {}&quot;</span>, table))]
-    </span>TimeIndexNotFound { table: String, backtrace: Backtrace },
+    </span>TimeIndexNotFound { table: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Cannot find value columns in table {}&quot;</span>, table))]
-    </span>ValueNotFound { table: String, backtrace: Backtrace },
+    </span>ValueNotFound { table: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Cannot find the table {}&quot;</span>, table))]
     </span>TableNotFound {
@@ -205,16 +210,10 @@
         <span class="string">&quot;Cannot accept multiple vector as function input, PromQL expr: {:?}&quot;</span>,
         expr
     ))]
-    </span>MultipleVector {
-        expr: PromExpr,
-        backtrace: Backtrace,
-    },
+    </span>MultipleVector { expr: PromExpr, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Expect a PromQL expr but not found, input expr: {:?}&quot;</span>, expr))]
-    </span>ExpectExpr {
-        expr: PromExpr,
-        backtrace: Backtrace,
-    },
+    </span>ExpectExpr { expr: PromExpr, location: Location },
     <span class="attr">#[snafu(display(
         <span class="string">&quot;Illegal range: offset {}, length {}, array len {}&quot;</span>,
         offset,
@@ -225,22 +224,31 @@
         offset: u32,
         length: u32,
         len: usize,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Empty range is not expected&quot;</span>))]
-    </span>EmptyRange { backtrace: Backtrace },
+    </span>EmptyRange { location: Location },
 
     <span class="attr">#[snafu(display(
         <span class="string">&quot;Table (metric) name not found, this indicates a procedure error in PromQL planner&quot;
     </span>))]
-    </span>TableNameNotFound { backtrace: Backtrace },
+    </span>TableNameNotFound { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;General catalog error: {source}&quot;</span>))]
     </span>Catalog {
         <span class="attr">#[snafu(backtrace)]
         </span>source: catalog::error::Error,
     },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Expect a range selector, but not found&quot;</span>))]
+    </span>ExpectRangeSelector { location: Location },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Zero range in range selector&quot;</span>))]
+    </span>ZeroRangeSelector { location: Location },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Cannot find column {col}&quot;</span>))]
+    </span>ColumnNotFound { col: String, location: Location },
 }
 
 <span class="kw">impl </span>ErrorExt <span class="kw">for </span>Error {
@@ -252,7 +260,10 @@
             | UnsupportedExpr { .. }
             | UnexpectedToken { .. }
             | MultipleVector { .. }
-            | ExpectExpr { .. } =&gt; StatusCode::InvalidArguments,
+            | ExpectExpr { .. }
+            | ExpectRangeSelector { .. }
+            | ZeroRangeSelector { .. }
+            | ColumnNotFound { .. } =&gt; StatusCode::InvalidArguments,
 
             UnknownTable { .. }
             | DataFusionPlanning { .. }
@@ -264,9 +275,6 @@
 
             Catalog { source } =&gt; source.status_code(),
         }
-    }
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
     }
 
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {

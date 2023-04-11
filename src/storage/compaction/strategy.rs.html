@@ -314,6 +314,12 @@
 <a href="#314" id="314">314</a>
 <a href="#315" id="315">315</a>
 <a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -342,7 +348,7 @@
 
 <span class="doccomment">/// Compaction strategy that defines which SSTs need to be compacted at given level.
 </span><span class="kw">pub trait </span>Strategy {
-    <span class="kw">fn </span>pick(<span class="kw-2">&amp;</span><span class="self">self</span>, ctx: <span class="kw-2">&amp;</span>PickerContext, level: <span class="kw-2">&amp;</span>LevelMeta) -&gt; Vec&lt;CompactionOutput&gt;;
+    <span class="kw">fn </span>pick(<span class="kw-2">&amp;</span><span class="self">self</span>, ctx: <span class="kw-2">&amp;</span>PickerContext, level: <span class="kw-2">&amp;</span>LevelMeta) -&gt; (<span class="prelude-ty">Option</span>&lt;i64&gt;, Vec&lt;CompactionOutput&gt;);
 }
 
 <span class="kw">pub type </span>StrategyRef = Arc&lt;<span class="kw">dyn </span>Strategy + Send + Sync&gt;;
@@ -353,29 +359,33 @@
 </span><span class="kw">pub struct </span>SimpleTimeWindowStrategy {}
 
 <span class="kw">impl </span>Strategy <span class="kw">for </span>SimpleTimeWindowStrategy {
-    <span class="kw">fn </span>pick(<span class="kw-2">&amp;</span><span class="self">self</span>, _ctx: <span class="kw-2">&amp;</span>PickerContext, level: <span class="kw-2">&amp;</span>LevelMeta) -&gt; Vec&lt;CompactionOutput&gt; {
+    <span class="kw">fn </span>pick(<span class="kw-2">&amp;</span><span class="self">self</span>, ctx: <span class="kw-2">&amp;</span>PickerContext, level: <span class="kw-2">&amp;</span>LevelMeta) -&gt; (<span class="prelude-ty">Option</span>&lt;i64&gt;, Vec&lt;CompactionOutput&gt;) {
         <span class="comment">// SimpleTimeWindowStrategy only handles level 0 to level 1 compaction.
         </span><span class="kw">if </span>level.level() != <span class="number">0 </span>{
-            <span class="kw">return </span><span class="macro">vec!</span>[];
+            <span class="kw">return </span>(<span class="prelude-val">None</span>, <span class="macro">vec!</span>[]);
         }
         <span class="kw">let </span>files = find_compactable_files(level);
         <span class="macro">debug!</span>(<span class="string">&quot;Compactable files found: {:?}&quot;</span>, files);
         <span class="kw">if </span>files.is_empty() {
-            <span class="kw">return </span><span class="macro">vec!</span>[];
+            <span class="kw">return </span>(<span class="prelude-val">None</span>, <span class="macro">vec!</span>[]);
         }
-
-        <span class="kw">let </span>time_bucket = infer_time_bucket(<span class="kw-2">&amp;</span>files);
+        <span class="kw">let </span>time_bucket = ctx
+            .compaction_time_window()
+            .unwrap_or_else(|| infer_time_bucket(<span class="kw-2">&amp;</span>files));
         <span class="kw">let </span>buckets = calculate_time_buckets(time_bucket, <span class="kw-2">&amp;</span>files);
         <span class="macro">debug!</span>(<span class="string">&quot;File bucket:{}, file groups: {:?}&quot;</span>, time_bucket, buckets);
-        buckets
-            .into_iter()
-            .map(|(bound, files)| CompactionOutput {
-                output_level: <span class="number">1</span>,
-                bucket_bound: bound,
-                bucket: time_bucket,
-                inputs: files,
-            })
-            .collect()
+        (
+            <span class="prelude-val">Some</span>(time_bucket),
+            buckets
+                .into_iter()
+                .map(|(bound, files)| CompactionOutput {
+                    output_level: <span class="number">1</span>,
+                    bucket_bound: bound,
+                    bucket: time_bucket,
+                    inputs: files,
+                })
+                .collect(),
+        )
     }
 }
 
@@ -459,12 +469,14 @@
 </span>}
 
 <span class="doccomment">/// A set of predefined time buckets.
-</span><span class="kw">const </span>TIME_BUCKETS: [i64; <span class="number">5</span>] = [
-    <span class="number">60 </span>* <span class="number">60</span>,          <span class="comment">// one hour
-    </span><span class="number">2 </span>* <span class="number">60 </span>* <span class="number">60</span>,      <span class="comment">// two hours
-    </span><span class="number">12 </span>* <span class="number">60 </span>* <span class="number">60</span>,     <span class="comment">// twelve hours
-    </span><span class="number">24 </span>* <span class="number">60 </span>* <span class="number">60</span>,     <span class="comment">// one day
-    </span><span class="number">7 </span>* <span class="number">24 </span>* <span class="number">60 </span>* <span class="number">60</span>, <span class="comment">// one week
+</span><span class="kw">const </span>TIME_BUCKETS: [i64; <span class="number">7</span>] = [
+    <span class="number">60 </span>* <span class="number">60</span>,                 <span class="comment">// one hour
+    </span><span class="number">2 </span>* <span class="number">60 </span>* <span class="number">60</span>,             <span class="comment">// two hours
+    </span><span class="number">12 </span>* <span class="number">60 </span>* <span class="number">60</span>,            <span class="comment">// twelve hours
+    </span><span class="number">24 </span>* <span class="number">60 </span>* <span class="number">60</span>,            <span class="comment">// one day
+    </span><span class="number">7 </span>* <span class="number">24 </span>* <span class="number">60 </span>* <span class="number">60</span>,        <span class="comment">// one week
+    </span><span class="number">365 </span>* <span class="number">24 </span>* <span class="number">60 </span>* <span class="number">60</span>,      <span class="comment">// one year
+    </span><span class="number">10 </span>* <span class="number">365 </span>* <span class="number">24 </span>* <span class="number">60 </span>* <span class="number">60</span>, <span class="comment">// ten years
 </span>];
 
 <span class="doccomment">/// Fits a given time span into time bucket by find the minimum bucket that can cover the span.
@@ -529,7 +541,7 @@
         <span class="macro">assert_eq!</span>(TIME_BUCKETS[<span class="number">2</span>], fit_time_bucket(TIME_BUCKETS[<span class="number">2</span>] - <span class="number">1</span>));
         <span class="macro">assert_eq!</span>(TIME_BUCKETS[<span class="number">2</span>], fit_time_bucket(TIME_BUCKETS[<span class="number">2</span>]));
         <span class="macro">assert_eq!</span>(TIME_BUCKETS[<span class="number">3</span>], fit_time_bucket(TIME_BUCKETS[<span class="number">3</span>] - <span class="number">1</span>));
-        <span class="macro">assert_eq!</span>(TIME_BUCKETS[<span class="number">4</span>], fit_time_bucket(i64::MAX));
+        <span class="macro">assert_eq!</span>(TIME_BUCKETS[<span class="number">6</span>], fit_time_bucket(i64::MAX));
     }
 
     <span class="attr">#[test]

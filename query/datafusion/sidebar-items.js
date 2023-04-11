@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["catalog_adapter","error","planner"],"struct":["DatafusionQueryEngine","DfCatalogListAdapter","DfContextProviderAdapter"]};
+window.SIDEBAR_ITEMS = {"mod":["error","planner"],"opaque":[""],"struct":["DatafusionQueryEngine","DfCatalogListAdapter","DfContextProviderAdapter"]};

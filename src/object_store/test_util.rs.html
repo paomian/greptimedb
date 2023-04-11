@@ -32,7 +32,6 @@
 <a href="#32" id="32">32</a>
 <a href="#33" id="33">33</a>
 <a href="#34" id="34">34</a>
-<a href="#35" id="35">35</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -64,8 +63,7 @@
     }
 
     <span class="kw">pub async fn </span>remove_all(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="kw">let </span>batch = <span class="self">self</span>.store.batch();
-        batch.remove_all(<span class="kw-2">&amp;</span><span class="self">self</span>.path).<span class="kw">await
+        <span class="self">self</span>.store.remove_all(<span class="kw-2">&amp;</span><span class="self">self</span>.path).<span class="kw">await
     </span>}
 }
 </code></pre></div>

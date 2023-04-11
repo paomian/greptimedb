@@ -250,6 +250,13 @@
 <a href="#250" id="250">250</a>
 <a href="#251" id="251">251</a>
 <a href="#252" id="252">252</a>
+<a href="#253" id="253">253</a>
+<a href="#254" id="254">254</a>
+<a href="#255" id="255">255</a>
+<a href="#256" id="256">256</a>
+<a href="#257" id="257">257</a>
+<a href="#258" id="258">258</a>
+<a href="#259" id="259">259</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -336,11 +343,18 @@
     </span>}
 
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>handle_flush_table(<span class="kw-2">&amp;</span><span class="self">self</span>, expr: FlushTableExpr) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
+        <span class="kw">let </span>table_name = <span class="kw">if </span>expr.table_name.trim().is_empty() {
+            <span class="prelude-val">None
+        </span>} <span class="kw">else </span>{
+            <span class="prelude-val">Some</span>(expr.table_name)
+        };
+
         <span class="kw">let </span>req = FlushTableRequest {
             catalog_name: expr.catalog_name,
             schema_name: expr.schema_name,
-            table_name: expr.table_name,
+            table_name,
             region_number: expr.region_id,
+            wait: <span class="prelude-val">None</span>,
         };
         <span class="self">self</span>.sql_handler()
             .execute(SqlRequest::FlushTable(req), QueryContext::arc())
@@ -351,7 +365,7 @@
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
     <span class="kw">use </span>api::v1::{column_def, ColumnDataType, ColumnDef, TableId};
-    <span class="kw">use </span>common_catalog::consts::MIN_USER_TABLE_ID;
+    <span class="kw">use </span>common_catalog::consts::{MIN_USER_TABLE_ID, MITO_ENGINE};
     <span class="kw">use </span>common_grpc_expr::create_table_schema;
     <span class="kw">use </span>datatypes::prelude::ConcreteDataType;
     <span class="kw">use </span>datatypes::schema::{ColumnDefaultConstraint, ColumnSchema, RawSchema};
@@ -400,7 +414,6 @@
     }
 
     <span class="attr">#[test]
-
     </span><span class="kw">fn </span>test_create_column_schema() {
         <span class="kw">let </span>column_def = ColumnDef {
             name: <span class="string">&quot;a&quot;</span>.to_string(),
@@ -483,6 +496,7 @@
                 id: MIN_USER_TABLE_ID,
             }),
             region_ids: <span class="macro">vec!</span>[<span class="number">0</span>],
+            engine: MITO_ENGINE.to_string(),
         }
     }
 

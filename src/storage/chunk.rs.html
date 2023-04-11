@@ -405,7 +405,7 @@
                 );
                 <span class="kw">continue</span>;
             }
-            <span class="kw">let </span>reader = <span class="self">self</span>.sst_layer.read_sst(file.file_id(), <span class="kw-2">&amp;</span>read_opts).<span class="kw">await</span><span class="question-mark">?</span>;
+            <span class="kw">let </span>reader = <span class="self">self</span>.sst_layer.read_sst(file.clone(), <span class="kw-2">&amp;</span>read_opts).<span class="kw">await</span><span class="question-mark">?</span>;
 
             reader_builder = reader_builder.push_batch_reader(reader);
         }

@@ -390,6 +390,12 @@
 <a href="#390" id="390">390</a>
 <a href="#391" id="391">391</a>
 <a href="#392" id="392">392</a>
+<a href="#393" id="393">393</a>
+<a href="#394" id="394">394</a>
+<a href="#395" id="395">395</a>
+<a href="#396" id="396">396</a>
+<a href="#397" id="397">397</a>
+<a href="#398" id="398">398</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -668,6 +674,12 @@
 <span class="comment">// Check whether the query is a federated or driver setup command,
 // and return some faked results if there are any.
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>check(query: <span class="kw-2">&amp;</span>str, query_ctx: QueryContextRef) -&gt; <span class="prelude-ty">Option</span>&lt;Output&gt; {
+    <span class="comment">// INSERT don&#39;t need MySQL federated check. We assume the query doesn&#39;t contain
+    // federated or driver setup command if it starts with a &#39;INSERT&#39; statement.
+    </span><span class="kw">if </span>query.len() &gt; <span class="number">6 </span>&amp;&amp; query[..<span class="number">6</span>].eq_ignore_ascii_case(<span class="string">&quot;INSERT&quot;</span>) {
+        <span class="kw">return </span><span class="prelude-val">None</span>;
+    }
+
     <span class="comment">// First to check the query is like &quot;select @@variables&quot;.
     </span><span class="kw">let </span>output = check_select_variable(query);
     <span class="kw">if </span>output.is_some() {

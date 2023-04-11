@@ -31,8 +31,6 @@ list</li>
 scan</li>
 <li><input disabled="" type="checkbox" checked=""/>
 presign</li>
-<li><input disabled="" type="checkbox" checked=""/>
-multipart</li>
 <li><input disabled="" type="checkbox"/>
 blocking</li>
 </ul>
@@ -100,7 +98,6 @@ blocking</li>
 
 <span class="kw">use </span>anyhow::Result;
 <span class="kw">use </span>opendal::services::S3;
-<span class="kw">use </span>opendal::Object;
 <span class="kw">use </span>opendal::Operator;
 
 <span class="attr">#[tokio::main]
@@ -131,10 +128,7 @@ blocking</li>
     </span>builder.access_key_id(<span class="string">&quot;access_key_id&quot;</span>);
     builder.secret_access_key(<span class="string">&quot;secret_access_key&quot;</span>);
 
-    <span class="kw">let </span>op: Operator = Operator::create(builder)<span class="question-mark">?</span>.finish();
-
-    <span class="comment">// Create an object handle to start operation on object.
-    </span><span class="kw">let _</span>: Object = op.object(<span class="string">&quot;test_file&quot;</span>);
+    <span class="kw">let </span>op: Operator = Operator::new(builder)<span class="question-mark">?</span>.finish();
 
     <span class="prelude-val">Ok</span>(())
 }</code></pre></div>
@@ -153,7 +147,7 @@ blocking</li>
     // Enable SSE-C
     </span>builder.server_side_encryption_with_customer_key(<span class="string">&quot;AES256&quot;</span>, <span class="string">&quot;customer_key&quot;</span>.as_bytes());
 
-    <span class="kw">let </span>op = Operator::create(builder)<span class="question-mark">?</span>.finish();
+    <span class="kw">let </span>op = Operator::new(builder)<span class="question-mark">?</span>.finish();
     <span class="macro">info!</span>(<span class="string">&quot;operator: {:?}&quot;</span>, op);
 
     <span class="comment">// Writing your testing code here.
@@ -175,7 +169,7 @@ blocking</li>
     // Enable SSE-KMS with aws managed kms key
     </span>builder.server_side_encryption_with_aws_managed_kms_key();
 
-    <span class="kw">let </span>op = Operator::create(builder)<span class="question-mark">?</span>.finish();
+    <span class="kw">let </span>op = Operator::new(builder)<span class="question-mark">?</span>.finish();
     <span class="macro">info!</span>(<span class="string">&quot;operator: {:?}&quot;</span>, op);
 
     <span class="comment">// Writing your testing code here.
@@ -197,7 +191,7 @@ blocking</li>
     // Enable SSE-KMS with customer managed kms key
     </span>builder.server_side_encryption_with_customer_managed_kms_key(<span class="string">&quot;aws_kms_key_id&quot;</span>);
 
-    <span class="kw">let </span>op = Operator::create(builder)<span class="question-mark">?</span>.finish();
+    <span class="kw">let </span>op = Operator::new(builder)<span class="question-mark">?</span>.finish();
     <span class="macro">info!</span>(<span class="string">&quot;operator: {:?}&quot;</span>, op);
 
     <span class="comment">// Writing your testing code here.
@@ -219,7 +213,7 @@ blocking</li>
     // Enable SSE-S3
     </span>builder.server_side_encryption_with_s3_key();
 
-    <span class="kw">let </span>op = Operator::create(builder)<span class="question-mark">?</span>.finish();
+    <span class="kw">let </span>op = Operator::new(builder)<span class="question-mark">?</span>.finish();
     <span class="macro">info!</span>(<span class="string">&quot;operator: {:?}&quot;</span>, op);
 
     <span class="comment">// Writing your testing code here.
@@ -320,7 +314,7 @@ will prepend “https://” before it.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.region" class="method"><h4 class="code-header">pub fn <a href="#method.region" class="fn">region</a>(&amp;mut self, region: &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>) -&gt; &amp;mut <a class="struct" href="struct.S3.html" title="struct object_store::services::S3">S3Builder</a></h4></section></summary><div class="docblock"><p>Region represent the signing region of this endpoint.</p>
 <ul>
 <li>If region is set, we will take user’s input first.</li>
-<li>If not, We will try to detect region via <a href="https://github.com/datafuselabs/opendal/blob/main/docs/rfcs/0057-auto-region.md">RFC-0057: Auto Region</a>.</li>
+<li>If not, We will try to detect region via <a href="https://github.com/apache/incubator-opendal/blob/main/docs/rfcs/0057-auto-region.md">RFC-0057: Auto Region</a>.</li>
 </ul>
 <p>Most of time, region is not need to be set, especially for AWS S3 and minio.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.access_key_id" class="method"><h4 class="code-header">pub fn <a href="#method.access_key_id" class="fn">access_key_id</a>(&amp;mut self, v: &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>) -&gt; &amp;mut <a class="struct" href="struct.S3.html" title="struct object_store::services::S3">S3Builder</a></h4></section></summary><div class="docblock"><p>Set access_key_id of this backend.</p>

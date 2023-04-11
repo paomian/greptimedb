@@ -774,6 +774,23 @@
 <a href="#774" id="774">774</a>
 <a href="#775" id="775">775</a>
 <a href="#776" id="776">776</a>
+<a href="#777" id="777">777</a>
+<a href="#778" id="778">778</a>
+<a href="#779" id="779">779</a>
+<a href="#780" id="780">780</a>
+<a href="#781" id="781">781</a>
+<a href="#782" id="782">782</a>
+<a href="#783" id="783">783</a>
+<a href="#784" id="784">784</a>
+<a href="#785" id="785">785</a>
+<a href="#786" id="786">786</a>
+<a href="#787" id="787">787</a>
+<a href="#788" id="788">788</a>
+<a href="#789" id="789">789</a>
+<a href="#790" id="790">790</a>
+<a href="#791" id="791">791</a>
+<a href="#792" id="792">792</a>
+<a href="#793" id="793">793</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -865,7 +882,10 @@
     </span><span class="kw">pub </span>version: TableVersion,
 }
 
-<span class="attr">#[derive(Clone, Debug, Builder, PartialEq, Eq)]
+<span class="doccomment">/// The table medatadata
+/// Note: if you add new fields to this struct, please ensure &#39;new_meta_builder&#39; function works.
+/// TODO(dennis): find a better way to ensure &#39;new_meta_builder&#39; works when adding new fields.
+</span><span class="attr">#[derive(Clone, Debug, Builder, PartialEq, Eq)]
 #[builder(pattern = <span class="string">&quot;mutable&quot;</span>)]
 </span><span class="kw">pub struct </span>TableMeta {
     <span class="kw">pub </span>schema: SchemaRef,
@@ -901,6 +921,16 @@
             <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(<span class="string">&quot;Missing primary_key_indices or schema to create value_indices&quot;</span>.to_string()),
         }
     }
+
+    <span class="kw">pub fn </span>new_external_table() -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            primary_key_indices: <span class="prelude-val">Some</span>(Vec::new()),
+            value_indices: <span class="prelude-val">Some</span>(Vec::new()),
+            region_numbers: <span class="prelude-val">Some</span>(Vec::new()),
+            next_column_id: <span class="prelude-val">Some</span>(<span class="number">0</span>),
+            ..Default::default()
+        }
+    }
 }
 
 <span class="kw">impl </span>TableMeta {
@@ -911,7 +941,7 @@
             .map(|idx| <span class="kw-2">&amp;</span>columns_schemas[<span class="kw-2">*</span>idx].name)
     }
 
-    <span class="kw">pub fn </span>value_column_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">impl </span>Iterator&lt;Item = <span class="kw-2">&amp;</span>String&gt; {
+    <span class="kw">pub fn </span>field_column_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">impl </span>Iterator&lt;Item = <span class="kw-2">&amp;</span>String&gt; {
         <span class="kw">let </span>columns_schemas = <span class="kw-2">&amp;</span><span class="self">self</span>.schema.column_schemas();
         <span class="self">self</span>.value_indices.iter().filter_map(|idx| {
             <span class="kw">let </span>column = <span class="kw-2">&amp;</span>columns_schemas[<span class="kw-2">*</span>idx];
@@ -973,6 +1003,7 @@
             .engine_options(<span class="self">self</span>.engine_options.clone())
             .options(<span class="self">self</span>.options.clone())
             .created_on(<span class="self">self</span>.created_on)
+            .region_numbers(<span class="self">self</span>.region_numbers.clone())
             .next_column_id(<span class="self">self</span>.next_column_id);
 
         builder
@@ -1348,6 +1379,7 @@
             .unwrap();
 
         <span class="kw">let </span>new_meta = add_columns_to_meta(<span class="kw-2">&amp;</span>meta);
+        <span class="macro">assert_eq!</span>(meta.region_numbers, new_meta.region_numbers);
 
         <span class="kw">let </span>names: Vec&lt;String&gt; = new_meta
             .schema
@@ -1381,6 +1413,8 @@
             .unwrap()
             .build()
             .unwrap();
+
+        <span class="macro">assert_eq!</span>(meta.region_numbers, new_meta.region_numbers);
 
         <span class="kw">let </span>names: Vec&lt;String&gt; = new_meta
             .schema

@@ -411,6 +411,14 @@
 <a href="#411" id="411">411</a>
 <a href="#412" id="412">412</a>
 <a href="#413" id="413">413</a>
+<a href="#414" id="414">414</a>
+<a href="#415" id="415">415</a>
+<a href="#416" id="416">416</a>
+<a href="#417" id="417">417</a>
+<a href="#418" id="418">418</a>
+<a href="#419" id="419">419</a>
+<a href="#420" id="420">420</a>
+<a href="#421" id="421">421</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -431,8 +439,8 @@
 <span class="kw">use </span>common_time::timestamp::{TimeUnit, Timestamp};
 <span class="kw">use </span>datafusion::optimizer::optimizer::OptimizerRule;
 <span class="kw">use </span>datafusion::optimizer::OptimizerConfig;
+<span class="kw">use </span>datafusion_common::tree_node::{TreeNode, TreeNodeRewriter};
 <span class="kw">use </span>datafusion_common::{DFSchemaRef, DataFusionError, <span class="prelude-ty">Result</span>, ScalarValue};
-<span class="kw">use </span>datafusion_expr::expr_rewriter::{ExprRewritable, ExprRewriter};
 <span class="kw">use </span>datafusion_expr::{
     Between, BinaryExpr, Expr, ExprSchemable, Filter, LogicalPlan, Operator, TableScan,
 };
@@ -506,7 +514,6 @@
             | LogicalPlan::DropView { .. }
             | LogicalPlan::Distinct { .. }
             | LogicalPlan::Values { .. }
-            | LogicalPlan::SetVariable { .. }
             | LogicalPlan::Analyze { .. } =&gt; {
                 <span class="kw">let </span>inputs = plan.inputs();
                 <span class="kw">let </span><span class="kw-2">mut </span>new_inputs = Vec::with_capacity(inputs.len());
@@ -533,7 +540,8 @@
             | LogicalPlan::Prepare(<span class="kw">_</span>)
             | LogicalPlan::Dml(<span class="kw">_</span>)
             | LogicalPlan::DescribeTable(<span class="kw">_</span>)
-            | LogicalPlan::Unnest(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(plan.clone())),
+            | LogicalPlan::Unnest(<span class="kw">_</span>)
+            | LogicalPlan::Statement(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(plan.clone())),
         }
     }
 
@@ -613,7 +621,9 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; ExprRewriter <span class="kw">for </span>TypeConverter&lt;<span class="lifetime">&#39;a</span>&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; TreeNodeRewriter <span class="kw">for </span>TypeConverter&lt;<span class="lifetime">&#39;a</span>&gt; {
+    <span class="kw">type </span>N = Expr;
+
     <span class="kw">fn </span>mutate(<span class="kw-2">&amp;mut </span><span class="self">self</span>, expr: Expr) -&gt; <span class="prelude-ty">Result</span>&lt;Expr&gt; {
         <span class="kw">let </span>new_expr = <span class="kw">match </span>expr {
             Expr::BinaryExpr(BinaryExpr { left, op, right }) =&gt; <span class="kw">match </span>op {
@@ -712,6 +722,7 @@
     <span class="kw">use </span>std::collections::HashMap;
 
     <span class="kw">use </span>datafusion_common::{Column, DFField, DFSchema};
+    <span class="kw">use </span>datafusion_sql::TableReference;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
@@ -771,7 +782,7 @@
         <span class="kw">let </span>schema_ref = Arc::new(
             DFSchema::new_with_metadata(
                 <span class="macro">vec!</span>[DFField::new(
-                    <span class="prelude-val">None</span>,
+                    <span class="prelude-val">None</span>::&lt;TableReference&gt;,
                     <span class="string">&quot;ts&quot;</span>,
                     DataType::Timestamp(ArrowTimeUnit::Millisecond, <span class="prelude-val">None</span>),
                     <span class="bool-val">true</span>,
@@ -803,7 +814,12 @@
         <span class="kw">let </span>col_name = <span class="string">&quot;is_valid&quot;</span>;
         <span class="kw">let </span>schema_ref = Arc::new(
             DFSchema::new_with_metadata(
-                <span class="macro">vec!</span>[DFField::new(<span class="prelude-val">None</span>, col_name, DataType::Boolean, <span class="bool-val">false</span>)],
+                <span class="macro">vec!</span>[DFField::new(
+                    <span class="prelude-val">None</span>::&lt;TableReference&gt;,
+                    col_name,
+                    DataType::Boolean,
+                    <span class="bool-val">false</span>,
+                )],
                 HashMap::new(),
             )
             .unwrap(),

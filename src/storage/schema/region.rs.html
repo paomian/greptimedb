@@ -295,8 +295,8 @@
     }
 
     <span class="attr">#[inline]
-    </span><span class="kw">pub fn </span>value_columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">impl </span>Iterator&lt;Item = <span class="kw-2">&amp;</span>ColumnMetadata&gt; {
-        <span class="self">self</span>.columns.iter_value_columns()
+    </span><span class="kw">pub fn </span>field_columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">impl </span>Iterator&lt;Item = <span class="kw-2">&amp;</span>ColumnMetadata&gt; {
+        <span class="self">self</span>.columns.iter_field_columns()
     }
 
     <span class="attr">#[inline]
@@ -305,8 +305,8 @@
     }
 
     <span class="attr">#[inline]
-    </span><span class="kw">pub fn </span>num_value_columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
-        <span class="self">self</span>.columns.num_value_columns()
+    </span><span class="kw">pub fn </span>num_field_columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
+        <span class="self">self</span>.columns.num_field_columns()
     }
 
     <span class="attr">#[inline]
@@ -397,10 +397,10 @@
         <span class="macro">assert_eq!</span>(<span class="number">2</span>, region_schema.num_row_key_columns());
 
         <span class="comment">// Checks value column.
-        </span><span class="kw">let </span><span class="kw-2">mut </span>values = region_schema.value_columns();
+        </span><span class="kw">let </span><span class="kw-2">mut </span>values = region_schema.field_columns();
         <span class="macro">assert_eq!</span>(<span class="string">&quot;v0&quot;</span>, values.next().unwrap().desc.name);
         <span class="macro">assert_eq!</span>(<span class="prelude-val">None</span>, values.next());
-        <span class="macro">assert_eq!</span>(<span class="number">1</span>, region_schema.num_value_columns());
+        <span class="macro">assert_eq!</span>(<span class="number">1</span>, region_schema.num_field_columns());
 
         <span class="comment">// Checks version.
         </span><span class="macro">assert_eq!</span>(<span class="number">123</span>, region_schema.version());

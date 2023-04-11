@@ -283,7 +283,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::error::{
     MultipleStatementsSnafu, ParseFloatSnafu, ParseTimestampSnafu, QueryParseSnafu, <span class="prelude-ty">Result</span>,
 };
-<span class="kw">use </span><span class="kw">crate</span>::metric::{METRIC_PARSE_PROMQL_ELAPSED, METRIC_PARSE_SQL_ELAPSED};
+<span class="kw">use </span><span class="kw">crate</span>::metrics::{METRIC_PARSE_PROMQL_ELAPSED, METRIC_PARSE_SQL_ELAPSED};
 
 <span class="kw">const </span>DEFAULT_LOOKBACK: u64 = <span class="number">5 </span>* <span class="number">60</span>; <span class="comment">// 5m
 

@@ -1628,6 +1628,7 @@
 <a href="#1628" id="1628">1628</a>
 <a href="#1629" id="1629">1629</a>
 <a href="#1630" id="1630">1630</a>
+<a href="#1631" id="1631">1631</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -2975,6 +2976,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_display() {
+        std::env::set_var(<span class="string">&quot;TZ&quot;</span>, <span class="string">&quot;Asia/Shanghai&quot;</span>);
         <span class="macro">assert_eq!</span>(Value::Null.to_string(), <span class="string">&quot;Null&quot;</span>);
         <span class="macro">assert_eq!</span>(Value::UInt8(<span class="number">8</span>).to_string(), <span class="string">&quot;8&quot;</span>);
         <span class="macro">assert_eq!</span>(Value::UInt16(<span class="number">16</span>).to_string(), <span class="string">&quot;16&quot;</span>);
@@ -2996,11 +2998,11 @@
         <span class="macro">assert_eq!</span>(Value::Date(Date::new(<span class="number">0</span>)).to_string(), <span class="string">&quot;1970-01-01&quot;</span>);
         <span class="macro">assert_eq!</span>(
             Value::DateTime(DateTime::new(<span class="number">0</span>)).to_string(),
-            <span class="string">&quot;1970-01-01 00:00:00&quot;
+            <span class="string">&quot;1970-01-01 08:00:00+0800&quot;
         </span>);
         <span class="macro">assert_eq!</span>(
             Value::Timestamp(Timestamp::new(<span class="number">1000</span>, TimeUnit::Millisecond)).to_string(),
-            <span class="string">&quot;1970-01-01 00:00:01+0000&quot;
+            <span class="string">&quot;1970-01-01 08:00:01+0800&quot;
         </span>);
         <span class="macro">assert_eq!</span>(
             Value::List(ListValue::new(

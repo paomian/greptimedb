@@ -662,6 +662,37 @@
 <a href="#662" id="662">662</a>
 <a href="#663" id="663">663</a>
 <a href="#664" id="664">664</a>
+<a href="#665" id="665">665</a>
+<a href="#666" id="666">666</a>
+<a href="#667" id="667">667</a>
+<a href="#668" id="668">668</a>
+<a href="#669" id="669">669</a>
+<a href="#670" id="670">670</a>
+<a href="#671" id="671">671</a>
+<a href="#672" id="672">672</a>
+<a href="#673" id="673">673</a>
+<a href="#674" id="674">674</a>
+<a href="#675" id="675">675</a>
+<a href="#676" id="676">676</a>
+<a href="#677" id="677">677</a>
+<a href="#678" id="678">678</a>
+<a href="#679" id="679">679</a>
+<a href="#680" id="680">680</a>
+<a href="#681" id="681">681</a>
+<a href="#682" id="682">682</a>
+<a href="#683" id="683">683</a>
+<a href="#684" id="684">684</a>
+<a href="#685" id="685">685</a>
+<a href="#686" id="686">686</a>
+<a href="#687" id="687">687</a>
+<a href="#688" id="688">688</a>
+<a href="#689" id="689">689</a>
+<a href="#690" id="690">690</a>
+<a href="#691" id="691">691</a>
+<a href="#692" id="692">692</a>
+<a href="#693" id="693">693</a>
+<a href="#694" id="694">694</a>
+<a href="#695" id="695">695</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -682,7 +713,7 @@
 <span class="kw">use </span>std::sync::Arc;
 <span class="kw">use </span>std::task::{Context, Poll};
 
-<span class="kw">use </span>datafusion::arrow::array::{Array, TimestampMillisecondArray, UInt64Array};
+<span class="kw">use </span>datafusion::arrow::array::{Array, Float64Array, TimestampMillisecondArray, UInt64Array};
 <span class="kw">use </span>datafusion::arrow::datatypes::SchemaRef;
 <span class="kw">use </span>datafusion::arrow::record_batch::RecordBatch;
 <span class="kw">use </span>datafusion::common::DFSchemaRef;
@@ -713,6 +744,8 @@
     lookback_delta: Millisecond,
     interval: Millisecond,
     time_index_column: String,
+    <span class="doccomment">/// A optional column for validating staleness
+    </span>field_column: <span class="prelude-ty">Option</span>&lt;String&gt;,
     input: LogicalPlan,
 }
 
@@ -750,6 +783,7 @@
             lookback_delta: <span class="self">self</span>.lookback_delta,
             interval: <span class="self">self</span>.interval,
             time_index_column: <span class="self">self</span>.time_index_column.clone(),
+            field_column: <span class="self">self</span>.field_column.clone(),
             input: inputs[<span class="number">0</span>].clone(),
         }
     }
@@ -762,6 +796,7 @@
         lookback_delta: Millisecond,
         interval: Millisecond,
         time_index_column: String,
+        field_column: <span class="prelude-ty">Option</span>&lt;String&gt;,
         input: LogicalPlan,
     ) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
@@ -770,6 +805,7 @@
             lookback_delta,
             interval,
             time_index_column,
+            field_column,
             input,
         }
     }
@@ -781,6 +817,7 @@
             lookback_delta: <span class="self">self</span>.lookback_delta,
             interval: <span class="self">self</span>.interval,
             time_index_column: <span class="self">self</span>.time_index_column.clone(),
+            field_column: <span class="self">self</span>.field_column.clone(),
             input: exec_input,
             metric: ExecutionPlanMetricsSet::new(),
         })
@@ -794,6 +831,7 @@
     lookback_delta: Millisecond,
     interval: Millisecond,
     time_index_column: String,
+    field_column: <span class="prelude-ty">Option</span>&lt;String&gt;,
 
     input: Arc&lt;<span class="kw">dyn </span>ExecutionPlan&gt;,
     metric: ExecutionPlanMetricsSet,
@@ -835,6 +873,7 @@
             lookback_delta: <span class="self">self</span>.lookback_delta,
             interval: <span class="self">self</span>.interval,
             time_index_column: <span class="self">self</span>.time_index_column.clone(),
+            field_column: <span class="self">self</span>.field_column.clone(),
             input: children[<span class="number">0</span>].clone(),
             metric: <span class="self">self</span>.metric.clone(),
         }))
@@ -853,12 +892,18 @@
             .column_with_name(<span class="kw-2">&amp;</span><span class="self">self</span>.time_index_column)
             .expect(<span class="string">&quot;time index column not found&quot;</span>)
             .<span class="number">0</span>;
+        <span class="kw">let </span>field_index = <span class="self">self
+            </span>.field_column
+            .as_ref()
+            .and_then(|name| schema.column_with_name(name))
+            .map(|x| x.<span class="number">0</span>);
         <span class="prelude-val">Ok</span>(Box::pin(InstantManipulateStream {
             start: <span class="self">self</span>.start,
             end: <span class="self">self</span>.end,
             lookback_delta: <span class="self">self</span>.lookback_delta,
             interval: <span class="self">self</span>.interval,
             time_index,
+            field_index,
             schema,
             input,
             metric: baseline_metric,
@@ -908,6 +953,7 @@
     interval: Millisecond,
     <span class="comment">// Column index of TIME INDEX column&#39;s position in schema
     </span>time_index: usize,
+    field_index: <span class="prelude-ty">Option</span>&lt;usize&gt;,
 
     schema: SchemaRef,
     input: SendableRecordBatchStream,
@@ -946,6 +992,11 @@
             .downcast_ref::&lt;TimestampMillisecondArray&gt;()
             .unwrap();
 
+        <span class="comment">// field column for staleness check
+        </span><span class="kw">let </span>field_column = <span class="self">self
+            </span>.field_index
+            .and_then(|index| input.column(index).as_any().downcast_ref::&lt;Float64Array&gt;());
+
         <span class="kw">let </span><span class="kw-2">mut </span>cursor = <span class="number">0</span>;
         <span class="kw">let </span>aligned_ts = (<span class="self">self</span>.start..=<span class="self">self</span>.end)
             .step_by(<span class="self">self</span>.interval <span class="kw">as </span>usize)
@@ -958,7 +1009,12 @@
                 <span class="kw">let </span>curr = ts_column.value(cursor);
                 <span class="kw">match </span>curr.cmp(<span class="kw-2">&amp;</span>expected_ts) {
                     Ordering::Equal =&gt; {
-                        take_indices.push(<span class="prelude-val">Some</span>(cursor <span class="kw">as </span>u64));
+                        <span class="kw">if let </span><span class="prelude-val">Some</span>(field_column) = <span class="kw-2">&amp;</span>field_column &amp;&amp; field_column.value(cursor).is_nan() {
+                            <span class="comment">// ignore the NaN value
+                            </span>take_indices.push(<span class="prelude-val">None</span>);
+                        } <span class="kw">else </span>{
+                            take_indices.push(<span class="prelude-val">Some</span>(cursor <span class="kw">as </span>u64));
+                        }
                         <span class="kw">continue </span><span class="lifetime">&#39;next</span>;
                     }
                     Ordering::Greater =&gt; <span class="kw">break</span>,
@@ -972,6 +1028,11 @@
             <span class="comment">// then, search backward to lookback
             </span><span class="kw">loop </span>{
                 <span class="kw">let </span>curr = ts_column.value(cursor);
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(field_column) = <span class="kw-2">&amp;</span>field_column &amp;&amp; field_column.value(cursor).is_nan() {
+                    <span class="comment">// if the newest value is NaN, it means the value is stale, so we should not use it
+                    </span>take_indices.push(<span class="prelude-val">None</span>);
+                    <span class="kw">break</span>;
+                }
                 <span class="kw">if </span>curr + <span class="self">self</span>.lookback_delta &lt; expected_ts {
                     <span class="comment">// not found in lookback, leave this field blank.
                     </span>take_indices.push(<span class="prelude-val">None</span>);
@@ -1052,11 +1113,11 @@
             </span><span class="number">180_000</span>, <span class="number">240_000</span>, <span class="comment">// every 60s
             </span><span class="number">241_000</span>, <span class="number">271_000</span>, <span class="number">291_000</span>, <span class="comment">// others
         </span>])) <span class="kw">as _</span>;
-        <span class="kw">let </span>value_column = Arc::new(Float64Array::from_slice([<span class="number">1.0</span>; <span class="number">10</span>])) <span class="kw">as _</span>;
+        <span class="kw">let </span>field_column = Arc::new(Float64Array::from_slice([<span class="number">1.0</span>; <span class="number">10</span>])) <span class="kw">as _</span>;
         <span class="kw">let </span>path_column = Arc::new(StringArray::from_slice([<span class="string">&quot;foo&quot;</span>; <span class="number">10</span>])) <span class="kw">as _</span>;
         <span class="kw">let </span>data = RecordBatch::try_new(
             schema.clone(),
-            <span class="macro">vec!</span>[timestamp_column, value_column, path_column],
+            <span class="macro">vec!</span>[timestamp_column, field_column, path_column],
         )
         .unwrap();
 
@@ -1077,6 +1138,7 @@
             lookback_delta,
             interval,
             time_index_column: TIME_INDEX_COLUMN.to_string(),
+            field_column: <span class="prelude-val">None</span>,
             input: memory_exec,
             metric: ExecutionPlanMetricsSet::new(),
         });

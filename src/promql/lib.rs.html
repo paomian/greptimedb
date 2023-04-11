@@ -18,6 +18,8 @@
 <a href="#18" id="18">18</a>
 <a href="#19" id="19">19</a>
 <a href="#20" id="20">20</a>
+<a href="#21" id="21">21</a>
+<a href="#22" id="22">22</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -32,8 +34,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="kw">pub mod </span>engine;
-<span class="kw">pub mod </span>error;
+</span><span class="attr">#![feature(option_get_or_insert_default)]
+#![feature(let_chains)]
+
+</span><span class="kw">pub mod </span>error;
 <span class="kw">pub mod </span>extension_plan;
 <span class="kw">pub mod </span>functions;
 <span class="kw">pub mod </span>planner;

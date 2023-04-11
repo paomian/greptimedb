@@ -236,6 +236,10 @@
 <a href="#236" id="236">236</a>
 <a href="#237" id="237">237</a>
 <a href="#238" id="238">238</a>
+<a href="#239" id="239">239</a>
+<a href="#240" id="240">240</a>
+<a href="#241" id="241">241</a>
+<a href="#242" id="242">242</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -256,7 +260,7 @@
 <span class="kw">use </span>bytes::{Buf, BufMut, BytesMut};
 <span class="kw">use </span>common_error::prelude::ErrorExt;
 <span class="kw">use </span>paste::paste;
-<span class="kw">use </span>snafu::{ensure, Backtrace, ErrorCompat, ResultExt, Snafu};
+<span class="kw">use </span>snafu::{ensure, Location, ResultExt, Snafu};
 
 <span class="attr">#[derive(Debug, Snafu)]
 #[snafu(visibility(<span class="kw">pub</span>))]
@@ -269,29 +273,33 @@
     </span>Overflow {
         src_len: usize,
         dst_len: usize,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Buffer underflow&quot;</span>))]
-    </span>Underflow { backtrace: Backtrace },
+    </span>Underflow { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;IO operation reach EOF, source: {}&quot;</span>, source))]
     </span>Eof {
         source: std::io::Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 }
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
 
 <span class="kw">impl </span>ErrorExt <span class="kw">for </span>Error {
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
-    }
-
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {
         <span class="self">self
     </span>}
+
+    <span class="kw">fn </span>location_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;common_error::snafu::Location&gt; {
+        <span class="kw">match </span><span class="self">self </span>{
+            Error::Overflow { location, .. } =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>location),
+            Error::Underflow { location, .. } =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>location),
+            Error::Eof { location, .. } =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>location),
+        }
+    }
 }
 
 <span class="macro">macro_rules! </span>impl_read_le {

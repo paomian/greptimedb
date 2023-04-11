@@ -252,6 +252,7 @@
 <a href="#252" id="252">252</a>
 <a href="#253" id="253">253</a>
 <a href="#254" id="254">254</a>
+<a href="#255" id="255">255</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -432,6 +433,7 @@
         primary_key_indices,
         create_if_not_exists: expr.create_if_not_exists,
         table_options,
+        engine: expr.engine,
     })
 }
 

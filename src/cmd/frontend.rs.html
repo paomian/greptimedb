@@ -332,6 +332,19 @@
 <a href="#332" id="332">332</a>
 <a href="#333" id="333">333</a>
 <a href="#334" id="334">334</a>
+<a href="#335" id="335">335</a>
+<a href="#336" id="336">336</a>
+<a href="#337" id="337">337</a>
+<a href="#338" id="338">338</a>
+<a href="#339" id="339">339</a>
+<a href="#340" id="340">340</a>
+<a href="#341" id="341">341</a>
+<a href="#342" id="342">342</a>
+<a href="#343" id="343">343</a>
+<a href="#344" id="344">344</a>
+<a href="#345" id="345">345</a>
+<a href="#346" id="346">346</a>
+<a href="#347" id="347">347</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -381,8 +394,10 @@
     }
 
     <span class="kw">pub async fn </span>stop(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="comment">// TODO: handle frontend shutdown
-        </span><span class="prelude-val">Ok</span>(())
+        <span class="self">self</span>.frontend
+            .shutdown()
+            .<span class="kw">await
+            </span>.context(error::ShutdownFrontendSnafu)
     }
 }
 
@@ -439,6 +454,8 @@
     </span>tls_key_path: <span class="prelude-ty">Option</span>&lt;String&gt;,
     <span class="attr">#[clap(long)]
     </span>user_provider: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="attr">#[clap(long)]
+    </span>disable_dashboard: bool,
 }
 
 <span class="kw">impl </span>StartCommand {
@@ -481,18 +498,24 @@
 
         <span class="kw">let </span>tls_option = TlsOption::new(cmd.tls_mode, cmd.tls_cert_path, cmd.tls_key_path);
 
+        <span class="kw">let </span><span class="kw-2">mut </span>http_options = HttpOptions {
+            disable_dashboard: cmd.disable_dashboard,
+            ..Default::default()
+        };
+
         <span class="kw">if let </span><span class="prelude-val">Some</span>(addr) = cmd.http_addr {
-            opts.http_options = <span class="prelude-val">Some</span>(HttpOptions {
-                addr,
-                ..Default::default()
-            });
+            http_options.addr = addr;
         }
+
+        opts.http_options = <span class="prelude-val">Some</span>(http_options);
+
         <span class="kw">if let </span><span class="prelude-val">Some</span>(addr) = cmd.grpc_addr {
             opts.grpc_options = <span class="prelude-val">Some</span>(GrpcOptions {
                 addr,
                 ..Default::default()
             });
         }
+
         <span class="kw">if let </span><span class="prelude-val">Some</span>(addr) = cmd.mysql_addr {
             opts.mysql_options = <span class="prelude-val">Some</span>(MysqlOptions {
                 addr,
@@ -559,6 +582,7 @@
             tls_cert_path: <span class="prelude-val">None</span>,
             tls_key_path: <span class="prelude-val">None</span>,
             user_provider: <span class="prelude-val">None</span>,
+            disable_dashboard: <span class="bool-val">false</span>,
         };
 
         <span class="kw">let </span>opts: FrontendOptions = command.try_into().unwrap();
@@ -621,6 +645,7 @@
             tls_cert_path: <span class="prelude-val">None</span>,
             tls_key_path: <span class="prelude-val">None</span>,
             user_provider: <span class="prelude-val">None</span>,
+            disable_dashboard: <span class="bool-val">false</span>,
         };
 
         <span class="kw">let </span>fe_opts = FrontendOptions::try_from(command).unwrap();
@@ -651,6 +676,7 @@
             tls_cert_path: <span class="prelude-val">None</span>,
             tls_key_path: <span class="prelude-val">None</span>,
             user_provider: <span class="prelude-val">Some</span>(<span class="string">&quot;static_user_provider:cmd:test=test&quot;</span>.to_string()),
+            disable_dashboard: <span class="bool-val">false</span>,
         };
 
         <span class="kw">let </span>plugins = load_frontend_plugins(<span class="kw-2">&amp;</span>command.user_provider);
