@@ -50,6 +50,7 @@ use partition::route::TableRoutes;
 use query::parser::{PromQuery, QueryLanguageParser, QueryStatement};
 use query::query_engine::options::{validate_catalog_and_schema, QueryOptions};
 use query::{QueryEngineFactory, QueryEngineRef};
+use servers::configurator::ConfiguratorRefOption;
 use servers::error as server_error;
 use servers::error::{ExecuteQuerySnafu, ParsePromQLSnafu};
 use servers::interceptor::{SqlQueryInterceptor, SqlQueryInterceptorRef};
@@ -65,6 +66,7 @@ use sql::dialect::GenericDialect;
 use sql::parser::ParserContext;
 use sql::statements::copy::CopyTable;
 use sql::statements::statement::Statement;
+use tokio::sync::RwLock;
 
 use crate::catalog::FrontendCatalogManager;
 use crate::datanode::DatanodeClients;
@@ -154,6 +156,12 @@ impl Instance {
             query_engine.clone(),
             dist_instance.clone(),
         ));
+        if let Some(configurator) = plugins.get::<RwLock<Option<Arc<StatementExecutor>>>>() {
+            let mut c = configurator.write().await;
+            if c.is_none() {
+                *c = Some(statement_executor.clone());
+            }
+        }
 
         Ok(Instance {
             catalog_manager,
@@ -425,11 +433,20 @@ impl Instance {
 impl FrontendInstance for Instance {
     async fn start(&mut self) -> Result<()> {
         // TODO(hl): Frontend init should move to here
-
-        futures::future::try_join_all(self.servers.values().map(start_server))
-            .await
-            .context(error::StartServerSnafu)
-            .map(|_| ())
+        let plug = self.plugins().clone();
+        let configurator = if let Some(x) = plug.get::<ConfiguratorRefOption>().cloned() {
+            x
+        } else {
+            None
+        };
+        futures::future::try_join_all(
+            self.servers
+                .values()
+                .map(|x| start_server(x, configurator.clone())),
+        )
+        .await
+        .context(error::StartServerSnafu)
+        .map(|_| ())
     }
 }
 

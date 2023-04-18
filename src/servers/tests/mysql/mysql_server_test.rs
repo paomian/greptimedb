@@ -75,10 +75,10 @@ async fn test_start_mysql_server() -> Result<()> {
 
     let mysql_server = create_mysql_server(table, Default::default())?;
     let listening = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-    let result = mysql_server.start(listening).await;
+    let result = mysql_server.start(listening, None).await;
     assert!(result.is_ok());
 
-    let result = mysql_server.start(listening).await;
+    let result = mysql_server.start(listening, None).await;
     assert!(result
         .unwrap_err()
         .to_string()
@@ -98,7 +98,7 @@ async fn test_reject_no_database() -> Result<()> {
         },
     )?;
     let listening = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-    let server_addr = mysql_server.start(listening).await.unwrap();
+    let server_addr = mysql_server.start(listening, None).await.unwrap();
     let server_port = server_addr.port();
 
     let fail = create_connection(server_port, None, false).await;
@@ -123,7 +123,7 @@ async fn test_schema_validation() -> Result<()> {
             },
         )?;
         let listening = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-        let server_addr = mysql_server.start(listening).await.unwrap();
+        let server_addr = mysql_server.start(listening, None).await.unwrap();
         Ok((mysql_server, server_addr.port()))
     }
 
@@ -170,7 +170,7 @@ async fn test_shutdown_mysql_server() -> Result<()> {
         .contains("MySQL server is not started."));
 
     let listening = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-    let server_addr = mysql_server.start(listening).await.unwrap();
+    let server_addr = mysql_server.start(listening, None).await.unwrap();
     let server_port = server_addr.port();
 
     let mut join_handles = vec![];
@@ -276,7 +276,7 @@ async fn test_server_required_secure_client_plain() -> Result<()> {
     )?;
 
     let listening = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-    let server_addr = mysql_server.start(listening).await.unwrap();
+    let server_addr = mysql_server.start(listening, None).await.unwrap();
 
     let r = create_connection(server_addr.port(), None, client_tls).await;
     assert!(r.is_err());
@@ -313,7 +313,7 @@ async fn test_server_required_secure_client_plain_with_pkcs8_priv_key() -> Resul
     )?;
 
     let listening = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-    let server_addr = mysql_server.start(listening).await.unwrap();
+    let server_addr = mysql_server.start(listening, None).await.unwrap();
 
     let r = create_connection_default_db_name(server_addr.port(), client_tls).await;
     assert!(r.is_err());
@@ -345,7 +345,7 @@ async fn test_db_name() -> Result<()> {
     )?;
 
     let listening = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-    let server_addr = mysql_server.start(listening).await.unwrap();
+    let server_addr = mysql_server.start(listening, None).await.unwrap();
 
     // None actually uses default database name
     let r = create_connection_default_db_name(server_addr.port(), client_tls).await;
@@ -377,7 +377,7 @@ async fn do_test_query_all_datatypes(server_tls: TlsOption, client_tls: bool) ->
     )?;
 
     let listening = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-    let server_addr = mysql_server.start(listening).await.unwrap();
+    let server_addr = mysql_server.start(listening, None).await.unwrap();
 
     let mut connection = create_connection_default_db_name(server_addr.port(), client_tls)
         .await
@@ -411,7 +411,7 @@ async fn test_query_concurrently() -> Result<()> {
 
     let mysql_server = create_mysql_server(table, Default::default())?;
     let listening = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-    let server_addr = mysql_server.start(listening).await.unwrap();
+    let server_addr = mysql_server.start(listening, None).await.unwrap();
     let server_port = server_addr.port();
 
     let threads = 4;
@@ -475,7 +475,7 @@ async fn test_query_prepared() -> Result<()> {
     )?;
 
     let listening = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-    let server_addr = mysql_server.start(listening).await.unwrap();
+    let server_addr = mysql_server.start(listening, None).await.unwrap();
 
     let mut connection = create_connection_default_db_name(server_addr.port(), false)
         .await

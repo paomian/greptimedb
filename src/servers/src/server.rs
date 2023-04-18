@@ -24,6 +24,7 @@ use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use tokio_stream::wrappers::TcpListenerStream;
 
+use crate::configurator::ConfiguratorRefOption;
 use crate::error::{self, Result};
 
 pub(crate) type AbortableStream = Abortable<TcpListenerStream>;
@@ -36,7 +37,11 @@ pub trait Server: Send + Sync {
     /// Starts the server and binds on `listening`.
     ///
     /// Caller should ensure `start()` is only invoked once.
-    async fn start(&self, listening: SocketAddr) -> Result<SocketAddr>;
+    async fn start(
+        &self,
+        listening: SocketAddr,
+        configurator: ConfiguratorRefOption,
+    ) -> Result<SocketAddr>;
 
     fn name(&self) -> &str;
 }

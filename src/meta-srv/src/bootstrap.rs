@@ -91,7 +91,7 @@ impl MetaSrvInstance {
             .context(error::ParseAddrSnafu {
                 addr: &self.opts.http_opts.addr,
             })?;
-        let http_srv = self.http_srv.start(addr);
+        let http_srv = self.http_srv.start(addr, None);
         select! {
             v = meta_srv => v?,
             v = http_srv => v.map(|_| ()).context(error::StartHttpSnafu)?,

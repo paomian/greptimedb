@@ -49,6 +49,7 @@ use tower_http::compression::CompressionLayer;
 use tower_http::trace::TraceLayer;
 
 use crate::auth::UserProviderRef;
+use crate::configurator::ConfiguratorRefOption;
 use crate::error::{
     AlreadyStartedSnafu, CollectRecordbatchSnafu, InternalSnafu, Result, StartHttpSnafu,
 };
@@ -124,7 +125,7 @@ impl Server for PromServer {
         Ok(())
     }
 
-    async fn start(&self, listening: SocketAddr) -> Result<SocketAddr> {
+    async fn start(&self, listening: SocketAddr, _: ConfiguratorRefOption) -> Result<SocketAddr> {
         let (tx, rx) = oneshot::channel();
         let server = {
             let mut shutdown_tx = self.shutdown_tx.lock().await;

@@ -40,7 +40,7 @@ use crate::error::{
 };
 
 #[derive(Clone)]
-pub(crate) struct StatementExecutor {
+pub struct StatementExecutor {
     catalog_manager: CatalogManagerRef,
     query_engine: QueryEngineRef,
     sql_stmt_executor: SqlStatementExecutorRef,
@@ -141,7 +141,7 @@ impl StatementExecutor {
         Ok(Output::RecordBatches(RecordBatches::empty()))
     }
 
-    async fn get_table(&self, table_ref: &TableReference<'_>) -> Result<TableRef> {
+    pub async fn get_table(&self, table_ref: &TableReference<'_>) -> Result<TableRef> {
         let TableReference {
             catalog,
             schema,

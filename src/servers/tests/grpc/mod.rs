@@ -22,6 +22,7 @@ use async_trait::async_trait;
 use client::{Client, Database, DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME};
 use common_runtime::{Builder as RuntimeBuilder, Runtime};
 use servers::auth::UserProviderRef;
+use servers::configurator::ConfiguratorRefOption;
 use servers::error::{Result, StartGrpcSnafu, TcpBindSnafu};
 use servers::grpc::flight::FlightHandler;
 use servers::grpc::handler::GreptimeRequestHandler;
@@ -70,7 +71,7 @@ impl Server for MockGrpcServer {
         Ok(())
     }
 
-    async fn start(&self, addr: SocketAddr) -> Result<SocketAddr> {
+    async fn start(&self, addr: SocketAddr, _: ConfiguratorRefOption) -> Result<SocketAddr> {
         let (listener, addr) = {
             let listener = TcpListener::bind(addr)
                 .await
@@ -120,14 +121,14 @@ fn create_grpc_server(table: MemTable) -> Result<Arc<dyn Server>> {
 #[tokio::test]
 async fn test_grpc_server_startup() {
     let server = create_grpc_server(MemTable::default_numbers_table()).unwrap();
-    let re = server.start(LOCALHOST_WITH_0.parse().unwrap()).await;
+    let re = server.start(LOCALHOST_WITH_0.parse().unwrap(), None).await;
     assert!(re.is_ok());
 }
 
 #[tokio::test]
 async fn test_grpc_query() {
     let server = create_grpc_server(MemTable::default_numbers_table()).unwrap();
-    let re = server.start(LOCALHOST_WITH_0.parse().unwrap()).await;
+    let re = server.start(LOCALHOST_WITH_0.parse().unwrap(), None).await;
     assert!(re.is_ok());
 
     let grpc_client = Client::with_urls(vec![re.unwrap().to_string()]);

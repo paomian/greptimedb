@@ -68,10 +68,10 @@ async fn test_start_opentsdb_server() -> Result<()> {
     let (tx, _) = mpsc::channel(100);
     let server = create_opentsdb_server(tx)?;
     let listening = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-    let result = server.start(listening).await;
+    let result = server.start(listening, None).await;
     assert!(result.is_ok());
 
-    let result = server.start(listening).await;
+    let result = server.start(listening, None).await;
     assert!(result
         .unwrap_err()
         .to_string()
@@ -90,7 +90,7 @@ async fn test_shutdown_opentsdb_server_concurrently() -> Result<()> {
         .contains("OpenTSDB server is not started."));
 
     let listening = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-    let addr = server.start(listening).await?;
+    let addr = server.start(listening, None).await?;
 
     let notify = Arc::new(Notify::new());
     let notify_in_task = notify.clone();
@@ -155,7 +155,7 @@ async fn test_opentsdb_connection_shutdown() -> Result<()> {
         .contains("OpenTSDB server is not started."));
 
     let listening = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-    let addr = server.start(listening).await?;
+    let addr = server.start(listening, None).await?;
 
     let stream = TcpStream::connect(addr).await.unwrap();
     let mut connection = Connection::new(stream);
@@ -200,7 +200,7 @@ async fn test_opentsdb_connect_after_shutdown() -> Result<()> {
         .contains("OpenTSDB server is not started."));
 
     let listening = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-    let addr = server.start(listening).await?;
+    let addr = server.start(listening, None).await?;
 
     server.shutdown().await.unwrap();
 
@@ -214,7 +214,7 @@ async fn test_query() -> Result<()> {
     let (tx, mut rx) = mpsc::channel(10);
     let server = create_opentsdb_server(tx)?;
     let listening = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-    let addr = server.start(listening).await?;
+    let addr = server.start(listening, None).await?;
 
     let stream = TcpStream::connect(addr).await.unwrap();
     let mut connection = Connection::new(stream);
@@ -241,7 +241,7 @@ async fn test_query_concurrently() -> Result<()> {
 
     let server = create_opentsdb_server(tx)?;
     let listening = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-    let addr = server.start(listening).await?;
+    let addr = server.start(listening, None).await?;
 
     let mut join_handles = vec![];
     for _ in 0..threads {

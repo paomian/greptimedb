@@ -58,6 +58,7 @@ use tower_http::trace::TraceLayer;
 use self::authorize::HttpAuth;
 use self::influxdb::{influxdb_health, influxdb_ping, influxdb_write};
 use crate::auth::UserProviderRef;
+use crate::configurator::ConfiguratorRefOption;
 use crate::error::{AlreadyStartedSnafu, Result, StartHttpSnafu};
 use crate::http::admin::flush;
 use crate::metrics_handler::MetricsHandler;
@@ -71,7 +72,7 @@ use crate::server::Server;
 
 /// create query context from database name information, catalog and schema are
 /// resolved from the name
-pub(crate) fn query_context_from_db(
+pub fn query_context_from_db(
     query_handler: ServerSqlQueryHandlerRef,
     db: Option<String>,
 ) -> std::result::Result<Arc<QueryContext>, JsonResponse> {
@@ -256,7 +257,7 @@ pub struct JsonResponse {
 }
 
 impl JsonResponse {
-    fn with_error(error: String, error_code: StatusCode) -> Self {
+    pub fn with_error(error: String, error_code: StatusCode) -> Self {
         JsonResponse {
             error: Some(error),
             code: error_code as u32,
@@ -280,7 +281,7 @@ impl JsonResponse {
     }
 
     /// Create a json response from query result
-    async fn from_output(outputs: Vec<Result<Output>>) -> Self {
+    pub async fn from_output(outputs: Vec<Result<Output>>) -> Self {
         // TODO(sunng87): this api response structure cannot represent error
         // well. It hides successful execution results from error response
         let mut results = Vec::with_capacity(outputs.len());
@@ -512,7 +513,10 @@ impl HttpServer {
                 router = router.nest("/dashboard", dashboard::dashboard());
             }
         }
+        router
+    }
 
+    pub fn build(&self, router: Router) -> Router {
         router
             // middlewares
             .layer(
@@ -596,7 +600,11 @@ impl Server for HttpServer {
         Ok(())
     }
 
-    async fn start(&self, listening: SocketAddr) -> Result<SocketAddr> {
+    async fn start(
+        &self,
+        listening: SocketAddr,
+        configurator: ConfiguratorRefOption,
+    ) -> Result<SocketAddr> {
         let (tx, rx) = oneshot::channel();
         let server = {
             let mut shutdown_tx = self.shutdown_tx.lock().await;
@@ -605,7 +613,12 @@ impl Server for HttpServer {
                 AlreadyStartedSnafu { server: "HTTP" }
             );
 
-            let app = self.make_app();
+            let mut app = self.make_app();
+            if let Some(configurator) = configurator.as_ref() {
+                let cg = configurator.lock().await;
+                app = cg.config_http(app);
+            }
+            let app = self.build(app);
             let server = axum::Server::bind(&listening).serve(app.into_make_service());
 
             *shutdown_tx = Some(tx);
@@ -719,7 +732,7 @@ mod test {
             .with_sql_handler(sql_instance)
             .with_grpc_handler(grpc_instance)
             .build();
-        server.make_app().route(
+        server.build(server.make_app()).route(
             "/test/timeout",
             get(forever.layer(
                 ServiceBuilder::new()

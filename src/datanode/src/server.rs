@@ -69,8 +69,8 @@ impl Services {
         let http_addr = opts.http_opts.addr.parse().context(ParseAddrSnafu {
             addr: &opts.http_opts.addr,
         })?;
-        let grpc = self.grpc_server.start(grpc_addr);
-        let http = self.http_server.start(http_addr);
+        let grpc = self.grpc_server.start(grpc_addr, None);
+        let http = self.http_server.start(http_addr, None);
         select!(
             v = grpc => v.context(StartServerSnafu)?,
             v = http => v.context(StartServerSnafu)?,
