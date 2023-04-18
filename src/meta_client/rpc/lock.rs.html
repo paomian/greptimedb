@@ -167,7 +167,7 @@
     <span class="kw">fn </span>from(req: UnlockRequest) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             header: <span class="prelude-val">None</span>,
-            key: req.key.to_vec(),
+            key: req.key,
         }
     }
 }

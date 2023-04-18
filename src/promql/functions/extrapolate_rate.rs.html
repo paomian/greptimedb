@@ -646,9 +646,9 @@
 
         <span class="comment">// construct matrix from input
         </span><span class="kw">let </span>ts_array = extract_array(<span class="kw-2">&amp;</span>input[<span class="number">0</span>])<span class="question-mark">?</span>;
-        <span class="kw">let </span>ts_range = RangeArray::try_new(ts_array.data().clone().into())<span class="question-mark">?</span>;
+        <span class="kw">let </span>ts_range = RangeArray::try_new(ts_array.to_data().into())<span class="question-mark">?</span>;
         <span class="kw">let </span>value_array = extract_array(<span class="kw-2">&amp;</span>input[<span class="number">1</span>])<span class="question-mark">?</span>;
-        <span class="kw">let </span>value_range = RangeArray::try_new(value_array.data().clone().into())<span class="question-mark">?</span>;
+        <span class="kw">let </span>value_range = RangeArray::try_new(value_array.to_data().into())<span class="question-mark">?</span>;
         <span class="kw">let </span>ts = extract_array(<span class="kw-2">&amp;</span>input[<span class="number">2</span>])<span class="question-mark">?</span>;
         <span class="kw">let </span>ts = ts
             .as_any()

@@ -144,6 +144,20 @@
 <a href="#144" id="144">144</a>
 <a href="#145" id="145">145</a>
 <a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -181,6 +195,20 @@
     /// from a certain user to a certain catalog/schema is legal.
     /// This method should be called after [`authenticate`].
     </span><span class="kw">async fn </span>authorize(<span class="kw-2">&amp;</span><span class="self">self</span>, catalog: <span class="kw-2">&amp;</span>str, schema: <span class="kw-2">&amp;</span>str, user_info: <span class="kw-2">&amp;</span>UserInfo) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt;;
+
+    <span class="doccomment">/// [`auth`] is a combination of [`authenticate`] and [`authorize`].
+    /// In most cases it&#39;s preferred for both convenience and performance.
+    </span><span class="kw">async fn </span>auth(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        id: Identity&lt;<span class="lifetime">&#39;_</span>&gt;,
+        password: Password&lt;<span class="lifetime">&#39;_</span>&gt;,
+        catalog: <span class="kw-2">&amp;</span>str,
+        schema: <span class="kw-2">&amp;</span>str,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;UserInfo&gt; {
+        <span class="kw">let </span>user_info = <span class="self">self</span>.authenticate(id, password).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="self">self</span>.authorize(catalog, schema, <span class="kw-2">&amp;</span>user_info).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(user_info)
+    }
 }
 
 <span class="kw">pub type </span>UserProviderRef = Arc&lt;<span class="kw">dyn </span>UserProvider&gt;;

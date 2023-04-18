@@ -97,6 +97,9 @@
 <a href="#97" id="97">97</a>
 <a href="#98" id="98">98</a>
 <a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -113,12 +116,14 @@
 
 </span><span class="kw">mod </span>alter;
 <span class="kw">mod </span>create;
+<span class="kw">mod </span>drop;
 
 <span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">use </span>alter::AlterMitoTable;
 <span class="kw">use </span>common_procedure::ProcedureManager;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">use </span>create::CreateMitoTable;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">use </span>drop::DropMitoTable;
 <span class="kw">use </span>store_api::storage::StorageEngine;
 
 <span class="kw">use </span><span class="kw">crate</span>::engine::MitoEngineInner;
@@ -133,7 +138,8 @@
 ) {
     <span class="comment">// The procedure names are expected to be unique, so we just panic on error.
     </span>CreateMitoTable::register_loader(engine_inner.clone(), procedure_manager);
-    AlterMitoTable::register_loader(engine_inner, procedure_manager);
+    AlterMitoTable::register_loader(engine_inner.clone(), procedure_manager);
+    DropMitoTable::register_loader(engine_inner, procedure_manager);
 }
 
 <span class="attr">#[cfg(test)]

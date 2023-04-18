@@ -77,62 +77,6 @@
 <a href="#77" id="77">77</a>
 <a href="#78" id="78">78</a>
 <a href="#79" id="79">79</a>
-<a href="#80" id="80">80</a>
-<a href="#81" id="81">81</a>
-<a href="#82" id="82">82</a>
-<a href="#83" id="83">83</a>
-<a href="#84" id="84">84</a>
-<a href="#85" id="85">85</a>
-<a href="#86" id="86">86</a>
-<a href="#87" id="87">87</a>
-<a href="#88" id="88">88</a>
-<a href="#89" id="89">89</a>
-<a href="#90" id="90">90</a>
-<a href="#91" id="91">91</a>
-<a href="#92" id="92">92</a>
-<a href="#93" id="93">93</a>
-<a href="#94" id="94">94</a>
-<a href="#95" id="95">95</a>
-<a href="#96" id="96">96</a>
-<a href="#97" id="97">97</a>
-<a href="#98" id="98">98</a>
-<a href="#99" id="99">99</a>
-<a href="#100" id="100">100</a>
-<a href="#101" id="101">101</a>
-<a href="#102" id="102">102</a>
-<a href="#103" id="103">103</a>
-<a href="#104" id="104">104</a>
-<a href="#105" id="105">105</a>
-<a href="#106" id="106">106</a>
-<a href="#107" id="107">107</a>
-<a href="#108" id="108">108</a>
-<a href="#109" id="109">109</a>
-<a href="#110" id="110">110</a>
-<a href="#111" id="111">111</a>
-<a href="#112" id="112">112</a>
-<a href="#113" id="113">113</a>
-<a href="#114" id="114">114</a>
-<a href="#115" id="115">115</a>
-<a href="#116" id="116">116</a>
-<a href="#117" id="117">117</a>
-<a href="#118" id="118">118</a>
-<a href="#119" id="119">119</a>
-<a href="#120" id="120">120</a>
-<a href="#121" id="121">121</a>
-<a href="#122" id="122">122</a>
-<a href="#123" id="123">123</a>
-<a href="#124" id="124">124</a>
-<a href="#125" id="125">125</a>
-<a href="#126" id="126">126</a>
-<a href="#127" id="127">127</a>
-<a href="#128" id="128">128</a>
-<a href="#129" id="129">129</a>
-<a href="#130" id="130">130</a>
-<a href="#131" id="131">131</a>
-<a href="#132" id="132">132</a>
-<a href="#133" id="133">133</a>
-<a href="#134" id="134">134</a>
-<a href="#135" id="135">135</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -161,7 +105,7 @@
 <span class="kw">use </span>datatypes::arrow::array::Array;
 <span class="kw">use </span>datatypes::arrow::datatypes::DataType;
 
-<span class="kw">use </span><span class="kw">crate</span>::functions::{compensated_sum_inc, extract_array};
+<span class="kw">use </span><span class="kw">crate</span>::functions::{extract_array, linear_regression};
 <span class="kw">use </span><span class="kw">crate</span>::range_array::RangeArray;
 
 <span class="attr">#[range_fn(name = <span class="string">&quot;Deriv&quot;</span>, ret = <span class="string">&quot;Float64Array&quot;</span>, display_name = <span class="string">&quot;prom_drive&quot;</span>)]
@@ -173,62 +117,6 @@
         <span class="kw">let </span>(slope, <span class="kw">_</span>) = linear_regression(times, values, intercept_time);
         slope
     }
-}
-
-<span class="doccomment">/// linear_regression performs a least-square linear regression analysis on the
-/// times and values. It return the slope and intercept based on times and values.
-/// Prometheus&#39;s implementation: https://github.com/prometheus/prometheus/blob/90b2f7a540b8a70d8d81372e6692dcbb67ccbaaa/promql/functions.go#L793-L837
-</span><span class="kw">fn </span>linear_regression(
-    times: <span class="kw-2">&amp;</span>TimestampMillisecondArray,
-    values: <span class="kw-2">&amp;</span>Float64Array,
-    intercept_time: i64,
-) -&gt; (<span class="prelude-ty">Option</span>&lt;f64&gt;, <span class="prelude-ty">Option</span>&lt;f64&gt;) {
-    <span class="kw">let </span><span class="kw-2">mut </span>count: f64 = <span class="number">0.0</span>;
-    <span class="kw">let </span><span class="kw-2">mut </span>sum_x: f64 = <span class="number">0.0</span>;
-    <span class="kw">let </span><span class="kw-2">mut </span>sum_y: f64 = <span class="number">0.0</span>;
-    <span class="kw">let </span><span class="kw-2">mut </span>sum_xy: f64 = <span class="number">0.0</span>;
-    <span class="kw">let </span><span class="kw-2">mut </span>sum_x2: f64 = <span class="number">0.0</span>;
-    <span class="kw">let </span><span class="kw-2">mut </span>comp_x: f64 = <span class="number">0.0</span>;
-    <span class="kw">let </span><span class="kw-2">mut </span>comp_y: f64 = <span class="number">0.0</span>;
-    <span class="kw">let </span><span class="kw-2">mut </span>comp_xy: f64 = <span class="number">0.0</span>;
-    <span class="kw">let </span><span class="kw-2">mut </span>comp_x2: f64 = <span class="number">0.0</span>;
-
-    <span class="kw">let </span><span class="kw-2">mut </span>const_y = <span class="bool-val">true</span>;
-    <span class="kw">let </span>init_y: f64 = values.value(<span class="number">0</span>);
-
-    <span class="kw">for </span>(i, value) <span class="kw">in </span>values.iter().enumerate() {
-        <span class="kw">let </span>time = times.value(i) <span class="kw">as </span>f64;
-        <span class="kw">let </span>value = value.unwrap();
-        <span class="kw">if </span>const_y &amp;&amp; i &gt; <span class="number">0 </span>&amp;&amp; value != init_y {
-            const_y = <span class="bool-val">false</span>;
-        }
-        count += <span class="number">1.0</span>;
-        <span class="kw">let </span>x = time - intercept_time <span class="kw">as </span>f64 / <span class="number">1e3</span>;
-        (sum_x, comp_x) = compensated_sum_inc(x, sum_x, comp_x);
-        (sum_y, comp_y) = compensated_sum_inc(value, sum_y, comp_y);
-        (sum_xy, comp_xy) = compensated_sum_inc(x * value, sum_xy, comp_xy);
-        (sum_x2, comp_x2) = compensated_sum_inc(x * x, sum_x2, comp_x2);
-    }
-
-    <span class="kw">if </span>const_y {
-        <span class="kw">if </span>init_y.is_finite() {
-            <span class="kw">return </span>(<span class="prelude-val">None</span>, <span class="prelude-val">None</span>);
-        }
-        <span class="kw">return </span>(<span class="prelude-val">Some</span>(<span class="number">0.0</span>), <span class="prelude-val">Some</span>(init_y));
-    }
-
-    sum_x += comp_x;
-    sum_y += comp_y;
-    sum_xy += comp_xy;
-    sum_x2 += comp_x2;
-
-    <span class="kw">let </span>cov_xy = sum_xy - sum_x * sum_y / count;
-    <span class="kw">let </span>var_x = sum_x2 - sum_x * sum_x / count;
-
-    <span class="kw">let </span>slope = cov_xy / var_x;
-    <span class="kw">let </span>intercept = sum_y / count - slope * sum_x / count;
-
-    (<span class="prelude-val">Some</span>(slope), <span class="prelude-val">Some</span>(intercept))
 }
 
 <span class="attr">#[cfg(test)]

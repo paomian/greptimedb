@@ -164,6 +164,16 @@
 <a href="#164" id="164">164</a>
 <a href="#165" id="165">165</a>
 <a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -185,6 +195,8 @@
 <span class="kw">use </span>datafusion::error::DataFusionError;
 <span class="kw">use </span>datatypes::arrow::error::ArrowError;
 <span class="kw">use </span>snafu::Location;
+
+<span class="kw">use </span><span class="kw">crate</span>::metadata::TableId;
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
 
@@ -272,6 +284,7 @@
         column_name: String,
         location: Location,
     },
+
     <span class="attr">#[snafu(display(<span class="string">&quot;Regions schemas mismatch in table: {}&quot;</span>, table))]
     </span>RegionSchemaMismatch { table: String, location: Location },
 
@@ -285,6 +298,12 @@
     </span>ParseTableOption {
         key: String,
         value: String,
+        location: Location,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Invalid table state: {}&quot;</span>, table_id))]
+    </span>InvalidTable {
+        table_id: TableId,
         location: Location,
     },
 }
@@ -309,6 +328,7 @@
             Error::ParseTableOption { .. }
             | Error::EngineNotFound { .. }
             | Error::EngineExist { .. } =&gt; StatusCode::InvalidArguments,
+            Error::InvalidTable { .. } =&gt; StatusCode::Internal,
         }
     }
 

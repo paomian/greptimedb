@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["FIELDS","VARIANTS"],"enum":["AlterTableState","__Field"],"opaque":[""],"static":["CALLSITE","META"],"struct":["AlterMitoTable","AlterTableData","__FieldVisitor","__Visitor"]};
+window.SIDEBAR_ITEMS = {"enum":["AlterTableState"],"opaque":[""],"static":["CALLSITE","META"],"struct":["AlterMitoTable","AlterTableData"]};

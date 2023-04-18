@@ -713,7 +713,7 @@
         <span class="kw">let </span><span class="kw-2">mut </span>column_schemas = Vec::with_capacity(arrow_schema.fields.len());
         <span class="kw">let </span><span class="kw-2">mut </span>name_to_index = HashMap::with_capacity(arrow_schema.fields.len());
         <span class="kw">for </span>field <span class="kw">in </span><span class="kw-2">&amp;</span>arrow_schema.fields {
-            <span class="kw">let </span>column_schema = ColumnSchema::try_from(field)<span class="question-mark">?</span>;
+            <span class="kw">let </span>column_schema = ColumnSchema::try_from(field.as_ref())<span class="question-mark">?</span>;
             name_to_index.insert(field.name().to_string(), column_schemas.len());
             column_schemas.push(column_schema);
         }

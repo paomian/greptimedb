@@ -590,10 +590,10 @@
         <span class="kw">let </span>(values, datatype) = build_values(array);
 
         <span class="kw">let </span>column = Column {
-            column_name: field.name().to_owned(),
+            column_name: field.name().clone(),
             values: <span class="prelude-val">Some</span>(values),
             null_mask: array
-                .data()
+                .to_data()
                 .nulls()
                 .map(|bitmap| bitmap.buffer().as_slice().to_vec())
                 .unwrap_or_default(),
@@ -687,7 +687,7 @@
         | DataType::FixedSizeList(<span class="kw">_</span>, <span class="kw">_</span>)
         | DataType::LargeList(<span class="kw">_</span>)
         | DataType::Struct(<span class="kw">_</span>)
-        | DataType::Union(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>)
+        | DataType::Union(<span class="kw">_</span>, <span class="kw">_</span>)
         | DataType::Dictionary(<span class="kw">_</span>, <span class="kw">_</span>)
         | DataType::Decimal128(<span class="kw">_</span>, <span class="kw">_</span>)
         | DataType::Decimal256(<span class="kw">_</span>, <span class="kw">_</span>)

@@ -175,10 +175,10 @@
 <span class="kw">use </span>arrow::buffer::NullBuffer;
 
 <span class="attr">#[derive(Debug, PartialEq)]
-</span><span class="kw">enum </span>ValidityKind&lt;<span class="lifetime">&#39;a</span>&gt; {
+</span><span class="kw">enum </span>ValidityKind {
     <span class="doccomment">/// Whether the array slot is valid or not (null).
     </span>Slots {
-        bitmap: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>NullBuffer,
+        bitmap: NullBuffer,
         len: usize,
         null_count: usize,
     },
@@ -190,17 +190,17 @@
 
 <span class="doccomment">/// Validity of a vector.
 </span><span class="attr">#[derive(Debug, PartialEq)]
-</span><span class="kw">pub struct </span>Validity&lt;<span class="lifetime">&#39;a</span>&gt; {
-    kind: ValidityKind&lt;<span class="lifetime">&#39;a</span>&gt;,
+</span><span class="kw">pub struct </span>Validity {
+    kind: ValidityKind,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; Validity&lt;<span class="lifetime">&#39;a</span>&gt; {
+<span class="kw">impl </span>Validity {
     <span class="doccomment">/// Creates a `Validity` from [`ArrayData`].
-    </span><span class="kw">pub fn </span>from_array_data(data: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>ArrayData) -&gt; Validity&lt;<span class="lifetime">&#39;a</span>&gt; {
+    </span><span class="kw">pub fn </span>from_array_data(data: ArrayData) -&gt; Validity {
         <span class="kw">match </span>data.nulls() {
-            <span class="prelude-val">Some</span>(bitmap) =&gt; Validity {
+            <span class="prelude-val">Some</span>(null_buf) =&gt; Validity {
                 kind: ValidityKind::Slots {
-                    bitmap,
+                    bitmap: null_buf.clone(),
                     len: data.len(),
                     null_count: data.null_count(),
                 },
@@ -210,14 +210,14 @@
     }
 
     <span class="doccomment">/// Returns `Validity` that all elements are valid.
-    </span><span class="kw">pub fn </span>all_valid(len: usize) -&gt; Validity&lt;<span class="lifetime">&#39;a</span>&gt; {
+    </span><span class="kw">pub fn </span>all_valid(len: usize) -&gt; Validity {
         Validity {
             kind: ValidityKind::AllValid { len },
         }
     }
 
     <span class="doccomment">/// Returns `Validity` that all elements are null.
-    </span><span class="kw">pub fn </span>all_null(len: usize) -&gt; Validity&lt;<span class="lifetime">&#39;a</span>&gt; {
+    </span><span class="kw">pub fn </span>all_null(len: usize) -&gt; Validity {
         Validity {
             kind: ValidityKind::AllNull { len },
         }
@@ -225,9 +225,9 @@
 
     <span class="doccomment">/// Returns whether `i-th` bit is set.
     </span><span class="kw">pub fn </span>is_set(<span class="kw-2">&amp;</span><span class="self">self</span>, i: usize) -&gt; bool {
-        <span class="kw">match </span><span class="self">self</span>.kind {
+        <span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.kind {
             ValidityKind::Slots { bitmap, .. } =&gt; bitmap.is_valid(i),
-            ValidityKind::AllValid { len } =&gt; i &lt; len,
+            ValidityKind::AllValid { len } =&gt; i &lt; <span class="kw-2">*</span>len,
             ValidityKind::AllNull { .. } =&gt; <span class="bool-val">false</span>,
         }
     }
@@ -295,7 +295,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_from_array_data() {
         <span class="kw">let </span>array = Int32Array::from_iter([<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="number">1</span>), <span class="prelude-val">None</span>]);
-        <span class="kw">let </span>validity = Validity::from_array_data(array.data());
+        <span class="kw">let </span>validity = Validity::from_array_data(array.to_data());
         <span class="macro">assert_eq!</span>(<span class="number">2</span>, validity.null_count());
         <span class="macro">assert!</span>(!validity.is_set(<span class="number">0</span>));
         <span class="macro">assert!</span>(validity.is_set(<span class="number">1</span>));
@@ -304,13 +304,13 @@
         <span class="macro">assert!</span>(!validity.is_all_valid());
 
         <span class="kw">let </span>array = Int32Array::from_iter([<span class="prelude-val">None</span>, <span class="prelude-val">None</span>]);
-        <span class="kw">let </span>validity = Validity::from_array_data(array.data());
+        <span class="kw">let </span>validity = Validity::from_array_data(array.to_data());
         <span class="macro">assert!</span>(validity.is_all_null());
         <span class="macro">assert!</span>(!validity.is_all_valid());
         <span class="macro">assert_eq!</span>(<span class="number">2</span>, validity.null_count());
 
         <span class="kw">let </span>array = Int32Array::from_iter_values([<span class="number">1</span>, <span class="number">2</span>]);
-        <span class="kw">let </span>validity = Validity::from_array_data(array.data());
+        <span class="kw">let </span>validity = Validity::from_array_data(array.to_data());
         <span class="macro">assert!</span>(!validity.is_all_null());
         <span class="macro">assert!</span>(validity.is_all_valid());
         <span class="macro">assert_eq!</span>(<span class="number">0</span>, validity.null_count());

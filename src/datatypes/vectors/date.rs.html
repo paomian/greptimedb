@@ -125,7 +125,7 @@
 </span><span class="kw">mod </span>tests {
     <span class="kw">use </span>std::sync::Arc;
 
-    <span class="kw">use </span>arrow::array::Array;
+    <span class="kw">use </span>arrow_array::ArrayRef;
     <span class="kw">use </span>common_time::date::Date;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
@@ -185,7 +185,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_date_from_arrow() {
         <span class="kw">let </span>vector = DateVector::from_slice([<span class="number">1</span>, <span class="number">2</span>]);
-        <span class="kw">let </span>arrow = vector.as_arrow().slice(<span class="number">0</span>, vector.len());
+        <span class="kw">let </span>arrow: ArrayRef = Arc::new(vector.as_arrow().slice(<span class="number">0</span>, vector.len()));
         <span class="kw">let </span>vector2 = DateVector::try_from_arrow_array(<span class="kw-2">&amp;</span>arrow).unwrap();
         <span class="macro">assert_eq!</span>(vector, vector2);
     }

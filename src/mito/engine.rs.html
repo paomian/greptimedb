@@ -679,6 +679,25 @@
 <a href="#679" id="679">679</a>
 <a href="#680" id="680">680</a>
 <a href="#681" id="681">681</a>
+<a href="#682" id="682">682</a>
+<a href="#683" id="683">683</a>
+<a href="#684" id="684">684</a>
+<a href="#685" id="685">685</a>
+<a href="#686" id="686">686</a>
+<a href="#687" id="687">687</a>
+<a href="#688" id="688">688</a>
+<a href="#689" id="689">689</a>
+<a href="#690" id="690">690</a>
+<a href="#691" id="691">691</a>
+<a href="#692" id="692">692</a>
+<a href="#693" id="693">693</a>
+<a href="#694" id="694">694</a>
+<a href="#695" id="695">695</a>
+<a href="#696" id="696">696</a>
+<a href="#697" id="697">697</a>
+<a href="#698" id="698">698</a>
+<a href="#699" id="699">699</a>
+<a href="#700" id="700">700</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -729,13 +748,14 @@
 <span class="kw">use </span>tokio::sync::Mutex;
 
 <span class="kw">use </span><span class="kw">crate</span>::config::EngineConfig;
-<span class="kw">use </span><span class="kw">crate</span>::engine::procedure::{AlterMitoTable, CreateMitoTable};
+<span class="kw">use </span><span class="kw">crate</span>::engine::procedure::{AlterMitoTable, CreateMitoTable, DropMitoTable};
 <span class="kw">use </span><span class="kw">crate</span>::error::{
     <span class="self">self</span>, BuildColumnDescriptorSnafu, BuildColumnFamilyDescriptorSnafu, BuildRegionDescriptorSnafu,
     BuildRowKeyDescriptorSnafu, InvalidPrimaryKeySnafu, InvalidRawSchemaSnafu,
     MissingTimestampIndexSnafu, RegionNotFoundSnafu, <span class="prelude-ty">Result</span>, TableExistsSnafu,
 };
 <span class="kw">use </span><span class="kw">crate</span>::manifest::TableManifest;
+<span class="kw">use </span><span class="kw">crate</span>::metrics;
 <span class="kw">use </span><span class="kw">crate</span>::table::MitoTable;
 <span class="kw">pub const </span>INIT_COLUMN_ID: ColumnId = <span class="number">0</span>;
 <span class="kw">const </span>INIT_TABLE_VERSION: TableVersion = <span class="number">0</span>;
@@ -776,6 +796,7 @@
         ctx: <span class="kw-2">&amp;</span>EngineContext,
         request: CreateTableRequest,
     ) -&gt; TableResult&lt;TableRef&gt; {
+        <span class="kw">let </span>_timer = <span class="macro">common_telemetry::timer!</span>(metrics::MITO_CREATE_TABLE_ELAPSED);
         <span class="self">self</span>.inner
             .create_table(ctx, request)
             .<span class="kw">await
@@ -788,6 +809,7 @@
         ctx: <span class="kw-2">&amp;</span>EngineContext,
         request: OpenTableRequest,
     ) -&gt; TableResult&lt;<span class="prelude-ty">Option</span>&lt;TableRef&gt;&gt; {
+        <span class="kw">let </span>_timer = <span class="macro">common_telemetry::timer!</span>(metrics::MITO_OPEN_TABLE_ELAPSED);
         <span class="self">self</span>.inner
             .open_table(ctx, request)
             .<span class="kw">await
@@ -800,6 +822,7 @@
         ctx: <span class="kw-2">&amp;</span>EngineContext,
         req: AlterTableRequest,
     ) -&gt; TableResult&lt;TableRef&gt; {
+        <span class="kw">let </span>_timer = <span class="macro">common_telemetry::timer!</span>(metrics::MITO_ALTER_TABLE_ELAPSED);
         <span class="self">self</span>.inner
             .alter_table(ctx, req)
             .<span class="kw">await
@@ -861,6 +884,19 @@
     ) -&gt; TableResult&lt;BoxedProcedure&gt; {
         <span class="kw">let </span>procedure = Box::new(
             AlterMitoTable::new(request, <span class="self">self</span>.inner.clone())
+                .map_err(BoxedError::new)
+                .context(table_error::TableOperationSnafu)<span class="question-mark">?</span>,
+        );
+        <span class="prelude-val">Ok</span>(procedure)
+    }
+
+    <span class="kw">fn </span>drop_table_procedure(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        _ctx: <span class="kw-2">&amp;</span>EngineContext,
+        request: DropTableRequest,
+    ) -&gt; TableResult&lt;BoxedProcedure&gt; {
+        <span class="kw">let </span>procedure = Box::new(
+            DropMitoTable::new(request, <span class="self">self</span>.inner.clone())
                 .map_err(BoxedError::new)
                 .context(table_error::TableOperationSnafu)<span class="question-mark">?</span>,
         );
@@ -1091,12 +1127,14 @@
                 compaction_time_window: request.table_options.compaction_time_window,
             };
 
-            <span class="kw">let </span>region = <span class="self">self
-                </span>.storage_engine
-                .create_region(<span class="kw-2">&amp;</span>StorageEngineContext::default(), region_descriptor, <span class="kw-2">&amp;</span>opts)
-                .<span class="kw">await
-                </span>.map_err(BoxedError::new)
-                .context(error::CreateRegionSnafu)<span class="question-mark">?</span>;
+            <span class="kw">let </span>region = {
+                <span class="kw">let </span>_timer = <span class="macro">common_telemetry::timer!</span>(<span class="kw">crate</span>::metrics::MITO_CREATE_REGION_ELAPSED);
+                <span class="self">self</span>.storage_engine
+                    .create_region(<span class="kw-2">&amp;</span>StorageEngineContext::default(), region_descriptor, <span class="kw-2">&amp;</span>opts)
+                    .<span class="kw">await
+                    </span>.map_err(BoxedError::new)
+                    .context(error::CreateRegionSnafu)<span class="question-mark">?
+            </span>};
             <span class="macro">info!</span>(
                 <span class="string">&quot;Mito engine created region: {}, id: {}&quot;</span>,
                 region.name(),

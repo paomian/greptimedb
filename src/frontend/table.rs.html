@@ -1058,7 +1058,6 @@
 <a href="#1058" id="1058">1058</a>
 <a href="#1059" id="1059">1059</a>
 <a href="#1060" id="1060">1060</a>
-<a href="#1061" id="1061">1061</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1443,11 +1442,11 @@
     <span class="kw">use </span>catalog::error::Result;
     <span class="kw">use </span>catalog::remote::{KvBackend, ValueIter};
     <span class="kw">use </span>common_query::physical_plan::DfPhysicalPlanAdapter;
+    <span class="kw">use </span>common_query::DfPhysicalPlan;
     <span class="kw">use </span>common_recordbatch::adapter::RecordBatchStreamAdapter;
     <span class="kw">use </span>datafusion::physical_plan::coalesce_partitions::CoalescePartitionsExec;
     <span class="kw">use </span>datafusion::physical_plan::expressions::{col <span class="kw">as </span>physical_col, PhysicalSortExpr};
     <span class="kw">use </span>datafusion::physical_plan::sorts::sort::SortExec;
-    <span class="kw">use </span>datafusion::physical_plan::ExecutionPlan;
     <span class="kw">use </span>datafusion::prelude::SessionContext;
     <span class="kw">use </span>datafusion::sql::sqlparser;
     <span class="kw">use </span>datafusion_expr::expr_fn::{and, binary_expr, col, or};
@@ -1825,15 +1824,14 @@
         <span class="kw">let </span>merge =
             CoalescePartitionsExec::new(Arc::new(DfPhysicalPlanAdapter(table_scan.clone())));
 
-        <span class="kw">let </span>sort = SortExec::try_new(
+        <span class="kw">let </span>sort = SortExec::new(
             <span class="macro">vec!</span>[PhysicalSortExpr {
                 expr: physical_col(<span class="string">&quot;a&quot;</span>, table_scan.schema().arrow_schema()).unwrap(),
                 options: SortOptions::default(),
             }],
             Arc::new(merge),
-            <span class="prelude-val">None</span>,
         )
-        .unwrap();
+        .with_fetch(<span class="prelude-val">None</span>);
         <span class="macro">assert_eq!</span>(sort.output_partitioning().partition_count(), <span class="number">1</span>);
 
         <span class="kw">let </span>session_ctx = SessionContext::new();

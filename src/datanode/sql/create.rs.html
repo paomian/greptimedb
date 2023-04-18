@@ -586,6 +586,7 @@
 <a href="#586" id="586">586</a>
 <a href="#587" id="587">587</a>
 <a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -914,7 +915,8 @@
     <span class="kw">use </span>common_base::readable_size::ReadableSize;
     <span class="kw">use </span>datatypes::prelude::ConcreteDataType;
     <span class="kw">use </span>datatypes::schema::Schema;
-    <span class="kw">use </span>query::parser::QueryLanguageParser;
+    <span class="kw">use </span>query::parser::{QueryLanguageParser, QueryStatement};
+    <span class="kw">use </span>query::query_engine::SqlStatementExecutor;
     <span class="kw">use </span>session::context::QueryContext;
     <span class="kw">use </span>sql::dialect::GenericDialect;
     <span class="kw">use </span>sql::parser::ParserContext;
@@ -1148,10 +1150,10 @@
                             TIME INDEX (ts),
                             PRIMARY KEY(host)
                         ) engine=mito with(regions=1);&quot;#</span>;
-        <span class="kw">let </span>stmt = QueryLanguageParser::parse_sql(sql).unwrap();
+        <span class="kw">let </span><span class="prelude-val">Ok</span>(QueryStatement::Sql(stmt)) = QueryLanguageParser::parse_sql(sql) <span class="kw">else </span>{ <span class="macro">unreachable!</span>() };
         <span class="kw">let </span>output = instance
             .inner()
-            .execute_stmt(stmt, QueryContext::arc())
+            .execute_sql(stmt, QueryContext::arc())
             .<span class="kw">await
             </span>.unwrap();
         <span class="macro">assert!</span>(<span class="macro">matches!</span>(output, Output::AffectedRows(<span class="number">0</span>)));
@@ -1165,10 +1167,10 @@
                             TIME INDEX (ts),
                             PRIMARY KEY(host)
                         ) engine=mito with(regions=1);&quot;#</span>;
-        <span class="kw">let </span>stmt = QueryLanguageParser::parse_sql(sql).unwrap();
+        <span class="kw">let </span><span class="prelude-val">Ok</span>(QueryStatement::Sql(stmt)) = QueryLanguageParser::parse_sql(sql) <span class="kw">else </span>{ <span class="macro">unreachable!</span>() };
         <span class="kw">let </span>output = instance
             .inner()
-            .execute_stmt(stmt, QueryContext::arc())
+            .execute_sql(stmt, QueryContext::arc())
             .<span class="kw">await
             </span>.unwrap();
         <span class="macro">assert!</span>(<span class="macro">matches!</span>(output, Output::AffectedRows(<span class="number">0</span>)));

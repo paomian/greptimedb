@@ -639,6 +639,14 @@
 <a href="#639" id="639">639</a>
 <a href="#640" id="640">640</a>
 <a href="#641" id="641">641</a>
+<a href="#642" id="642">642</a>
+<a href="#643" id="643">643</a>
+<a href="#644" id="644">644</a>
+<a href="#645" id="645">645</a>
+<a href="#646" id="646">646</a>
+<a href="#647" id="647">647</a>
+<a href="#648" id="648">648</a>
+<a href="#649" id="649">649</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -690,10 +698,10 @@
 <span class="kw">use </span><span class="kw">crate</span>::schema::{from_schema, to_schema};
 <span class="kw">use </span><span class="kw">crate</span>::SubstraitPlan;
 
-<span class="kw">pub struct </span>DFLogicalSubstraitConvertor;
+<span class="kw">pub struct </span>DFLogicalSubstraitConvertorDeprecated;
 
 <span class="attr">#[async_trait]
-</span><span class="kw">impl </span>SubstraitPlan <span class="kw">for </span>DFLogicalSubstraitConvertor {
+</span><span class="kw">impl </span>SubstraitPlan <span class="kw">for </span>DFLogicalSubstraitConvertorDeprecated {
     <span class="kw">type </span>Error = Error;
 
     <span class="kw">type </span>Plan = LogicalPlan;
@@ -717,7 +725,7 @@
     }
 }
 
-<span class="kw">impl </span>DFLogicalSubstraitConvertor {
+<span class="kw">impl </span>DFLogicalSubstraitConvertorDeprecated {
     <span class="kw">async fn </span>convert_plan(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         <span class="kw-2">mut </span>plan: Plan,
@@ -838,6 +846,14 @@
                 name: <span class="string">&quot;Cross Relation&quot;</span>,
             }
             .fail()<span class="question-mark">?</span>,
+            RelType::HashJoin(<span class="kw">_</span>) =&gt; UnsupportedPlanSnafu {
+                name: <span class="string">&quot;Cross Relation&quot;</span>,
+            }
+            .fail()<span class="question-mark">?</span>,
+            RelType::MergeJoin(<span class="kw">_</span>) =&gt; UnsupportedPlanSnafu {
+                name: <span class="string">&quot;Cross Relation&quot;</span>,
+            }
+            .fail()<span class="question-mark">?</span>,
         };
 
         <span class="prelude-val">Ok</span>(logical_plan)
@@ -952,7 +968,7 @@
     }
 }
 
-<span class="kw">impl </span>DFLogicalSubstraitConvertor {
+<span class="kw">impl </span>DFLogicalSubstraitConvertorDeprecated {
     <span class="kw">fn </span>logical_plan_to_rel(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         ctx: <span class="kw-2">&amp;mut </span>ConvertorContext,
@@ -1226,7 +1242,7 @@
     }
 
     <span class="kw">async fn </span>logical_plan_round_trip(plan: LogicalPlan, catalog: CatalogManagerRef) {
-        <span class="kw">let </span>convertor = DFLogicalSubstraitConvertor;
+        <span class="kw">let </span>convertor = DFLogicalSubstraitConvertorDeprecated;
 
         <span class="kw">let </span>proto = convertor.encode(plan.clone()).unwrap();
         <span class="kw">let </span>tripped_plan = convertor.decode(proto, catalog).<span class="kw">await</span>.unwrap();

@@ -176,7 +176,7 @@
 <span class="kw">use </span>datafusion::physical_plan::planner::DefaultPhysicalPlanner;
 <span class="kw">use </span>datafusion::physical_plan::{ExecutionPlan, PhysicalPlanner};
 <span class="kw">use </span>datafusion_expr::LogicalPlan <span class="kw">as </span>DfLogicalPlan;
-<span class="kw">use </span>datafusion_optimizer::optimizer::Optimizer;
+<span class="kw">use </span>datafusion_optimizer::analyzer::Analyzer;
 <span class="kw">use </span>promql::extension_plan::PromExtensionPlanner;
 
 <span class="kw">use </span><span class="kw">crate</span>::datafusion::DfCatalogListAdapter;
@@ -206,16 +206,16 @@
     <span class="kw">pub fn </span>new(catalog_list: CatalogListRef, plugins: Arc&lt;Plugins&gt;) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>runtime_env = Arc::new(RuntimeEnv::default());
         <span class="kw">let </span>session_config = SessionConfig::new().with_create_default_catalog_and_schema(<span class="bool-val">false</span>);
-        <span class="kw">let </span><span class="kw-2">mut </span>optimizer = Optimizer::new();
         <span class="comment">// Apply the type conversion rule first.
-        </span>optimizer.rules.insert(<span class="number">0</span>, Arc::new(TypeConversionRule {}));
+        </span><span class="kw">let </span><span class="kw-2">mut </span>analyzer = Analyzer::new();
+        analyzer.rules.insert(<span class="number">0</span>, Arc::new(TypeConversionRule));
 
         <span class="kw">let </span>session_state = SessionState::with_config_rt_and_catalog_list(
             session_config,
             runtime_env,
             Arc::new(DfCatalogListAdapter::new(catalog_list.clone())),
         )
-        .with_optimizer_rules(optimizer.rules)
+        .with_analyzer_rules(analyzer.rules)
         .with_query_planner(Arc::new(DfQueryPlanner::new()));
 
         <span class="kw">let </span>df_context = SessionContext::with_state(session_state);

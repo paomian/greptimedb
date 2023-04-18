@@ -321,7 +321,6 @@
 <a href="#321" id="321">321</a>
 <a href="#322" id="322">322</a>
 <a href="#323" id="323">323</a>
-<a href="#324" id="324">324</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -541,8 +540,7 @@
                     .with_context(|| <span class="kw">crate</span>::error::ConversionSnafu {
                         from: <span class="macro">std::format!</span>(<span class="string">&quot;{:?}&quot;</span>, array.as_ref().data_type()),
                     })<span class="question-mark">?
-                    </span>.data()
-                    .clone();
+                    </span>.to_data();
 
                 <span class="kw">let </span>concrete_array = <span class="macro-nonterminal">$Array::from</span>(data);
                 <span class="prelude-val">Ok</span>(<span class="macro-nonterminal">$Vector::from</span>(concrete_array))
@@ -553,7 +551,7 @@
 
 <span class="macro">macro_rules! </span>impl_validity_for_vector {
     (<span class="macro-nonterminal">$array</span>: expr) =&gt; {
-        Validity::from_array_data(<span class="macro-nonterminal">$array</span>.data())
+        Validity::from_array_data(<span class="macro-nonterminal">$array</span>.to_data())
     };
 }
 

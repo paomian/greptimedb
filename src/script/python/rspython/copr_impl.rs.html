@@ -225,6 +225,8 @@
 <a href="#225" id="225">225</a>
 <a href="#226" id="226">226</a>
 <a href="#227" id="227">227</a>
+<a href="#228" id="228">228</a>
+<a href="#229" id="229">229</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -256,6 +258,7 @@
 
 <span class="kw">use </span><span class="kw">crate</span>::python::error::{ensure, ret_other_error_with, NewRecordBatchSnafu, OtherSnafu, <span class="prelude-ty">Result</span>};
 <span class="kw">use </span><span class="kw">crate</span>::python::ffi_types::copr::PyQueryEngine;
+<span class="kw">use </span><span class="kw">crate</span>::python::ffi_types::py_recordbatch::PyRecordBatch;
 <span class="kw">use </span><span class="kw">crate</span>::python::ffi_types::{check_args_anno_real_type, select_from_rb, Coprocessor, PyVector};
 <span class="kw">use </span><span class="kw">crate</span>::python::metric;
 <span class="kw">use </span><span class="kw">crate</span>::python::rspython::builtins::init_greptime_builtins;
@@ -439,10 +442,11 @@
                     // so according to this issue:
                     // https://github.com/RustPython/RustPython/issues/4292
                     // add this line for stdlib, so rustpython can found stdlib&#39;s python part in bytecode format
-                    </span>vm.add_frozen(rustpython_pylib::frozen_stdlib());
+                    </span>vm.add_frozen(rustpython_pylib::FROZEN_STDLIB);
                     <span class="comment">// add our own custom datatype and module
                     </span>PyVector::make_class(<span class="kw-2">&amp;</span>vm.ctx);
                     PyQueryEngine::make_class(<span class="kw-2">&amp;</span>vm.ctx);
+                    PyRecordBatch::make_class(<span class="kw-2">&amp;</span>vm.ctx);
                     init_greptime_builtins(<span class="string">&quot;greptime&quot;</span>, vm);
                     init_data_frame(<span class="string">&quot;data_frame&quot;</span>, vm);
                 }));

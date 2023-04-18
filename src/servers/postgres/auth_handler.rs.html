@@ -235,32 +235,6 @@
 <a href="#235" id="235">235</a>
 <a href="#236" id="236">236</a>
 <a href="#237" id="237">237</a>
-<a href="#238" id="238">238</a>
-<a href="#239" id="239">239</a>
-<a href="#240" id="240">240</a>
-<a href="#241" id="241">241</a>
-<a href="#242" id="242">242</a>
-<a href="#243" id="243">243</a>
-<a href="#244" id="244">244</a>
-<a href="#245" id="245">245</a>
-<a href="#246" id="246">246</a>
-<a href="#247" id="247">247</a>
-<a href="#248" id="248">248</a>
-<a href="#249" id="249">249</a>
-<a href="#250" id="250">250</a>
-<a href="#251" id="251">251</a>
-<a href="#252" id="252">252</a>
-<a href="#253" id="253">253</a>
-<a href="#254" id="254">254</a>
-<a href="#255" id="255">255</a>
-<a href="#256" id="256">256</a>
-<a href="#257" id="257">257</a>
-<a href="#258" id="258">258</a>
-<a href="#259" id="259">259</a>
-<a href="#260" id="260">260</a>
-<a href="#261" id="261">261</a>
-<a href="#262" id="262">262</a>
-<a href="#263" id="263">263</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -285,12 +259,10 @@
 <span class="kw">use </span>pgwire::messages::response::ErrorResponse;
 <span class="kw">use </span>pgwire::messages::startup::Authentication;
 <span class="kw">use </span>pgwire::messages::{PgWireBackendMessage, PgWireFrontendMessage};
-<span class="kw">use </span>session::context::{QueryContextRef, UserInfo};
-<span class="kw">use </span>snafu::ResultExt;
+<span class="kw">use </span>session::context::QueryContextRef;
 
 <span class="kw">use </span><span class="kw">super</span>::PostgresServerHandler;
 <span class="kw">use </span><span class="kw">crate</span>::auth::{Identity, Password, UserProviderRef};
-<span class="kw">use </span><span class="kw">crate</span>::error;
 <span class="kw">use </span><span class="kw">crate</span>::error::Result;
 <span class="kw">use </span><span class="kw">crate</span>::query_handler::sql::ServerSqlQueryHandlerRef;
 
@@ -333,45 +305,34 @@
 }
 
 <span class="kw">impl </span>PgLoginVerifier {
-    <span class="kw">async fn </span>verify_pwd(<span class="kw-2">&amp;</span><span class="self">self</span>, password: <span class="kw-2">&amp;</span>str, login: <span class="kw-2">&amp;</span>LoginInfo) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(user_provider) = <span class="kw-2">&amp;</span><span class="self">self</span>.user_provider {
-            <span class="kw">let </span>user_name = <span class="kw">match </span><span class="kw-2">&amp;</span>login.user {
-                <span class="prelude-val">Some</span>(name) =&gt; name,
-                <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>),
-            };
+    <span class="kw">async fn </span>auth(<span class="kw-2">&amp;</span><span class="self">self</span>, login: <span class="kw-2">&amp;</span>LoginInfo, password: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
+        <span class="kw">let </span>user_provider = <span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.user_provider {
+            <span class="prelude-val">Some</span>(provider) =&gt; provider,
+            <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>),
+        };
 
-            <span class="comment">// TODO(fys): pass user_info to context
-            </span><span class="kw">let </span>_user_info = user_provider
-                .authenticate(
-                    Identity::UserId(user_name, <span class="prelude-val">None</span>),
-                    Password::PlainText(password),
-                )
-                .<span class="kw">await
-                </span>.context(error::AuthSnafu)<span class="question-mark">?</span>;
-        }
-        <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
-    }
+        <span class="kw">let </span>user_name = <span class="kw">match </span><span class="kw-2">&amp;</span>login.user {
+            <span class="prelude-val">Some</span>(name) =&gt; name,
+            <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>),
+        };
+        <span class="kw">let </span>catalog = <span class="kw">match </span><span class="kw-2">&amp;</span>login.catalog {
+            <span class="prelude-val">Some</span>(name) =&gt; name,
+            <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>),
+        };
+        <span class="kw">let </span>schema = <span class="kw">match </span><span class="kw-2">&amp;</span>login.schema {
+            <span class="prelude-val">Some</span>(name) =&gt; name,
+            <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>),
+        };
 
-    <span class="kw">async fn </span>authorize(<span class="kw-2">&amp;</span><span class="self">self</span>, login: <span class="kw-2">&amp;</span>LoginInfo) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
-        <span class="comment">// at this time, username in login info should be valid
-        // TODO(shuiyisong): change to use actually user_info from session
-        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(user_provider) = <span class="kw-2">&amp;</span><span class="self">self</span>.user_provider {
-            <span class="kw">let </span>user_name = <span class="kw">match </span><span class="kw-2">&amp;</span>login.user {
-                <span class="prelude-val">Some</span>(name) =&gt; name,
-                <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>),
-            };
-            <span class="kw">let </span>catalog = <span class="kw">match </span><span class="kw-2">&amp;</span>login.catalog {
-                <span class="prelude-val">Some</span>(name) =&gt; name,
-                <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>),
-            };
-            <span class="kw">let </span>schema = <span class="kw">match </span><span class="kw-2">&amp;</span>login.schema {
-                <span class="prelude-val">Some</span>(name) =&gt; name,
-                <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>),
-            };
-            user_provider
-                .authorize(catalog, schema, <span class="kw-2">&amp;</span>UserInfo::new(user_name))
-                .<span class="kw">await</span><span class="question-mark">?</span>;
-        }
+        <span class="kw">let </span>_user_info = user_provider
+            .auth(
+                Identity::UserId(user_name, <span class="prelude-val">None</span>),
+                Password::PlainText(password),
+                catalog,
+                schema,
+            )
+            .<span class="kw">await</span><span class="question-mark">?</span>;
+
         <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
     }
 }
@@ -445,28 +406,15 @@
                 </span><span class="kw">let </span>pwd = pwd.into_password()<span class="question-mark">?</span>;
 
                 <span class="kw">let </span>login_info = LoginInfo::from_client_info(client);
+
                 <span class="comment">// do authenticate
-                </span><span class="kw">let </span>authenticate_result = <span class="self">self
-                    </span>.login_verifier
-                    .verify_pwd(pwd.password(), <span class="kw-2">&amp;</span>login_info)
-                    .<span class="kw">await</span>;
-                <span class="kw">if </span>!<span class="macro">matches!</span>(authenticate_result, <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)) {
+                </span><span class="kw">let </span>auth_result = <span class="self">self</span>.login_verifier.auth(<span class="kw-2">&amp;</span>login_info, pwd.password()).<span class="kw">await</span>;
+                <span class="kw">if </span>!<span class="macro">matches!</span>(auth_result, <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)) {
                     <span class="kw">return </span>send_error(
                         client,
                         <span class="string">&quot;FATAL&quot;</span>,
                         <span class="string">&quot;28P01&quot;</span>,
                         <span class="string">&quot;password authentication failed&quot;</span>.to_owned(),
-                    )
-                    .<span class="kw">await</span>;
-                }
-                <span class="comment">// do authorize
-                </span><span class="kw">let </span>authorize_result = <span class="self">self</span>.login_verifier.authorize(<span class="kw-2">&amp;</span>login_info).<span class="kw">await</span>;
-                <span class="kw">if </span>!<span class="macro">matches!</span>(authorize_result, <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)) {
-                    <span class="kw">return </span>send_error(
-                        client,
-                        <span class="string">&quot;FATAL&quot;</span>,
-                        <span class="string">&quot;28P01&quot;</span>,
-                        <span class="string">&quot;password authorization failed&quot;</span>.to_owned(),
                     )
                     .<span class="kw">await</span>;
                 }

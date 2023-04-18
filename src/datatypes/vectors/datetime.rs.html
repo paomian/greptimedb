@@ -113,6 +113,7 @@
 <a href="#113" id="113">113</a>
 <a href="#114" id="114">114</a>
 <a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -140,6 +141,7 @@
     <span class="kw">use </span>std::sync::Arc;
 
     <span class="kw">use </span>arrow::array::{Array, PrimitiveArray};
+    <span class="kw">use </span>arrow_array::ArrayRef;
     <span class="kw">use </span>common_time::DateTime;
     <span class="kw">use </span>datafusion_common::from_slice::FromSlice;
 
@@ -223,8 +225,8 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_datetime_from_arrow() {
         <span class="kw">let </span>vector = DateTimeVector::from_wrapper_slice([DateTime::new(<span class="number">1</span>), DateTime::new(<span class="number">2</span>)]);
-        <span class="kw">let </span>arrow = vector.as_arrow().slice(<span class="number">0</span>, vector.len());
-        <span class="kw">let </span>vector2 = DateTimeVector::try_from_arrow_array(<span class="kw-2">&amp;</span>arrow).unwrap();
+        <span class="kw">let </span>arrow: ArrayRef = Arc::new(vector.as_arrow().slice(<span class="number">0</span>, vector.len())) <span class="kw">as _</span>;
+        <span class="kw">let </span>vector2 = DateTimeVector::try_from_arrow_array(arrow).unwrap();
         <span class="macro">assert_eq!</span>(vector, vector2);
     }
 }

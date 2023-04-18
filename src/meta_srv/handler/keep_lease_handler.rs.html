@@ -104,7 +104,7 @@
 // limitations under the License.
 
 </span><span class="kw">use </span>api::v1::meta::{BatchPutRequest, HeartbeatRequest, KeyValue};
-<span class="kw">use </span>common_telemetry::{info, warn};
+<span class="kw">use </span>common_telemetry::{trace, warn};
 <span class="kw">use </span>common_time::util <span class="kw">as </span>time_util;
 <span class="kw">use </span>tokio::sync::mpsc::{<span class="self">self</span>, Sender};
 
@@ -167,7 +167,7 @@
                 node_addr: peer.addr.clone(),
             };
 
-            <span class="macro">info!</span>(<span class="string">&quot;Receive a heartbeat: {key:?}, {value:?}&quot;</span>);
+            <span class="macro">trace!</span>(<span class="string">&quot;Receive a heartbeat: {key:?}, {value:?}&quot;</span>);
 
             <span class="kw">let </span>key = key.try_into()<span class="question-mark">?</span>;
             <span class="kw">let </span>value = value.try_into()<span class="question-mark">?</span>;

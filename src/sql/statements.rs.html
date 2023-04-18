@@ -895,7 +895,7 @@
             (<span class="kw-2">*</span>b).into()
         }
         SqlValue::DoubleQuotedString(s) | SqlValue::SingleQuotedString(s) =&gt; {
-            parse_string_to_value(column_name, s.to_owned(), data_type)<span class="question-mark">?
+            parse_string_to_value(column_name, s.clone(), data_type)<span class="question-mark">?
         </span>}
         SqlValue::HexStringLiteral(s) =&gt; parse_hex_string(s)<span class="question-mark">?</span>,
         SqlValue::Placeholder(s) =&gt; <span class="kw">return </span>InvalidSqlValueSnafu { value: s }.fail(),

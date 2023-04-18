@@ -528,6 +528,10 @@
 <a href="#528" id="528">528</a>
 <a href="#529" id="529">529</a>
 <a href="#530" id="530">530</a>
+<a href="#531" id="531">531</a>
+<a href="#532" id="532">532</a>
+<a href="#533" id="533">533</a>
+<a href="#534" id="534">534</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -854,16 +858,20 @@
 
     <span class="kw">fn </span>rename_table(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str, new_name: String) -&gt; <span class="prelude-ty">Result</span>&lt;TableRef&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>tables = <span class="self">self</span>.tables.write().unwrap();
-        <span class="kw">if </span>tables.get(name).is_some() {
-            <span class="kw">let </span>table = tables.remove(name).unwrap();
-            tables.insert(new_name, table.clone());
-            <span class="prelude-val">Ok</span>(table)
-        } <span class="kw">else </span>{
-            TableNotFoundSnafu {
+        <span class="kw">let </span><span class="prelude-val">Some</span>(table) = tables.remove(name) <span class="kw">else </span>{
+            <span class="kw">return </span>TableNotFoundSnafu {
                 table_info: name.to_string(),
             }
-            .fail()<span class="question-mark">?
-        </span>}
+                .fail()<span class="question-mark">?</span>;
+        };
+        <span class="kw">let </span>e = <span class="kw">match </span>tables.entry(new_name) {
+            Entry::Vacant(e) =&gt; e,
+            Entry::Occupied(e) =&gt; {
+                <span class="kw">return </span>TableExistsSnafu { table: e.key() }.fail();
+            }
+        };
+        e.insert(table.clone());
+        <span class="prelude-val">Ok</span>(table)
     }
 
     <span class="kw">fn </span>deregister_table(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;TableRef&gt;&gt; {
@@ -989,7 +997,7 @@
         <span class="macro">assert!</span>(schema.table_exist(table_name).unwrap());
 
         <span class="comment">// rename table
-        </span><span class="kw">let </span>new_table_name = <span class="string">&quot;numbers&quot;</span>;
+        </span><span class="kw">let </span>new_table_name = <span class="string">&quot;numbers_new&quot;</span>;
         <span class="kw">let </span>rename_table_req = RenameTableRequest {
             catalog: DEFAULT_CATALOG_NAME.to_string(),
             schema: DEFAULT_SCHEMA_NAME.to_string(),

@@ -447,7 +447,7 @@
             <span class="kw">fn </span>calc(input: <span class="kw-2">&amp;</span>[ColumnarValue]) -&gt; <span class="prelude-ty">Result</span>&lt;ColumnarValue, DataFusionError&gt; {
                 <span class="macro">assert_eq!</span>(input.len(), #num_params);
 
-                #( <span class="kw">let </span>#range_array_names = RangeArray::try_new(extract_array(<span class="kw-2">&amp;</span>input[#param_numbers])<span class="question-mark">?</span>.data().clone().into())<span class="question-mark">?</span>; )*
+                #( <span class="kw">let </span>#range_array_names = RangeArray::try_new(extract_array(<span class="kw-2">&amp;</span>input[#param_numbers])<span class="question-mark">?</span>.to_data().into())<span class="question-mark">?</span>; )*
 
                 <span class="comment">// TODO(ruihang): add ensure!() 
 

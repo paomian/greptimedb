@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["FIELDS"],"enum":["KeyType","__Field"],"mod":["state_store"],"opaque":[""],"static":["CALLSITE","META"],"struct":["ParsedKey","ProcedureMessage","ProcedureStore","__FieldVisitor","__Visitor"]};
+window.SIDEBAR_ITEMS = {"enum":["KeyType"],"mod":["state_store"],"opaque":[""],"static":["CALLSITE","META"],"struct":["ParsedKey","ProcedureMessage","ProcedureStore"]};

@@ -699,7 +699,7 @@
             | ArrowDataType::LargeList(<span class="kw">_</span>)
             | ArrowDataType::FixedSizeList(<span class="kw">_</span>, <span class="kw">_</span>)
             | ArrowDataType::Struct(<span class="kw">_</span>)
-            | ArrowDataType::Union(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>)
+            | ArrowDataType::Union(<span class="kw">_</span>, <span class="kw">_</span>)
             | ArrowDataType::Dictionary(<span class="kw">_</span>, <span class="kw">_</span>)
             | ArrowDataType::Decimal128(<span class="kw">_</span>, <span class="kw">_</span>)
             | ArrowDataType::Decimal256(<span class="kw">_</span>, <span class="kw">_</span>)
@@ -796,7 +796,7 @@
                 ScalarValue::Int32(<span class="prelude-val">Some</span>(<span class="number">1</span>)),
                 ScalarValue::Int32(<span class="prelude-val">Some</span>(<span class="number">2</span>)),
             ]),
-            Box::new(Field::new(<span class="string">&quot;item&quot;</span>, ArrowDataType::Int32, <span class="bool-val">true</span>)),
+            Arc::new(Field::new(<span class="string">&quot;item&quot;</span>, ArrowDataType::Int32, <span class="bool-val">true</span>)),
         );
         <span class="kw">let </span>vector = Helper::try_from_scalar_value(value, <span class="number">3</span>).unwrap();
         <span class="macro">assert_eq!</span>(

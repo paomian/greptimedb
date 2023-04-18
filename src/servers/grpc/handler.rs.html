@@ -138,12 +138,6 @@
 <a href="#138" id="138">138</a>
 <a href="#139" id="139">139</a>
 <a href="#140" id="140">140</a>
-<a href="#141" id="141">141</a>
-<a href="#142" id="142">142</a>
-<a href="#143" id="143">143</a>
-<a href="#144" id="144">144</a>
-<a href="#145" id="145">145</a>
-<a href="#146" id="146">146</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -244,11 +238,13 @@
             })
             .context(NotFoundAuthHeaderSnafu)<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>user_info = <span class="kw">match </span>auth_scheme {
+        <span class="kw">match </span>auth_scheme {
             AuthScheme::Basic(Basic { username, password }) =&gt; user_provider
-                .authenticate(
+                .auth(
                     Identity::UserId(<span class="kw-2">&amp;</span>username, <span class="prelude-val">None</span>),
                     Password::PlainText(<span class="kw-2">&amp;</span>password),
+                    <span class="kw-2">&amp;</span>query_ctx.current_catalog(),
+                    <span class="kw-2">&amp;</span>query_ctx.current_schema(),
                 )
                 .<span class="kw">await
                 </span>.map_err(|e| Auth { source: e }),
@@ -257,15 +253,7 @@
             }),
         }
         .map_err(|e| Status::unauthenticated(e.to_string()))<span class="question-mark">?</span>;
-
-        user_provider
-            .authorize(
-                <span class="kw-2">&amp;</span>query_ctx.current_catalog(),
-                <span class="kw-2">&amp;</span>query_ctx.current_schema(),
-                <span class="kw-2">&amp;</span>user_info,
-            )
-            .<span class="kw">await
-            </span>.map_err(|e| Status::permission_denied(e.to_string()))
+        <span class="prelude-val">Ok</span>(())
     }
 }
 

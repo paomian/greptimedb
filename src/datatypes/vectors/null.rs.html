@@ -332,7 +332,7 @@
     }
 
     <span class="kw">fn </span>to_array_data(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ArrayData {
-        <span class="self">self</span>.array.data().clone()
+        <span class="self">self</span>.array.to_data()
     }
 }
 

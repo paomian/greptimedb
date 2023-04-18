@@ -1177,6 +1177,8 @@
 <a href="#1177" id="1177">1177</a>
 <a href="#1178" id="1178">1178</a>
 <a href="#1179" id="1179">1179</a>
+<a href="#1180" id="1180">1180</a>
+<a href="#1181" id="1181">1181</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1196,6 +1198,8 @@
 </span><span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test;
 
+<span class="kw">use </span>std::sync::Arc;
+
 <span class="kw">use </span>datafusion_common::{DataFusionError, ScalarValue};
 <span class="kw">use </span>datafusion_expr::ColumnarValue <span class="kw">as </span>DFColValue;
 <span class="kw">use </span>datafusion_physical_expr::AggregateExpr;
@@ -1207,7 +1211,7 @@
 <span class="kw">use </span>rustpython_vm::{pymodule, AsObject, PyObjectRef, PyPayload, PyResult, VirtualMachine};
 
 <span class="kw">use </span><span class="kw">crate</span>::python::ffi_types::PyVector;
-<span class="kw">use </span><span class="kw">crate</span>::python::utils::is_instance;
+<span class="kw">use </span><span class="kw">crate</span>::python::rspython::utils::is_instance;
 
 <span class="kw">pub fn </span>init_greptime_builtins(module_name: <span class="kw-2">&amp;</span>str, vm: <span class="kw-2">&amp;mut </span>VirtualMachine) {
     vm.add_native_module(
@@ -1297,7 +1301,7 @@
             <span class="comment">// TODO(dennis): empty list, we set type as null.
             </span><span class="kw">return </span><span class="prelude-val">Ok</span>(DFColValue::Scalar(ScalarValue::List(
                 <span class="prelude-val">None</span>,
-                Box::new(new_item_field(ArrowDataType::Null)),
+                Arc::new(new_item_field(ArrowDataType::Null)),
             )));
         }
 
@@ -1310,7 +1314,7 @@
         }
         <span class="prelude-val">Ok</span>(DFColValue::Scalar(ScalarValue::List(
             <span class="prelude-val">Some</span>(ret),
-            Box::new(new_item_field(ty)),
+            Arc::new(new_item_field(ty)),
         )))
     } <span class="kw">else </span>{
         <span class="prelude-val">Err</span>(vm.new_type_error(<span class="macro">format!</span>(
@@ -1533,7 +1537,7 @@
     <span class="attr">#[pyfunction]
     </span><span class="kw">fn </span>col(name: String, vm: <span class="kw-2">&amp;</span>VirtualMachine) -&gt; PyExprRef {
         <span class="kw">let </span>expr: PyExpr = DfExpr::Column(datafusion_common::Column::from_name(name)).into();
-        expr.into_ref(vm)
+        expr.into_ref(<span class="kw-2">&amp;</span>vm.ctx)
     }
 
     <span class="attr">#[pyfunction]
@@ -1543,7 +1547,7 @@
             .try_to_scalar_value(<span class="kw-2">&amp;</span>val.data_type())
             .map_err(|e| vm.new_runtime_error(<span class="macro">format!</span>(<span class="string">&quot;{e}&quot;</span>)))<span class="question-mark">?</span>;
         <span class="kw">let </span>expr: PyExpr = DfExpr::Literal(scalar_val).into();
-        <span class="prelude-val">Ok</span>(expr.into_ref(vm))
+        <span class="prelude-val">Ok</span>(expr.into_ref(<span class="kw-2">&amp;</span>vm.ctx))
     }
 
     <span class="comment">// the main binding code, due to proc macro things, can&#39;t directly use a simpler macro

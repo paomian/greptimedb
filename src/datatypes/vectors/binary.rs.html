@@ -347,12 +347,6 @@
 <a href="#347" id="347">347</a>
 <a href="#348" id="348">348</a>
 <a href="#349" id="349">349</a>
-<a href="#350" id="350">350</a>
-<a href="#351" id="351">351</a>
-<a href="#352" id="352">352</a>
-<a href="#353" id="353">353</a>
-<a href="#354" id="354">354</a>
-<a href="#355" id="355">355</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -393,13 +387,7 @@
     }
 
     <span class="kw">fn </span>to_array_data(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ArrayData {
-        <span class="self">self</span>.array.data().clone()
-    }
-
-    <span class="kw">fn </span>from_array_data(data: ArrayData) -&gt; BinaryVector {
-        BinaryVector {
-            array: BinaryArray::from(data),
-        }
+        <span class="self">self</span>.array.to_data()
     }
 }
 
@@ -461,8 +449,8 @@
     }
 
     <span class="kw">fn </span>slice(<span class="kw-2">&amp;</span><span class="self">self</span>, offset: usize, length: usize) -&gt; VectorRef {
-        <span class="kw">let </span>data = <span class="self">self</span>.array.data().slice(offset, length);
-        Arc::new(<span class="self">Self</span>::from_array_data(data))
+        <span class="kw">let </span>array = <span class="self">self</span>.array.slice(offset, length);
+        Arc::new(<span class="self">Self </span>{ array })
     }
 
     <span class="kw">fn </span>get(<span class="kw-2">&amp;</span><span class="self">self</span>, index: usize) -&gt; Value {
@@ -641,7 +629,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_from_arrow_array() {
         <span class="kw">let </span>arrow_array = BinaryArray::from_iter_values([<span class="macro">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>], <span class="macro">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]]);
-        <span class="kw">let </span>original = BinaryArray::from(arrow_array.data().clone());
+        <span class="kw">let </span>original = BinaryArray::from(arrow_array.to_data());
         <span class="kw">let </span>vector = BinaryVector::from(arrow_array);
         <span class="macro">assert_eq!</span>(original, vector.array);
     }

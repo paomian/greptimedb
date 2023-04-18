@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["FIELDS"],"enum":["__Field"],"fn":["decode_remote_read_request","decode_remote_write_request","remote_read","remote_write"],"opaque":[""],"struct":["DatabaseQuery","__FieldVisitor","__Visitor"]};
+window.SIDEBAR_ITEMS = {"fn":["decode_remote_read_request","decode_remote_write_request","remote_read","remote_write"],"opaque":[""],"struct":["DatabaseQuery"]};

@@ -485,6 +485,19 @@
 <a href="#485" id="485">485</a>
 <a href="#486" id="486">486</a>
 <a href="#487" id="487">487</a>
+<a href="#488" id="488">488</a>
+<a href="#489" id="489">489</a>
+<a href="#490" id="490">490</a>
+<a href="#491" id="491">491</a>
+<a href="#492" id="492">492</a>
+<a href="#493" id="493">493</a>
+<a href="#494" id="494">494</a>
+<a href="#495" id="495">495</a>
+<a href="#496" id="496">496</a>
+<a href="#497" id="497">497</a>
+<a href="#498" id="498">498</a>
+<a href="#499" id="499">499</a>
+<a href="#500" id="500">500</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -519,12 +532,14 @@
     RegisterSchemaRequest, RegisterSystemTableRequest, RegisterTableRequest, RenameTableRequest,
     SchemaProvider, SchemaProviderRef,
 };
+<span class="kw">use </span>common_catalog::consts::{DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME};
 <span class="kw">use </span>common_error::prelude::BoxedError;
 <span class="kw">use </span>common_telemetry::error;
 <span class="kw">use </span>futures::StreamExt;
 <span class="kw">use </span>meta_client::rpc::TableName;
 <span class="kw">use </span>partition::manager::PartitionRuleManagerRef;
 <span class="kw">use </span>snafu::prelude::<span class="kw-2">*</span>;
+<span class="kw">use </span>table::table::numbers::NumbersTable;
 <span class="kw">use </span>table::TableRef;
 
 <span class="kw">use </span><span class="kw">crate</span>::datanode::DatanodeClients;
@@ -860,17 +875,21 @@
 
         std::thread::spawn(|| {
             common_runtime::block_on_read(<span class="kw">async move </span>{
+                <span class="kw">let </span><span class="kw-2">mut </span>tables = <span class="macro">vec!</span>[];
+                <span class="kw">if </span>catalog_name == DEFAULT_CATALOG_NAME &amp;&amp; schema_name == DEFAULT_SCHEMA_NAME {
+                    tables.push(<span class="string">&quot;numbers&quot;</span>.to_string());
+                }
+
                 <span class="kw">let </span>key = build_table_global_prefix(catalog_name, schema_name);
                 <span class="kw">let </span><span class="kw-2">mut </span>iter = backend.range(key.as_bytes());
-                <span class="kw">let </span><span class="kw-2">mut </span>res = HashSet::new();
 
                 <span class="kw">while let </span><span class="prelude-val">Some</span>(r) = iter.next().<span class="kw">await </span>{
                     <span class="kw">let </span>Kv(k, <span class="kw">_</span>) = r<span class="question-mark">?</span>;
                     <span class="kw">let </span>key = TableGlobalKey::parse(String::from_utf8_lossy(<span class="kw-2">&amp;</span>k))
                         .context(InvalidCatalogValueSnafu)<span class="question-mark">?</span>;
-                    res.insert(key.table_name);
+                    tables.push(key.table_name);
                 }
-                <span class="prelude-val">Ok</span>(res.into_iter().collect())
+                <span class="prelude-val">Ok</span>(tables)
             })
         })
         .join()
@@ -878,6 +897,13 @@
     }
 
     <span class="kw">async fn </span>table(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; catalog::error::Result&lt;<span class="prelude-ty">Option</span>&lt;TableRef&gt;&gt; {
+        <span class="kw">if </span><span class="self">self</span>.catalog_name == DEFAULT_CATALOG_NAME
+            &amp;&amp; <span class="self">self</span>.schema_name == DEFAULT_SCHEMA_NAME
+            &amp;&amp; name == <span class="string">&quot;numbers&quot;
+        </span>{
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(Arc::new(NumbersTable::default())));
+        }
+
         <span class="kw">let </span>table_global_key = TableGlobalKey {
             catalog_name: <span class="self">self</span>.catalog_name.clone(),
             schema_name: <span class="self">self</span>.schema_name.clone(),

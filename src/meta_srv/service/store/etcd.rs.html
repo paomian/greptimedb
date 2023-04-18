@@ -1435,9 +1435,9 @@
         <span class="kw">let </span>batch_get: BatchGet = req.try_into().unwrap();
         <span class="kw">let </span>keys = batch_get.keys;
 
-        <span class="macro">assert_eq!</span>(<span class="string">b&quot;k1&quot;</span>.to_vec(), keys.get(<span class="number">0</span>).unwrap().to_vec());
-        <span class="macro">assert_eq!</span>(<span class="string">b&quot;k2&quot;</span>.to_vec(), keys.get(<span class="number">1</span>).unwrap().to_vec());
-        <span class="macro">assert_eq!</span>(<span class="string">b&quot;k3&quot;</span>.to_vec(), keys.get(<span class="number">2</span>).unwrap().to_vec());
+        <span class="macro">assert_eq!</span>(<span class="string">b&quot;k1&quot;</span>.to_vec(), keys.get(<span class="number">0</span>).unwrap().clone());
+        <span class="macro">assert_eq!</span>(<span class="string">b&quot;k2&quot;</span>.to_vec(), keys.get(<span class="number">1</span>).unwrap().clone());
+        <span class="macro">assert_eq!</span>(<span class="string">b&quot;k3&quot;</span>.to_vec(), keys.get(<span class="number">2</span>).unwrap().clone());
     }
 
     <span class="attr">#[test]
@@ -1469,9 +1469,9 @@
         <span class="kw">let </span>batch_delete: BatchDelete = req.try_into().unwrap();
 
         <span class="macro">assert_eq!</span>(batch_delete.keys.len(), <span class="number">3</span>);
-        <span class="macro">assert_eq!</span>(<span class="string">b&quot;k1&quot;</span>.to_vec(), batch_delete.keys.get(<span class="number">0</span>).unwrap().to_vec());
-        <span class="macro">assert_eq!</span>(<span class="string">b&quot;k2&quot;</span>.to_vec(), batch_delete.keys.get(<span class="number">1</span>).unwrap().to_vec());
-        <span class="macro">assert_eq!</span>(<span class="string">b&quot;k3&quot;</span>.to_vec(), batch_delete.keys.get(<span class="number">2</span>).unwrap().to_vec());
+        <span class="macro">assert_eq!</span>(<span class="string">b&quot;k1&quot;</span>.to_vec(), batch_delete.keys.get(<span class="number">0</span>).unwrap().clone());
+        <span class="macro">assert_eq!</span>(<span class="string">b&quot;k2&quot;</span>.to_vec(), batch_delete.keys.get(<span class="number">1</span>).unwrap().clone());
+        <span class="macro">assert_eq!</span>(<span class="string">b&quot;k3&quot;</span>.to_vec(), batch_delete.keys.get(<span class="number">2</span>).unwrap().clone());
         <span class="macro">assert!</span>(batch_delete.options.is_some());
     }
 

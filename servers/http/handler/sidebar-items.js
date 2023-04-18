@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["FIELDS"],"enum":["__Field"],"fn":["health","metrics","promql","sql","sql_docs"],"opaque":[""],"struct":["HealthQuery","HealthResponse","PromqlQuery","SqlQuery","__FieldVisitor","__Visitor"]};
+window.SIDEBAR_ITEMS = {"fn":["health","metrics","promql","sql","sql_docs"],"opaque":[""],"struct":["HealthQuery","HealthResponse","PromqlQuery","SqlQuery"]};

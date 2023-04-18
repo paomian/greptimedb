@@ -412,7 +412,7 @@
     }
 
     <span class="kw">fn </span>to_array_data(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ArrayData {
-        <span class="self">self</span>.array.data().clone()
+        <span class="self">self</span>.array.to_data()
     }
 
     <span class="kw">fn </span>from_array_data(data: ArrayData) -&gt; <span class="self">Self </span>{
@@ -520,7 +520,7 @@
     }
 
     <span class="kw">fn </span>slice(<span class="kw-2">&amp;</span><span class="self">self</span>, offset: usize, length: usize) -&gt; VectorRef {
-        <span class="kw">let </span>data = <span class="self">self</span>.array.data().slice(offset, length);
+        <span class="kw">let </span>data = <span class="self">self</span>.array.to_data().slice(offset, length);
         Arc::new(<span class="self">Self</span>::from_array_data(data))
     }
 

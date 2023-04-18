@@ -100,6 +100,8 @@
 <a href="#100" id="100">100</a>
 <a href="#101" id="101">101</a>
 <a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -114,7 +116,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="kw">use </span>arrow::datatypes::{DataType <span class="kw">as </span>ArrowDataType, Field};
+</span><span class="kw">use </span>std::sync::Arc;
+
+<span class="kw">use </span>arrow::datatypes::{DataType <span class="kw">as </span>ArrowDataType, Field};
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 
 <span class="kw">use </span><span class="kw">crate</span>::data_type::{ConcreteDataType, DataType};
@@ -165,7 +169,7 @@
     }
 
     <span class="kw">fn </span>as_arrow_type(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ArrowDataType {
-        <span class="kw">let </span>field = Box::new(Field::new(<span class="string">&quot;item&quot;</span>, <span class="self">self</span>.item_type.as_arrow_type(), <span class="bool-val">true</span>));
+        <span class="kw">let </span>field = Arc::new(Field::new(<span class="string">&quot;item&quot;</span>, <span class="self">self</span>.item_type.as_arrow_type(), <span class="bool-val">true</span>));
         ArrowDataType::List(field)
     }
 
@@ -196,7 +200,7 @@
             t.default_value()
         );
         <span class="macro">assert_eq!</span>(
-            ArrowDataType::List(Box::new(Field::new(<span class="string">&quot;item&quot;</span>, ArrowDataType::Boolean, <span class="bool-val">true</span>))),
+            ArrowDataType::List(Arc::new(Field::new(<span class="string">&quot;item&quot;</span>, ArrowDataType::Boolean, <span class="bool-val">true</span>))),
             t.as_arrow_type()
         );
         <span class="macro">assert_eq!</span>(ConcreteDataType::boolean_datatype(), <span class="kw-2">*</span>t.item_type());

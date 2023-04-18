@@ -600,6 +600,15 @@
 <a href="#600" id="600">600</a>
 <a href="#601" id="601">601</a>
 <a href="#602" id="602">602</a>
+<a href="#603" id="603">603</a>
+<a href="#604" id="604">604</a>
+<a href="#605" id="605">605</a>
+<a href="#606" id="606">606</a>
+<a href="#607" id="607">607</a>
+<a href="#608" id="608">608</a>
+<a href="#609" id="609">609</a>
+<a href="#610" id="610">610</a>
+<a href="#611" id="611">611</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1021,6 +1030,13 @@
                 schema: schema_name,
             })<span class="question-mark">?</span>;
 
+        <span class="kw">let </span>_lock = <span class="self">self</span>.register_lock.lock().<span class="kw">await</span>;
+        <span class="macro">ensure!</span>(
+            !schema.table_exist(<span class="kw-2">&amp;</span>request.new_table_name)<span class="question-mark">?</span>,
+            TableExistsSnafu {
+                table: <span class="kw-2">&amp;</span>request.new_table_name
+            }
+        );
         <span class="kw">let </span>old_table = schema
             .table(<span class="kw-2">&amp;</span>request.table_name)
             .<span class="kw">await</span><span class="question-mark">?
@@ -1039,9 +1055,11 @@
                 engine,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(schema
-            .rename_table(<span class="kw-2">&amp;</span>request.table_name, request.new_table_name)
-            .is_ok())
+
+        <span class="kw">let </span>renamed = schema
+            .rename_table(<span class="kw-2">&amp;</span>request.table_name, request.new_table_name.clone())
+            .is_ok();
+        <span class="prelude-val">Ok</span>(renamed)
     }
 
     <span class="kw">async fn </span>deregister_table(<span class="kw-2">&amp;</span><span class="self">self</span>, request: DeregisterTableRequest) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {

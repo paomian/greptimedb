@@ -207,6 +207,14 @@
 <a href="#207" id="207">207</a>
 <a href="#208" id="208">208</a>
 <a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -239,7 +247,7 @@
 <span class="kw">use </span>table::engine::{EngineContext, TableEngine};
 <span class="kw">use </span>table::metadata::{TableInfo, TableInfoBuilder, TableMetaBuilder, TableType};
 <span class="kw">use </span>table::requests::{
-    AlterKind, AlterTableRequest, CreateTableRequest, InsertRequest, TableOptions,
+    AlterKind, AlterTableRequest, CreateTableRequest, DropTableRequest, InsertRequest, TableOptions,
 };
 <span class="kw">use </span>table::{Table, TableRef};
 
@@ -300,8 +308,8 @@
         .ident(<span class="number">0</span>)
         .table_version(<span class="number">0u64</span>)
         .table_type(TableType::Base)
-        .catalog_name(<span class="string">&quot;greptime&quot;</span>.to_string())
-        .schema_name(<span class="string">&quot;public&quot;</span>.to_string())
+        .catalog_name(DEFAULT_CATALOG_NAME.to_string())
+        .schema_name(DEFAULT_SCHEMA_NAME.to_string())
         .build()
         .unwrap()
 }
@@ -317,8 +325,8 @@
 <span class="kw">pub fn </span>new_create_request(schema: SchemaRef) -&gt; CreateTableRequest {
     CreateTableRequest {
         id: <span class="number">1</span>,
-        catalog_name: <span class="string">&quot;greptime&quot;</span>.to_string(),
-        schema_name: <span class="string">&quot;public&quot;</span>.to_string(),
+        catalog_name: DEFAULT_CATALOG_NAME.to_string(),
+        schema_name: DEFAULT_SCHEMA_NAME.to_string(),
         table_name: TABLE_NAME.to_string(),
         desc: <span class="prelude-val">Some</span>(<span class="string">&quot;a test table&quot;</span>.to_string()),
         schema: RawSchema::from(<span class="kw-2">&amp;*</span>schema),
@@ -332,10 +340,18 @@
 
 <span class="kw">pub fn </span>new_alter_request(alter_kind: AlterKind) -&gt; AlterTableRequest {
     AlterTableRequest {
-        catalog_name: <span class="string">&quot;greptime&quot;</span>.to_string(),
-        schema_name: <span class="string">&quot;public&quot;</span>.to_string(),
+        catalog_name: DEFAULT_CATALOG_NAME.to_string(),
+        schema_name: DEFAULT_SCHEMA_NAME.to_string(),
         table_name: TABLE_NAME.to_string(),
         alter_kind,
+    }
+}
+
+<span class="kw">pub fn </span>new_drop_request() -&gt; DropTableRequest {
+    DropTableRequest {
+        catalog_name: DEFAULT_CATALOG_NAME.to_string(),
+        schema_name: DEFAULT_SCHEMA_NAME.to_string(),
+        table_name: TABLE_NAME.to_string(),
     }
 }
 

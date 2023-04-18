@@ -911,7 +911,7 @@
         <span class="kw">let </span>TestEnv {
             table_engine,
             dir: _dir,
-        } = procedure_test_util::setup_test_engine(<span class="string">&quot;create_procedure&quot;</span>).<span class="kw">await</span>;
+        } = procedure_test_util::setup_test_engine(<span class="string">&quot;add_column&quot;</span>).<span class="kw">await</span>;
         <span class="kw">let </span>schema = Arc::new(test_util::schema_for_test());
         <span class="kw">let </span>request = test_util::new_create_request(schema.clone());
 
@@ -966,7 +966,7 @@
         <span class="kw">let </span>TestEnv {
             table_engine,
             dir: _dir,
-        } = procedure_test_util::setup_test_engine(<span class="string">&quot;create_procedure&quot;</span>).<span class="kw">await</span>;
+        } = procedure_test_util::setup_test_engine(<span class="string">&quot;drop_column&quot;</span>).<span class="kw">await</span>;
         <span class="kw">let </span>schema = Arc::new(test_util::schema_for_test());
         <span class="kw">let </span>request = test_util::new_create_request(schema.clone());
 
@@ -1031,7 +1031,7 @@
         <span class="kw">let </span>TestEnv {
             table_engine,
             dir: _dir,
-        } = procedure_test_util::setup_test_engine(<span class="string">&quot;create_procedure&quot;</span>).<span class="kw">await</span>;
+        } = procedure_test_util::setup_test_engine(<span class="string">&quot;rename&quot;</span>).<span class="kw">await</span>;
         <span class="kw">let </span>schema = Arc::new(test_util::schema_for_test());
         <span class="kw">let </span>create_request = test_util::new_create_request(schema.clone());
 

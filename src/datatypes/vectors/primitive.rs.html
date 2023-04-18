@@ -594,11 +594,6 @@
 <a href="#594" id="594">594</a>
 <a href="#595" id="595">595</a>
 <a href="#596" id="596">596</a>
-<a href="#597" id="597">597</a>
-<a href="#598" id="598">598</a>
-<a href="#599" id="599">599</a>
-<a href="#600" id="600">600</a>
-<a href="#601" id="601">601</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -668,8 +663,7 @@
             .with_context(|| error::ConversionSnafu {
                 from: <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, array.as_ref().data_type()),
             })<span class="question-mark">?
-            </span>.data()
-            .clone();
+            </span>.to_data();
         <span class="kw">let </span>concrete_array = PrimitiveArray::&lt;T::ArrowPrimitive&gt;::from(data);
         <span class="prelude-val">Ok</span>(<span class="self">Self</span>::new(concrete_array))
     }
@@ -683,30 +677,26 @@
                     .as_any()
                     .downcast_ref::&lt;TimestampSecondArray&gt;()
                     .unwrap()
-                    .with_timezone_opt(<span class="prelude-val">None</span>)
-                    .data()
-                    .clone(),
+                    .with_timezone_opt(<span class="prelude-val">None</span>::&lt;String&gt;)
+                    .to_data(),
                 arrow_schema::TimeUnit::Millisecond =&gt; array
                     .as_any()
                     .downcast_ref::&lt;TimestampMillisecondArray&gt;()
                     .unwrap()
-                    .with_timezone_opt(<span class="prelude-val">None</span>)
-                    .data()
-                    .clone(),
+                    .with_timezone_opt(<span class="prelude-val">None</span>::&lt;String&gt;)
+                    .to_data(),
                 arrow_schema::TimeUnit::Microsecond =&gt; array
                     .as_any()
                     .downcast_ref::&lt;TimestampMicrosecondArray&gt;()
                     .unwrap()
-                    .with_timezone_opt(<span class="prelude-val">None</span>)
-                    .data()
-                    .clone(),
+                    .with_timezone_opt(<span class="prelude-val">None</span>::&lt;String&gt;)
+                    .to_data(),
                 arrow_schema::TimeUnit::Nanosecond =&gt; array
                     .as_any()
                     .downcast_ref::&lt;TimestampNanosecondArray&gt;()
                     .unwrap()
-                    .with_timezone_opt(<span class="prelude-val">None</span>)
-                    .data()
-                    .clone(),
+                    .with_timezone_opt(<span class="prelude-val">None</span>::&lt;String&gt;)
+                    .to_data(),
             },
             <span class="kw">_ </span>=&gt; {
                 <span class="macro">unreachable!</span>()
@@ -747,7 +737,7 @@
     }
 
     <span class="kw">fn </span>to_array_data(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ArrayData {
-        <span class="self">self</span>.array.data().clone()
+        <span class="self">self</span>.array.to_data()
     }
 
     <span class="kw">fn </span>from_array_data(data: ArrayData) -&gt; <span class="self">Self </span>{
@@ -758,7 +748,7 @@
 
     <span class="comment">// To distinguish with `Vector::slice()`.
     </span><span class="kw">fn </span>get_slice(<span class="kw-2">&amp;</span><span class="self">self</span>, offset: usize, length: usize) -&gt; <span class="self">Self </span>{
-        <span class="kw">let </span>data = <span class="self">self</span>.array.data().slice(offset, length);
+        <span class="kw">let </span>data = <span class="self">self</span>.array.to_data().slice(offset, length);
         <span class="self">Self</span>::from_array_data(data)
     }
 }
@@ -807,7 +797,7 @@
     }
 
     <span class="kw">fn </span>slice(<span class="kw-2">&amp;</span><span class="self">self</span>, offset: usize, length: usize) -&gt; VectorRef {
-        <span class="kw">let </span>data = <span class="self">self</span>.array.data().slice(offset, length);
+        <span class="kw">let </span>data = <span class="self">self</span>.array.to_data().slice(offset, length);
         Arc::new(<span class="self">Self</span>::from_array_data(data))
     }
 

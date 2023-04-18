@@ -19,6 +19,8 @@
     <a href="https://twitter.com/greptime"><img src="https://img.shields.io/badge/twitter-follow_us-1d9bf0.svg"></a>
     &nbsp;
     <a href="https://www.linkedin.com/company/greptime/"><img src="https://img.shields.io/badge/linkedin-connect_with_us-0a66c2.svg"></a>
+    &nbsp;
+    <a href="https://greptime.com/slack"><img src="https://img.shields.io/badge/slack-GreptimeDB-0abd59?logo=slack" alt="slack" /></a>
 </p>
 <h3 id="what-is-greptimedb"><a href="#what-is-greptimedb">What is GreptimeDB</a></h3>
 <p>GreptimeDB is an open-source time-series database with a special focus on
@@ -96,14 +98,14 @@ INSERT INTO monitor(host, cpu, memory, ts) VALUES (&#39;host3&#39;, 88.8, 4096, 
 <li>
 <p>Query the data:</p>
 <div class="example-wrap"><pre class="language-SQL"><code>SELECT * FROM monitor;
-</code></pre></div><div class="example-wrap"><pre class="language-TEXT"><code>+-------+---------------------+------+--------+
-| host  | ts                  | cpu  | memory |
-+-------+---------------------+------+--------+
-| host1 | 2022-08-19 08:32:35 | 66.6 |   1024 |
-| host2 | 2022-08-19 08:32:36 | 77.7 |   2048 |
-| host3 | 2022-08-19 08:32:37 | 88.8 |   4096 |
-+-------+---------------------+------+--------+
-3 rows in set (0.01 sec)
+</code></pre></div><div class="example-wrap"><pre class="language-TEXT"><code>+-------+--------------------------+------+--------+
+| host  | ts                       | cpu  | memory |
++-------+--------------------------+------+--------+
+| host1 | 2022-08-19 16:32:35+0800 | 66.6 |   1024 |
+| host2 | 2022-08-19 16:32:36+0800 | 77.7 |   2048 |
+| host3 | 2022-08-19 16:32:37+0800 | 88.8 |   4096 |
++-------+--------------------------+------+--------+
+3 rows in set (0.03 sec)
 </code></pre></div></li>
 </ol>
 <p>You can always cleanup test database by removing <code>/tmp/greptimedb</code>.</p>

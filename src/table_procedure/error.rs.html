@@ -84,6 +84,15 @@
 <a href="#84" id="84">84</a>
 <a href="#85" id="85">85</a>
 <a href="#86" id="86">86</a>
+<a href="#87" id="87">87</a>
+<a href="#88" id="88">88</a>
+<a href="#89" id="89">89</a>
+<a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -137,11 +146,17 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;Schema {} not found&quot;</span>, name))]
     </span>SchemaNotFound { name: String },
 
+    <span class="attr">#[snafu(display(<span class="string">&quot;Table {} not found&quot;</span>, name))]
+    </span>TableNotFound { name: String },
+
     <span class="attr">#[snafu(display(<span class="string">&quot;Subprocedure {} failed&quot;</span>, subprocedure_id))]
     </span>SubprocedureFailed {
         subprocedure_id: ProcedureId,
         location: Location,
     },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Table {} already exists&quot;</span>, name))]
+    </span>TableExists { name: String },
 }
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
@@ -156,7 +171,10 @@
             }
             InvalidRawSchema { source, .. } =&gt; source.status_code(),
             AccessCatalog { source } =&gt; source.status_code(),
-            CatalogNotFound { .. } | SchemaNotFound { .. } =&gt; StatusCode::InvalidArguments,
+            CatalogNotFound { .. } | SchemaNotFound { .. } | TableExists { .. } =&gt; {
+                StatusCode::InvalidArguments
+            }
+            TableNotFound { .. } =&gt; StatusCode::TableNotFound,
         }
     }
 

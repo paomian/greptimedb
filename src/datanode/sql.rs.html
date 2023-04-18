@@ -128,23 +128,6 @@
 <a href="#128" id="128">128</a>
 <a href="#129" id="129">129</a>
 <a href="#130" id="130">130</a>
-<a href="#131" id="131">131</a>
-<a href="#132" id="132">132</a>
-<a href="#133" id="133">133</a>
-<a href="#134" id="134">134</a>
-<a href="#135" id="135">135</a>
-<a href="#136" id="136">136</a>
-<a href="#137" id="137">137</a>
-<a href="#138" id="138">138</a>
-<a href="#139" id="139">139</a>
-<a href="#140" id="140">140</a>
-<a href="#141" id="141">141</a>
-<a href="#142" id="142">142</a>
-<a href="#143" id="143">143</a>
-<a href="#144" id="144">144</a>
-<a href="#145" id="145">145</a>
-<a href="#146" id="146">146</a>
-<a href="#147" id="147">147</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -166,24 +149,19 @@
 <span class="kw">use </span>common_procedure::ProcedureManagerRef;
 <span class="kw">use </span>common_query::Output;
 <span class="kw">use </span>common_telemetry::error;
-<span class="kw">use </span>query::sql::{show_databases, show_tables};
 <span class="kw">use </span>session::context::QueryContextRef;
 <span class="kw">use </span>snafu::{OptionExt, ResultExt};
-<span class="kw">use </span>sql::statements::show::{ShowDatabases, ShowTables};
 <span class="kw">use </span>table::engine::manager::TableEngineManagerRef;
 <span class="kw">use </span>table::engine::{TableEngineProcedureRef, TableEngineRef, TableReference};
 <span class="kw">use </span>table::requests::<span class="kw-2">*</span>;
 <span class="kw">use </span>table::{Table, TableRef};
 
 <span class="kw">use </span><span class="kw">crate</span>::error::{
-    <span class="self">self</span>, CloseTableEngineSnafu, ExecuteSqlSnafu, <span class="prelude-ty">Result</span>, TableEngineNotFoundSnafu,
-    TableNotFoundSnafu,
+    <span class="self">self</span>, CloseTableEngineSnafu, <span class="prelude-ty">Result</span>, TableEngineNotFoundSnafu, TableNotFoundSnafu,
 };
 <span class="kw">use </span><span class="kw">crate</span>::instance::sql::table_idents_to_full_name;
 
 <span class="kw">mod </span>alter;
-<span class="kw">mod </span>copy_table_from;
-<span class="kw">mod </span>copy_table_to;
 <span class="kw">mod </span>create;
 <span class="kw">mod </span>drop_table;
 <span class="kw">mod </span>flush_table;
@@ -196,9 +174,6 @@
     Alter(AlterTableRequest),
     DropTable(DropTableRequest),
     FlushTable(FlushTableRequest),
-    ShowDatabases(ShowDatabases),
-    ShowTables(ShowTables),
-    CopyTable(CopyTableRequest),
 }
 
 <span class="comment">// Handler to execute SQL except query
@@ -206,7 +181,9 @@
 </span><span class="kw">pub struct </span>SqlHandler {
     table_engine_manager: TableEngineManagerRef,
     catalog_manager: CatalogManagerRef,
-    engine_procedure: TableEngineProcedureRef,
+    <span class="comment">// TODO(yingwen): Support multiple table engine. We need to add a method
+    // to TableEngineManagerRef to return engine procedure by engine name.
+    </span>engine_procedure: TableEngineProcedureRef,
     procedure_manager: <span class="prelude-ty">Option</span>&lt;ProcedureManagerRef&gt;,
 }
 
@@ -235,17 +212,6 @@
             SqlRequest::CreateDatabase(req) =&gt; <span class="self">self</span>.create_database(req, query_ctx.clone()).<span class="kw">await</span>,
             SqlRequest::Alter(req) =&gt; <span class="self">self</span>.alter(req).<span class="kw">await</span>,
             SqlRequest::DropTable(req) =&gt; <span class="self">self</span>.drop_table(req).<span class="kw">await</span>,
-            SqlRequest::CopyTable(req) =&gt; <span class="kw">match </span>req.direction {
-                CopyDirection::Export =&gt; <span class="self">self</span>.copy_table_to(req).<span class="kw">await</span>,
-                CopyDirection::Import =&gt; <span class="self">self</span>.copy_table_from(req).<span class="kw">await</span>,
-            },
-            SqlRequest::ShowDatabases(req) =&gt; {
-                show_databases(req, <span class="self">self</span>.catalog_manager.clone()).context(ExecuteSqlSnafu)
-            }
-            SqlRequest::ShowTables(req) =&gt; {
-                show_tables(req, <span class="self">self</span>.catalog_manager.clone(), query_ctx.clone())
-                    .context(ExecuteSqlSnafu)
-            }
             SqlRequest::FlushTable(req) =&gt; <span class="self">self</span>.flush_table(req).<span class="kw">await</span>,
         };
         <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="kw-2">&amp;</span>result {

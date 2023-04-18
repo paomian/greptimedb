@@ -1629,6 +1629,7 @@
 <a href="#1629" id="1629">1629</a>
 <a href="#1630" id="1630">1630</a>
 <a href="#1631" id="1631">1631</a>
+<a href="#1632" id="1632">1632</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1646,6 +1647,7 @@
 </span><span class="kw">use </span>std::cmp::Ordering;
 <span class="kw">use </span>std::fmt::{Display, Formatter};
 <span class="kw">use </span>std::str::FromStr;
+<span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>arrow::datatypes::{DataType <span class="kw">as </span>ArrowDataType, Field};
 <span class="kw">use </span>common_base::bytes::{Bytes, StringBytes};
@@ -1902,7 +1904,7 @@
         ConcreteDataType::DateTime(<span class="kw">_</span>) =&gt; ScalarValue::Date64(<span class="prelude-val">None</span>),
         ConcreteDataType::Timestamp(t) =&gt; timestamp_to_scalar_value(t.unit(), <span class="prelude-val">None</span>),
         ConcreteDataType::List(<span class="kw">_</span>) =&gt; {
-            ScalarValue::List(<span class="prelude-val">None</span>, Box::new(new_item_field(output_type.as_arrow_type())))
+            ScalarValue::List(<span class="prelude-val">None</span>, Arc::new(new_item_field(output_type.as_arrow_type())))
         }
         ConcreteDataType::Dictionary(dict) =&gt; ScalarValue::Dictionary(
             Box::new(dict.key_type().as_arrow_type()),
@@ -2121,7 +2123,7 @@
 
         <span class="prelude-val">Ok</span>(ScalarValue::List(
             vs,
-            Box::new(new_item_field(output_type.item_type().as_arrow_type())),
+            Arc::new(new_item_field(output_type.item_type().as_arrow_type())),
         ))
     }
 }

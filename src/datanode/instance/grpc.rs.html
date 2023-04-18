@@ -370,6 +370,8 @@
 <a href="#370" id="370">370</a>
 <a href="#371" id="371">371</a>
 <a href="#372" id="372">372</a>
+<a href="#373" id="373">373</a>
+<a href="#374" id="374">374</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -392,6 +394,7 @@
 <span class="kw">use </span>common_query::Output;
 <span class="kw">use </span>query::parser::{PromQuery, QueryLanguageParser, QueryStatement};
 <span class="kw">use </span>query::plan::LogicalPlan;
+<span class="kw">use </span>query::query_engine::SqlStatementExecutor;
 <span class="kw">use </span>servers::query_handler::grpc::GrpcQueryHandler;
 <span class="kw">use </span>session::context::{QueryContext, QueryContextRef};
 <span class="kw">use </span>snafu::prelude::<span class="kw-2">*</span>;
@@ -437,7 +440,7 @@
                 <span class="kw">match </span>stmt {
                     <span class="comment">// TODO(LFC): Remove SQL execution branch here.
                     // Keep this because substrait can&#39;t handle much of SQLs now.
-                    </span>QueryStatement::Sql(Statement::Query(<span class="kw">_</span>)) =&gt; {
+                    </span>QueryStatement::Sql(Statement::Query(<span class="kw">_</span>)) | QueryStatement::Promql(<span class="kw">_</span>) =&gt; {
                         <span class="kw">let </span>plan = <span class="self">self
                             </span>.query_engine
                             .planner()
@@ -449,7 +452,9 @@
                             .<span class="kw">await
                             </span>.context(ExecuteLogicalPlanSnafu)
                     }
-                    <span class="kw">_ </span>=&gt; <span class="self">self</span>.execute_stmt(stmt, ctx).<span class="kw">await</span>,
+                    QueryStatement::Sql(stmt) =&gt; {
+                        <span class="self">self</span>.execute_sql(stmt, ctx).<span class="kw">await</span>.context(ExecuteSqlSnafu)
+                    }
                 }
             }
             Query::LogicalPlan(plan) =&gt; <span class="self">self</span>.execute_logical(plan).<span class="kw">await</span>,
@@ -614,12 +619,11 @@
         <span class="kw">let </span>output = instance.do_query(query, QueryContext::arc()).<span class="kw">await</span>.unwrap();
         <span class="macro">assert!</span>(<span class="macro">matches!</span>(output, Output::AffectedRows(<span class="number">0</span>)));
 
-        <span class="kw">let </span>stmt = QueryLanguageParser::parse_sql(
+        <span class="kw">let </span><span class="prelude-val">Ok</span>(QueryStatement::Sql(stmt)) = QueryLanguageParser::parse_sql(
             <span class="string">&quot;INSERT INTO my_database.my_table (a, b, ts) VALUES (&#39;s&#39;, 1, 1672384140000)&quot;</span>,
-        )
-        .unwrap();
+        ) <span class="kw">else </span>{ <span class="macro">unreachable!</span>() };
         <span class="kw">let </span>output = instance
-            .execute_stmt(stmt, QueryContext::arc())
+            .execute_sql(stmt, QueryContext::arc())
             .<span class="kw">await
             </span>.unwrap();
         <span class="macro">assert!</span>(<span class="macro">matches!</span>(output, Output::AffectedRows(<span class="number">1</span>)));

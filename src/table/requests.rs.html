@@ -479,7 +479,7 @@
 }
 
 <span class="doccomment">/// Drop table request
-</span><span class="attr">#[derive(Debug)]
+</span><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
 </span><span class="kw">pub struct </span>DropTableRequest {
     <span class="kw">pub </span>catalog_name: String,
     <span class="kw">pub </span>schema_name: String,

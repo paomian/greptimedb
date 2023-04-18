@@ -316,6 +316,12 @@
 <a href="#316" id="316">316</a>
 <a href="#317" id="317">317</a>
 <a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -427,8 +433,14 @@
 }
 
 <span class="doccomment">///Greptime CatalogProvider -&gt; datafusion&#39;s CatalogProvider
-</span><span class="kw">struct </span>DfCatalogProviderAdapter {
+</span><span class="kw">pub struct </span>DfCatalogProviderAdapter {
     catalog_provider: CatalogProviderRef,
+}
+
+<span class="kw">impl </span>DfCatalogProviderAdapter {
+    <span class="kw">pub fn </span>new(catalog_provider: CatalogProviderRef) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{ catalog_provider }
+    }
 }
 
 <span class="kw">impl </span>DfCatalogProvider <span class="kw">for </span>DfCatalogProviderAdapter {

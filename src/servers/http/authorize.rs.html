@@ -415,7 +415,6 @@
 <a href="#415" id="415">415</a>
 <a href="#416" id="416">416</a>
 <a href="#417" id="417">417</a>
-<a href="#418" id="418">418</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -443,7 +442,7 @@
 
 <span class="kw">use </span><span class="kw">super</span>::PUBLIC_APIS;
 <span class="kw">use </span><span class="kw">crate</span>::auth::Error::IllegalParam;
-<span class="kw">use </span><span class="kw">crate</span>::auth::{Identity, IllegalParamSnafu, InternalStateSnafu, UserProviderRef};
+<span class="kw">use </span><span class="kw">crate</span>::auth::{Identity, IllegalParamSnafu, UserProviderRef};
 <span class="kw">use </span><span class="kw">crate</span>::error::Error::Auth;
 <span class="kw">use </span><span class="kw">crate</span>::error::{
     <span class="self">self</span>, InvalidAuthorizationHeaderSnafu, InvisibleASCIISnafu, NotFoundInfluxAuthSnafu, <span class="prelude-ty">Result</span>,
@@ -495,21 +494,37 @@
                 <span class="kw">return </span><span class="prelude-val">Ok</span>(request);
             };
 
-            <span class="comment">// do authenticate
-            </span><span class="kw">match </span>authenticate(<span class="kw-2">&amp;</span>user_provider, <span class="kw-2">&amp;</span>request).<span class="kw">await </span>{
-                <span class="prelude-val">Ok</span>(user_info) =&gt; {
-                    request.extensions_mut().insert(user_info);
+            <span class="kw">let </span>(username, password) = <span class="kw">match </span>extract_username_and_password(<span class="kw-2">&amp;</span>request) {
+                <span class="prelude-val">Ok</span>((username, password)) =&gt; (username, password),
+                <span class="prelude-val">Err</span>(e) =&gt; {
+                    <span class="macro">error!</span>(<span class="string">&quot;extract username and password failed: {}&quot;</span>, e);
+                    <span class="kw">return </span><span class="prelude-val">Err</span>(unauthorized_resp());
+                }
+            };
+
+            <span class="kw">let </span>(catalog, schema) = <span class="kw">match </span>extract_catalog_and_schema(<span class="kw-2">&amp;</span>request) {
+                <span class="prelude-val">Ok</span>((catalog, schema)) =&gt; (catalog, schema),
+                <span class="prelude-val">Err</span>(e) =&gt; {
+                    <span class="macro">error!</span>(<span class="string">&quot;extract catalog and schema failed: {}&quot;</span>, e);
+                    <span class="kw">return </span><span class="prelude-val">Err</span>(unauthorized_resp());
+                }
+            };
+
+            <span class="kw">match </span>user_provider
+                .auth(
+                    Identity::UserId(username.as_str(), <span class="prelude-val">None</span>),
+                    <span class="kw">crate</span>::auth::Password::PlainText(password.as_str()),
+                    catalog,
+                    schema,
+                )
+                .<span class="kw">await
+            </span>{
+                <span class="prelude-val">Ok</span>(userinfo) =&gt; {
+                    request.extensions_mut().insert(userinfo);
+                    <span class="prelude-val">Ok</span>(request)
                 }
                 <span class="prelude-val">Err</span>(e) =&gt; {
                     <span class="macro">error!</span>(<span class="string">&quot;authenticate failed: {}&quot;</span>, e);
-                    <span class="kw">return </span><span class="prelude-val">Err</span>(unauthorized_resp());
-                }
-            }
-
-            <span class="kw">match </span>authorize(<span class="kw-2">&amp;</span>user_provider, <span class="kw-2">&amp;</span>request).<span class="kw">await </span>{
-                <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(request),
-                <span class="prelude-val">Err</span>(e) =&gt; {
-                    <span class="macro">error!</span>(<span class="string">&quot;authorize failed: {}&quot;</span>, e);
                     <span class="prelude-val">Err</span>(unauthorized_resp())
                 }
             }
@@ -517,28 +532,19 @@
     }
 }
 
-<span class="kw">async fn </span>authorize&lt;B: Send + Sync + <span class="lifetime">&#39;static</span>&gt;(
-    user_provider: <span class="kw-2">&amp;</span>UserProviderRef,
+<span class="kw">fn </span>extract_catalog_and_schema&lt;B: Send + Sync + <span class="lifetime">&#39;static</span>&gt;(
     request: <span class="kw-2">&amp;</span>Request&lt;B&gt;,
-) -&gt; <span class="kw">crate</span>::auth::Result&lt;()&gt; {
+) -&gt; <span class="kw">crate</span>::auth::Result&lt;(<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span>str)&gt; {
     <span class="comment">// try get database name
     </span><span class="kw">let </span>query = request.uri().query().unwrap_or_default();
     <span class="kw">let </span>input_database = extract_db_from_query(query).context(IllegalParamSnafu {
         msg: <span class="string">&quot;db not provided or corrupted&quot;</span>,
     })<span class="question-mark">?</span>;
 
-    <span class="kw">let </span>(catalog, database) =
-        <span class="kw">crate</span>::parse_catalog_and_schema_from_client_database_name(input_database);
-
-    <span class="kw">let </span>user_info = request
-        .extensions()
-        .get::&lt;UserInfo&gt;()
-        .context(InternalStateSnafu {
-            msg: <span class="string">&quot;no user info provided while authorizing&quot;</span>,
-        })<span class="question-mark">?</span>;
-
-    user_provider.authorize(catalog, database, user_info).<span class="kw">await
-</span>}
+    <span class="prelude-val">Ok</span>(<span class="kw">crate</span>::parse_catalog_and_schema_from_client_database_name(
+        input_database,
+    ))
+}
 
 <span class="kw">fn </span>get_influxdb_credentials&lt;B: Send + Sync + <span class="lifetime">&#39;static</span>&gt;(
     request: <span class="kw-2">&amp;</span>Request&lt;B&gt;,
@@ -580,11 +586,10 @@
     }
 }
 
-<span class="kw">async fn </span>authenticate&lt;B: Send + Sync + <span class="lifetime">&#39;static</span>&gt;(
-    user_provider: <span class="kw-2">&amp;</span>UserProviderRef,
+<span class="kw">fn </span>extract_username_and_password&lt;B: Send + Sync + <span class="lifetime">&#39;static</span>&gt;(
     request: <span class="kw-2">&amp;</span>Request&lt;B&gt;,
-) -&gt; <span class="prelude-ty">Result</span>&lt;UserInfo&gt; {
-    <span class="kw">let </span>(username, password) = <span class="kw">if </span>request.uri().path().contains(<span class="string">&quot;influxdb&quot;</span>) {
+) -&gt; <span class="prelude-ty">Result</span>&lt;(Username, Password)&gt; {
+    <span class="prelude-val">Ok</span>(<span class="kw">if </span>request.uri().path().contains(<span class="string">&quot;influxdb&quot;</span>) {
         <span class="comment">// compatible with influxdb auth
         </span>get_influxdb_credentials(request)<span class="question-mark">?</span>.context(NotFoundInfluxAuthSnafu)<span class="question-mark">?
     </span>} <span class="kw">else </span>{
@@ -593,14 +598,7 @@
         <span class="kw">match </span>scheme {
             AuthScheme::Basic(username, password) =&gt; (username, password),
         }
-    };
-
-    <span class="prelude-val">Ok</span>(user_provider
-        .authenticate(
-            Identity::UserId(<span class="kw-2">&amp;</span>username, <span class="prelude-val">None</span>),
-            <span class="kw">crate</span>::auth::Password::PlainText(<span class="kw-2">&amp;</span>password),
-        )
-        .<span class="kw">await</span><span class="question-mark">?</span>)
+    })
 }
 
 <span class="kw">fn </span>unauthorized_resp&lt;RespBody&gt;() -&gt; Response&lt;RespBody&gt;

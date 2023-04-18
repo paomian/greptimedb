@@ -1914,6 +1914,36 @@
 <a href="#1914" id="1914">1914</a>
 <a href="#1915" id="1915">1915</a>
 <a href="#1916" id="1916">1916</a>
+<a href="#1917" id="1917">1917</a>
+<a href="#1918" id="1918">1918</a>
+<a href="#1919" id="1919">1919</a>
+<a href="#1920" id="1920">1920</a>
+<a href="#1921" id="1921">1921</a>
+<a href="#1922" id="1922">1922</a>
+<a href="#1923" id="1923">1923</a>
+<a href="#1924" id="1924">1924</a>
+<a href="#1925" id="1925">1925</a>
+<a href="#1926" id="1926">1926</a>
+<a href="#1927" id="1927">1927</a>
+<a href="#1928" id="1928">1928</a>
+<a href="#1929" id="1929">1929</a>
+<a href="#1930" id="1930">1930</a>
+<a href="#1931" id="1931">1931</a>
+<a href="#1932" id="1932">1932</a>
+<a href="#1933" id="1933">1933</a>
+<a href="#1934" id="1934">1934</a>
+<a href="#1935" id="1935">1935</a>
+<a href="#1936" id="1936">1936</a>
+<a href="#1937" id="1937">1937</a>
+<a href="#1938" id="1938">1938</a>
+<a href="#1939" id="1939">1939</a>
+<a href="#1940" id="1940">1940</a>
+<a href="#1941" id="1941">1941</a>
+<a href="#1942" id="1942">1942</a>
+<a href="#1943" id="1943">1943</a>
+<a href="#1944" id="1944">1944</a>
+<a href="#1945" id="1945">1945</a>
+<a href="#1946" id="1946">1946</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1967,9 +1997,9 @@
     EmptyMetric, InstantManipulate, Millisecond, RangeManipulate, SeriesDivide, SeriesNormalize,
 };
 <span class="kw">use </span><span class="kw">crate</span>::functions::{
-    AbsentOverTime, AvgOverTime, Changes, CountOverTime, Delta, IDelta, Increase, LastOverTime,
-    MaxOverTime, MinOverTime, PresentOverTime, QuantileOverTime, Rate, Resets, StddevOverTime,
-    StdvarOverTime, SumOverTime,
+    AbsentOverTime, AvgOverTime, Changes, CountOverTime, Delta, HoltWinters, IDelta, Increase,
+    LastOverTime, MaxOverTime, MinOverTime, PredictLinear, PresentOverTime, QuantileOverTime, Rate,
+    Resets, StddevOverTime, StdvarOverTime, SumOverTime,
 };
 
 <span class="kw">const </span>LEFT_PLAN_JOIN_ALIAS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;lhs&quot;</span>;
@@ -2711,6 +2741,36 @@
                     .fail()<span class="question-mark">?</span>,
                 };
                 ScalarFunc::Udf(QuantileOverTime::scalar_udf(quantile_expr))
+            }
+            <span class="string">&quot;predict_linear&quot; </span>=&gt; {
+                <span class="kw">let </span>t_expr = <span class="kw">match </span>other_input_exprs.get(<span class="number">0</span>) {
+                    <span class="prelude-val">Some</span>(DfExpr::Literal(ScalarValue::Time64Microsecond(<span class="prelude-val">Some</span>(t)))) =&gt; <span class="kw-2">*</span>t,
+                    other =&gt; UnexpectedPlanExprSnafu {
+                        desc: <span class="macro">format!</span>(<span class="string">&quot;expect i64 literal as t, but found {:?}&quot;</span>, other),
+                    }
+                    .fail()<span class="question-mark">?</span>,
+                };
+                ScalarFunc::Udf(PredictLinear::scalar_udf(t_expr))
+            }
+            <span class="string">&quot;holt_winters&quot; </span>=&gt; {
+                <span class="kw">let </span>sf_exp = <span class="kw">match </span>other_input_exprs.get(<span class="number">0</span>) {
+                    <span class="prelude-val">Some</span>(DfExpr::Literal(ScalarValue::Float64(<span class="prelude-val">Some</span>(sf)))) =&gt; <span class="kw-2">*</span>sf,
+                    other =&gt; UnexpectedPlanExprSnafu {
+                        desc: <span class="macro">format!</span>(
+                            <span class="string">&quot;expect f64 literal as smoothing factor, but found {:?}&quot;</span>,
+                            other
+                        ),
+                    }
+                    .fail()<span class="question-mark">?</span>,
+                };
+                <span class="kw">let </span>tf_exp = <span class="kw">match </span>other_input_exprs.get(<span class="number">1</span>) {
+                    <span class="prelude-val">Some</span>(DfExpr::Literal(ScalarValue::Float64(<span class="prelude-val">Some</span>(tf)))) =&gt; <span class="kw-2">*</span>tf,
+                    other =&gt; UnexpectedPlanExprSnafu {
+                        desc: <span class="macro">format!</span>(<span class="string">&quot;expect f64 literal as trend factor, but found {:?}&quot;</span>, other),
+                    }
+                    .fail()<span class="question-mark">?</span>,
+                };
+                ScalarFunc::Udf(HoltWinters::scalar_udf(sf_exp, tf_exp))
             }
             <span class="kw">_ </span>=&gt; ScalarFunc::DataFusionBuiltin(
                 BuiltinScalarFunction::from_str(func.name).map_err(|<span class="kw">_</span>| {

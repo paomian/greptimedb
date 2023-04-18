@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["error","lister","object_store","util"]};
+window.SIDEBAR_ITEMS = {"mod":["compression","error","file_format","lister","object_store","util"]};

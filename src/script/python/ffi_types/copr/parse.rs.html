@@ -570,7 +570,7 @@
 <span class="kw">use </span>datatypes::prelude::ConcreteDataType;
 <span class="kw">use </span>query::QueryEngineRef;
 <span class="kw">use </span>rustpython_parser::ast::{Arguments, Location};
-<span class="kw">use </span>rustpython_parser::{ast, parser};
+<span class="kw">use </span>rustpython_parser::{ast, parse_program};
 <span class="attr">#[cfg(test)]
 </span><span class="kw">use </span>serde::Deserialize;
 <span class="kw">use </span>snafu::{OptionExt, ResultExt};
@@ -995,7 +995,7 @@
     script: <span class="kw-2">&amp;</span>str,
     query_engine: <span class="prelude-ty">Option</span>&lt;QueryEngineRef&gt;,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;Coprocessor&gt; {
-    <span class="kw">let </span>python_ast = parser::parse_program(script, <span class="string">&quot;&lt;embedded&gt;&quot;</span>).context(PyParseSnafu)<span class="question-mark">?</span>;
+    <span class="kw">let </span>python_ast = parse_program(script, <span class="string">&quot;&lt;embedded&gt;&quot;</span>).context(PyParseSnafu)<span class="question-mark">?</span>;
 
     <span class="kw">let </span><span class="kw-2">mut </span>coprocessor = <span class="prelude-val">None</span>;
 

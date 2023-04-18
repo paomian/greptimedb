@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["register_procedure_loaders"],"mod":["alter","create"]};
+window.SIDEBAR_ITEMS = {"fn":["register_procedure_loaders"],"mod":["alter","create","drop"]};

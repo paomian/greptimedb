@@ -606,6 +606,13 @@
 <a href="#606" id="606">606</a>
 <a href="#607" id="607">607</a>
 <a href="#608" id="608">608</a>
+<a href="#609" id="609">609</a>
+<a href="#610" id="610">610</a>
+<a href="#611" id="611">611</a>
+<a href="#612" id="612">612</a>
+<a href="#613" id="613">613</a>
+<a href="#614" id="614">614</a>
+<a href="#615" id="615">615</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -647,7 +654,9 @@
     RegionMeta, RegionNumber, ScanRequest, SchemaRef, Snapshot, WriteContext, WriteRequest,
 };
 <span class="kw">use </span>table::error <span class="kw">as </span>table_error;
-<span class="kw">use </span>table::error::{RegionSchemaMismatchSnafu, <span class="prelude-ty">Result </span><span class="kw">as </span>TableResult, TableOperationSnafu};
+<span class="kw">use </span>table::error::{
+    InvalidTableSnafu, RegionSchemaMismatchSnafu, <span class="prelude-ty">Result </span><span class="kw">as </span>TableResult, TableOperationSnafu,
+};
 <span class="kw">use </span>table::metadata::{
     FilterPushDownType, RawTableInfo, TableInfo, TableInfoRef, TableMeta, TableType,
 };
@@ -801,7 +810,10 @@
 
         <span class="comment">// TODO(hl): we assume table contains at least one region, but with region migration this
         // assumption may become invalid.
-        </span><span class="kw">let </span>stream_schema = first_schema.unwrap();
+        </span><span class="kw">let </span>stream_schema = first_schema.context(InvalidTableSnafu {
+            table_id: table_info.ident.table_id,
+        })<span class="question-mark">?</span>;
+
         <span class="kw">let </span>schema = stream_schema.clone();
         <span class="kw">let </span>stream = Box::pin(<span class="macro">async_stream::try_stream! </span>{
             <span class="kw">for </span><span class="kw-2">mut </span>reader <span class="kw">in </span>readers {
@@ -1081,6 +1093,8 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;MitoTable&lt;R&gt;&gt; {
         <span class="kw">let </span>manifest = TableManifest::create(<span class="kw-2">&amp;</span>table_manifest_dir(table_dir), object_store);
 
+        <span class="kw">let </span>_timer =
+            <span class="macro">common_telemetry::timer!</span>(<span class="kw">crate</span>::metrics::MITO_CREATE_TABLE_UPDATE_MANIFEST_ELAPSED);
         <span class="comment">// TODO(dennis): save manifest version into catalog?
         </span><span class="kw">let </span>_manifest_version = manifest
             .update(TableMetaActionList::with_action(TableMetaAction::Change(
@@ -1176,7 +1190,7 @@
             create_add_columns_operation(table_name, columns, table_meta)
         }
         AlterKind::DropColumns { names } =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(AlterOperation::DropColumns {
-            names: names.to_vec(),
+            names: names.clone(),
         })),
         <span class="comment">// No need to build alter operation when reaming tables.
         </span>AlterKind::RenameTable { .. } =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),

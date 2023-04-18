@@ -19,6 +19,9 @@
 <a href="#19" id="19">19</a>
 <a href="#20" id="20">20</a>
 <a href="#21" id="21">21</a>
+<a href="#22" id="22">22</a>
+<a href="#23" id="23">23</a>
+<a href="#24" id="24">24</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -32,6 +35,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// TODO(discord9): spawn new process for executing python script(if hit gil limit) and use shared memory to communicate
+</span><span class="attr">#![deny(clippy::implicit_clone)]
 
 </span><span class="kw">pub mod </span>engine;
 <span class="kw">pub mod </span>error;

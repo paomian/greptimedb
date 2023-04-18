@@ -916,7 +916,7 @@
         }
 
         <span class="kw">fn </span>find_region(<span class="kw-2">&amp;</span><span class="self">self</span>, values: <span class="kw-2">&amp;</span>[Value]) -&gt; <span class="prelude-ty">Result</span>&lt;RegionNumber, Error&gt; {
-            <span class="kw">let </span>val = values.get(<span class="number">0</span>).unwrap().to_owned();
+            <span class="kw">let </span>val = values.get(<span class="number">0</span>).unwrap().clone();
             <span class="kw">let </span>id_1: Value = <span class="number">1_i16</span>.into();
             <span class="kw">let </span>id_2: Value = <span class="number">2_i16</span>.into();
             <span class="kw">let </span>id_3: Value = <span class="number">3_i16</span>.into();

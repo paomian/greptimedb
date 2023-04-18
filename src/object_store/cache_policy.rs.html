@@ -182,6 +182,19 @@
 <a href="#182" id="182">182</a>
 <a href="#183" id="183">183</a>
 <a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -203,11 +216,17 @@
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>bytes::Bytes;
 <span class="kw">use </span>lru::LruCache;
+<span class="kw">use </span>metrics::increment_counter;
 <span class="kw">use </span>opendal::ops::{OpDelete, OpList, OpRead, OpScan, OpWrite};
 <span class="kw">use </span>opendal::raw::oio::{Read, Reader, Write};
 <span class="kw">use </span>opendal::raw::{Accessor, Layer, LayeredAccessor, RpDelete, RpList, RpRead, RpScan, RpWrite};
 <span class="kw">use </span>opendal::{ErrorKind, <span class="prelude-ty">Result</span>};
 <span class="kw">use </span>tokio::sync::Mutex;
+
+<span class="kw">use </span><span class="kw">crate</span>::metrics::{
+    OBJECT_STORE_LRU_CACHE_ERROR, OBJECT_STORE_LRU_CACHE_ERROR_KIND, OBJECT_STORE_LRU_CACHE_HIT,
+    OBJECT_STORE_LRU_CACHE_MISS,
+};
 
 <span class="kw">pub struct </span>LruCacheLayer&lt;C&gt; {
     cache: Arc&lt;C&gt;,
@@ -273,12 +292,16 @@
 
         <span class="kw">match </span><span class="self">self</span>.cache.read(<span class="kw-2">&amp;</span>cache_path, OpRead::default()).<span class="kw">await </span>{
             <span class="prelude-val">Ok</span>((rp, r)) =&gt; {
+                <span class="macro">increment_counter!</span>(OBJECT_STORE_LRU_CACHE_HIT);
+
                 <span class="comment">// update lru when cache hit
                 </span><span class="kw">let </span><span class="kw-2">mut </span>lru_cache = lru_cache.lock().<span class="kw">await</span>;
                 lru_cache.get_or_insert(cache_path.clone(), || ());
                 <span class="prelude-val">Ok</span>(to_output_reader((rp, r)))
             }
             <span class="prelude-val">Err</span>(err) <span class="kw">if </span>err.kind() == ErrorKind::NotFound =&gt; {
+                <span class="macro">increment_counter!</span>(OBJECT_STORE_LRU_CACHE_MISS);
+
                 <span class="kw">let </span>(rp, <span class="kw-2">mut </span>reader) = <span class="self">self</span>.inner.read(<span class="kw-2">&amp;</span>path, args.clone()).<span class="kw">await</span><span class="question-mark">?</span>;
                 <span class="kw">let </span>size = rp.clone().into_metadata().content_length();
                 <span class="kw">let </span>(<span class="kw">_</span>, <span class="kw-2">mut </span>writer) = <span class="self">self</span>.cache.write(<span class="kw-2">&amp;</span>cache_path, OpWrite::new()).<span class="kw">await</span><span class="question-mark">?</span>;
@@ -306,7 +329,10 @@
                     <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="kw">return </span><span class="self">self</span>.inner.read(<span class="kw-2">&amp;</span>path, args).<span class="kw">await</span>.map(to_output_reader),
                 }
             }
-            <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="kw">return </span><span class="self">self</span>.inner.read(<span class="kw-2">&amp;</span>path, args).<span class="kw">await</span>.map(to_output_reader),
+            <span class="prelude-val">Err</span>(err) =&gt; {
+                <span class="macro">increment_counter!</span>(OBJECT_STORE_LRU_CACHE_ERROR, OBJECT_STORE_LRU_CACHE_ERROR_KIND =&gt; <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, err.kind()));
+                <span class="kw">return </span><span class="self">self</span>.inner.read(<span class="kw-2">&amp;</span>path, args).<span class="kw">await</span>.map(to_output_reader);
+            }
         }
     }
 
