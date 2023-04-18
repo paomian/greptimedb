@@ -389,7 +389,7 @@ pub async fn setup_grpc_server(
     let fe_grpc_addr_clone = fe_grpc_addr.clone();
     tokio::spawn(async move {
         let addr = fe_grpc_addr_clone.parse::<SocketAddr>().unwrap();
-        grpc_server_clone.start(addr).await.unwrap()
+        grpc_server_clone.start(addr, None).await.unwrap()
     });
 
     // wait for GRPC server to start

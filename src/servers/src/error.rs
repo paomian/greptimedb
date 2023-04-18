@@ -67,6 +67,21 @@ pub enum Error {
         source: std::io::Error,
     },
 
+    #[snafu(display(
+        "Failed to execute copy from. db:{} table:{},from:{}, source: {}",
+        db,
+        table,
+        from,
+        source
+    ))]
+    ExecuteCopyFrom {
+        db: String,
+        table: String,
+        from: String,
+        #[snafu(backtrace)]
+        source: BoxedError,
+    },
+
     #[snafu(display("Failed to execute query: {}, source: {}", query, source))]
     ExecuteQuery {
         query: String,
@@ -301,7 +316,8 @@ impl ErrorExt for Error {
             | CatalogError { .. }
             | GrpcReflectionService { .. }
             | BuildingContext { .. }
-            | BuildHttpResponse { .. } => StatusCode::Internal,
+            | BuildHttpResponse { .. }
+            | ExecuteCopyFrom { .. } => StatusCode::Internal,
 
             InsertScript { source, .. }
             | ExecuteScript { source, .. }

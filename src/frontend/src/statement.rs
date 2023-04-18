@@ -40,7 +40,7 @@ use crate::error::{
 };
 
 #[derive(Clone)]
-pub(crate) struct StatementExecutor {
+pub struct StatementExecutor {
     catalog_manager: CatalogManagerRef,
     query_engine: QueryEngineRef,
     sql_stmt_executor: SqlStatementExecutorRef,
@@ -70,7 +70,7 @@ impl StatementExecutor {
         }
     }
 
-    async fn execute_sql(&self, stmt: Statement, query_ctx: QueryContextRef) -> Result<Output> {
+    pub async fn execute_sql(&self, stmt: Statement, query_ctx: QueryContextRef) -> Result<Output> {
         match stmt {
             Statement::Query(_) | Statement::Explain(_) | Statement::Delete(_) => {
                 self.plan_exec(QueryStatement::Sql(stmt), query_ctx).await
@@ -142,7 +142,7 @@ impl StatementExecutor {
         Ok(Output::RecordBatches(RecordBatches::empty()))
     }
 
-    async fn get_table(&self, table_ref: &TableReference<'_>) -> Result<TableRef> {
+    pub async fn get_table(&self, table_ref: &TableReference<'_>) -> Result<TableRef> {
         let TableReference {
             catalog,
             schema,

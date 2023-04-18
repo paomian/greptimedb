@@ -28,6 +28,7 @@ use tokio_rustls::TlsAcceptor;
 
 use super::{MakePostgresServerHandler, MakePostgresServerHandlerBuilder};
 use crate::auth::UserProviderRef;
+use crate::configurator::ConfiguratorRefOption;
 use crate::error::Result;
 use crate::query_handler::sql::ServerSqlQueryHandlerRef;
 use crate::server::{AbortableStream, BaseTcpServer, Server};
@@ -105,7 +106,7 @@ impl Server for PostgresServer {
         self.base_server.shutdown().await
     }
 
-    async fn start(&self, listening: SocketAddr) -> Result<SocketAddr> {
+    async fn start(&self, listening: SocketAddr, _: ConfiguratorRefOption) -> Result<SocketAddr> {
         let (stream, addr) = self.base_server.bind(listening).await?;
 
         debug!("Starting PostgreSQL with TLS option: {:?}", self.tls);

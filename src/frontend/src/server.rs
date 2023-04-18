@@ -20,6 +20,7 @@ use common_base::Plugins;
 use common_runtime::Builder as RuntimeBuilder;
 use common_telemetry::info;
 use servers::auth::UserProviderRef;
+use servers::configurator::ConfiguratorRefOption;
 use servers::error::Error::InternalIo;
 use servers::grpc::GrpcServer;
 use servers::http::HttpServerBuilder;
@@ -207,8 +208,9 @@ fn parse_addr(addr: &str) -> Result<SocketAddr> {
 
 pub async fn start_server(
     server_and_addr: &(Box<dyn Server>, SocketAddr),
+    configurator: ConfiguratorRefOption,
 ) -> servers::error::Result<Option<SocketAddr>> {
     let (server, addr) = server_and_addr;
     info!("Starting {} at {}", server.name(), addr);
-    server.start(*addr).await.map(Some)
+    server.start(*addr, configurator).await.map(Some)
 }

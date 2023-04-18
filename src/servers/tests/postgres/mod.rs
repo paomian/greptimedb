@@ -72,10 +72,10 @@ pub async fn test_start_postgres_server() -> Result<()> {
 
     let pg_server = create_postgres_server(table, false, Default::default(), None)?;
     let listening = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-    let result = pg_server.start(listening).await;
+    let result = pg_server.start(listening, None).await;
     assert!(result.is_ok());
 
-    let result = pg_server.start(listening).await;
+    let result = pg_server.start(listening, None).await;
     assert!(result
         .unwrap_err()
         .to_string()
@@ -97,7 +97,7 @@ async fn test_schema_validating() -> Result<()> {
         let postgres_server =
             create_postgres_server(table, true, Default::default(), Some(auth_info))?;
         let listening = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-        let server_addr = postgres_server.start(listening).await.unwrap();
+        let server_addr = postgres_server.start(listening, None).await.unwrap();
         let server_port = server_addr.port();
         Ok((postgres_server, server_port))
     }
@@ -143,7 +143,7 @@ async fn test_shutdown_pg_server(with_pwd: bool) -> Result<()> {
         .contains("Postgres server is not started."));
 
     let listening = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-    let server_addr = postgres_server.start(listening).await.unwrap();
+    let server_addr = postgres_server.start(listening, None).await.unwrap();
     let server_port = server_addr.port();
 
     let mut join_handles = vec![];
@@ -356,7 +356,7 @@ async fn start_test_server(server_tls: TlsOption) -> Result<u16> {
     let table = MemTable::default_numbers_table();
     let pg_server = create_postgres_server(table, false, server_tls, None)?;
     let listening = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-    let server_addr = pg_server.start(listening).await.unwrap();
+    let server_addr = pg_server.start(listening, None).await.unwrap();
     Ok(server_addr.port())
 }
 

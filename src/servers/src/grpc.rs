@@ -38,6 +38,7 @@ use tonic::{Request, Response, Status};
 
 use self::prom_query_gateway::PrometheusGatewayService;
 use crate::auth::UserProviderRef;
+use crate::configurator::ConfiguratorRefOption;
 use crate::error::{
     AlreadyStartedSnafu, GrpcReflectionServiceSnafu, Result, StartGrpcSnafu, TcpBindSnafu,
 };
@@ -124,7 +125,7 @@ impl Server for GrpcServer {
         Ok(())
     }
 
-    async fn start(&self, addr: SocketAddr) -> Result<SocketAddr> {
+    async fn start(&self, addr: SocketAddr, _: ConfiguratorRefOption) -> Result<SocketAddr> {
         let (tx, rx) = oneshot::channel();
         let (listener, addr) = {
             let mut shutdown_tx = self.shutdown_tx.lock().await;

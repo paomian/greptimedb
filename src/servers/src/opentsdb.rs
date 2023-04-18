@@ -26,6 +26,7 @@ use common_telemetry::logging::error;
 use futures::StreamExt;
 use tokio::sync::broadcast;
 
+use crate::configurator::ConfiguratorRefOption;
 use crate::error::Result;
 use crate::opentsdb::connection::Connection;
 use crate::opentsdb::handler::Handler;
@@ -111,7 +112,7 @@ impl Server for OpentsdbServer {
         Ok(())
     }
 
-    async fn start(&self, listening: SocketAddr) -> Result<SocketAddr> {
+    async fn start(&self, listening: SocketAddr, _: ConfiguratorRefOption) -> Result<SocketAddr> {
         let (stream, addr) = self.base_server.bind(listening).await?;
 
         let io_runtime = self.base_server.io_runtime();

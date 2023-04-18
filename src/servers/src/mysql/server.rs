@@ -29,6 +29,7 @@ use tokio::net::TcpStream;
 use tokio_rustls::rustls::ServerConfig;
 
 use crate::auth::UserProviderRef;
+use crate::configurator::ConfiguratorRefOption;
 use crate::error::{Error, Result};
 use crate::mysql::handler::MysqlInstanceShim;
 use crate::query_handler::sql::ServerSqlQueryHandlerRef;
@@ -208,7 +209,7 @@ impl Server for MysqlServer {
         self.base_server.shutdown().await
     }
 
-    async fn start(&self, listening: SocketAddr) -> Result<SocketAddr> {
+    async fn start(&self, listening: SocketAddr, _: ConfiguratorRefOption) -> Result<SocketAddr> {
         let (stream, addr) = self.base_server.bind(listening).await?;
         let io_runtime = self.base_server.io_runtime();
 
