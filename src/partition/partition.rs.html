@@ -195,6 +195,10 @@
 <a href="#195" id="195">195</a>
 <a href="#196" id="196">196</a>
 <a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -220,7 +224,7 @@
 <span class="kw">use </span>snafu::ResultExt;
 <span class="kw">use </span>store_api::storage::RegionNumber;
 
-<span class="kw">use </span><span class="kw">crate</span>::error::{<span class="self">self</span>, Error};
+<span class="kw">use </span><span class="kw">crate</span>::error::{<span class="self">self</span>, Error, <span class="prelude-ty">Result</span>};
 
 <span class="kw">pub type </span>PartitionRuleRef = Arc&lt;<span class="kw">dyn </span>PartitionRule&gt;;
 
@@ -229,11 +233,15 @@
 
     <span class="kw">fn </span>partition_columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;String&gt;;
 
-    <span class="comment">// TODO(LFC): Unify `find_region` and `find_regions` methods when distributed read and write features are both merged into develop.
-    // Or find better names since one is mainly for writes and the other is for reads.
-    </span><span class="kw">fn </span>find_region(<span class="kw-2">&amp;</span><span class="self">self</span>, values: <span class="kw-2">&amp;</span>[Value]) -&gt; <span class="prelude-ty">Result</span>&lt;RegionNumber, Error&gt;;
+    <span class="doccomment">/// Finds the target region by the partition values.
+    ///
+    /// Note that the `values` should have the same length as the `partition_columns`.
+    </span><span class="kw">fn </span>find_region(<span class="kw-2">&amp;</span><span class="self">self</span>, values: <span class="kw-2">&amp;</span>[Value]) -&gt; <span class="prelude-ty">Result</span>&lt;RegionNumber&gt;;
 
-    <span class="kw">fn </span>find_regions(<span class="kw-2">&amp;</span><span class="self">self</span>, exprs: <span class="kw-2">&amp;</span>[PartitionExpr]) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;RegionNumber&gt;, Error&gt;;
+    <span class="doccomment">/// Finds the target regions by the partition expressions.
+    ///
+    /// Note that the `exprs` should have the same length as the `partition_columns`.
+    </span><span class="kw">fn </span>find_regions_by_exprs(<span class="kw-2">&amp;</span><span class="self">self</span>, exprs: <span class="kw-2">&amp;</span>[PartitionExpr]) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;RegionNumber&gt;&gt;;
 }
 
 <span class="doccomment">/// The right bound(exclusive) of partition range.
@@ -269,7 +277,7 @@
 <span class="kw">impl </span>TryFrom&lt;MetaPartition&gt; <span class="kw">for </span>PartitionDef {
     <span class="kw">type </span>Error = Error;
 
-    <span class="kw">fn </span>try_from(partition: MetaPartition) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Error&gt; {
+    <span class="kw">fn </span>try_from(partition: MetaPartition) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
         <span class="kw">let </span>MetaPartition {
             column_list,
             value_list,
@@ -283,7 +291,7 @@
         <span class="kw">let </span>partition_bounds = value_list
             .into_iter()
             .map(|x| serde_json::from_str(<span class="kw-2">&amp;</span>String::from_utf8_lossy(<span class="kw-2">&amp;</span>x)))
-            .collect::&lt;<span class="prelude-ty">Result</span>&lt;Vec&lt;PartitionBound&gt;, serde_json::Error&gt;&gt;()
+            .collect::&lt;std::result::Result&lt;Vec&lt;PartitionBound&gt;, serde_json::Error&gt;&gt;()
             .context(error::DeserializeJsonSnafu)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(PartitionDef {
@@ -296,7 +304,7 @@
 <span class="kw">impl </span>TryFrom&lt;PartitionDef&gt; <span class="kw">for </span>MetaPartition {
     <span class="kw">type </span>Error = Error;
 
-    <span class="kw">fn </span>try_from(partition: PartitionDef) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Error&gt; {
+    <span class="kw">fn </span>try_from(partition: PartitionDef) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
         <span class="kw">let </span>PartitionDef {
             partition_columns: columns,
             partition_bounds: bounds,
@@ -310,7 +318,7 @@
         <span class="kw">let </span>value_list = bounds
             .into_iter()
             .map(|x| serde_json::to_string(<span class="kw-2">&amp;</span>x).map(|s| s.into_bytes()))
-            .collect::&lt;<span class="prelude-ty">Result</span>&lt;Vec&lt;Vec&lt;u8&gt;&gt;, serde_json::Error&gt;&gt;()
+            .collect::&lt;std::result::Result&lt;Vec&lt;Vec&lt;u8&gt;&gt;, serde_json::Error&gt;&gt;()
             .context(error::SerializeJsonSnafu)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(MetaPartition {

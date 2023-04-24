@@ -431,6 +431,20 @@
 <a href="#431" id="431">431</a>
 <a href="#432" id="432">432</a>
 <a href="#433" id="433">433</a>
+<a href="#434" id="434">434</a>
+<a href="#435" id="435">435</a>
+<a href="#436" id="436">436</a>
+<a href="#437" id="437">437</a>
+<a href="#438" id="438">438</a>
+<a href="#439" id="439">439</a>
+<a href="#440" id="440">440</a>
+<a href="#441" id="441">441</a>
+<a href="#442" id="442">442</a>
+<a href="#443" id="443">443</a>
+<a href="#444" id="444">444</a>
+<a href="#445" id="445">445</a>
+<a href="#446" id="446">446</a>
+<a href="#447" id="447">447</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -784,21 +798,35 @@
 
 <span class="attr">#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
 </span><span class="kw">pub struct </span>InstantQuery {
-    query: String,
+    query: <span class="prelude-ty">Option</span>&lt;String&gt;,
     time: <span class="prelude-ty">Option</span>&lt;String&gt;,
     timeout: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    db: <span class="prelude-ty">Option</span>&lt;String&gt;,
 }
 
 <span class="attr">#[axum_macros::debug_handler]
 </span><span class="kw">pub async fn </span>instant_query(
-    State(_handler): State&lt;PromHandlerRef&gt;,
-    Query(_params): Query&lt;InstantQuery&gt;,
+    State(handler): State&lt;PromHandlerRef&gt;,
+    Query(params): Query&lt;InstantQuery&gt;,
+    Form(form_params): Form&lt;InstantQuery&gt;,
 ) -&gt; Json&lt;PromJsonResponse&gt; {
-    PromJsonResponse::error(
-        <span class="string">&quot;not implemented&quot;</span>,
-        <span class="string">&quot;instant query api `/query` is not implemented. Use `/query_range` instead.&quot;</span>,
-    )
-}
+    <span class="kw">let </span>time = params.time.or(form_params.time).unwrap_or_default();
+    <span class="kw">let </span>prom_query = PromQuery {
+        query: params.query.or(form_params.query).unwrap_or_default(),
+        start: time.clone(),
+        end: time,
+        step: <span class="string">&quot;1s&quot;</span>.to_string(),
+    };
+
+    <span class="kw">let </span>db = <span class="kw-2">&amp;</span>params.db.unwrap_or(DEFAULT_SCHEMA_NAME.to_string());
+    <span class="kw">let </span>(catalog, schema) = <span class="kw">super</span>::parse_catalog_and_schema_from_client_database_name(db);
+
+    <span class="kw">let </span>query_ctx = QueryContext::with(catalog, schema);
+
+    <span class="kw">let </span>result = handler.do_query(<span class="kw-2">&amp;</span>prom_query, Arc::new(query_ctx)).<span class="kw">await</span>;
+    <span class="kw">let </span>metric_name = retrieve_metric_name(<span class="kw-2">&amp;</span>prom_query.query).unwrap_or_default();
+    PromJsonResponse::from_query_result(result, metric_name).<span class="kw">await
+</span>}
 
 <span class="attr">#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
 </span><span class="kw">pub struct </span>RangeQuery {
@@ -833,7 +861,7 @@
     PromJsonResponse::from_query_result(result, metric_name).<span class="kw">await
 </span>}
 
-<span class="kw">fn </span>retrieve_metric_name(promql: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Option</span>&lt;String&gt; {
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>retrieve_metric_name(promql: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Option</span>&lt;String&gt; {
     <span class="kw">let </span>promql_expr = promql_parser::parser::parse(promql).ok()<span class="question-mark">?</span>;
     promql_expr_to_metric_name(promql_expr)
 }

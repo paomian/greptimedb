@@ -167,6 +167,19 @@
 <a href="#167" id="167">167</a>
 <a href="#168" id="168">168</a>
 <a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -192,6 +205,7 @@
     OnLeaderStartHandler, PersistStatsHandler, RegionFailureHandler, ResponseHeaderHandler,
 };
 <span class="kw">use </span><span class="kw">crate</span>::lock::DistLockRef;
+<span class="kw">use </span><span class="kw">crate</span>::metadata_service::{DefaultMetadataService, MetadataServiceRef};
 <span class="kw">use </span><span class="kw">crate</span>::metasrv::{ElectionRef, MetaSrv, MetaSrvOptions, SelectorRef, TABLE_ID_SEQ};
 <span class="kw">use </span><span class="kw">crate</span>::procedure::state_store::MetaStateStore;
 <span class="kw">use </span><span class="kw">crate</span>::selector::lease_based::LeaseBasedSelector;
@@ -209,6 +223,7 @@
     election: <span class="prelude-ty">Option</span>&lt;ElectionRef&gt;,
     meta_peer_client: <span class="prelude-ty">Option</span>&lt;MetaPeerClient&gt;,
     lock: <span class="prelude-ty">Option</span>&lt;DistLockRef&gt;,
+    metadata_service: <span class="prelude-ty">Option</span>&lt;MetadataServiceRef&gt;,
 }
 
 <span class="kw">impl </span>MetaSrvBuilder {
@@ -222,6 +237,7 @@
             election: <span class="prelude-val">None</span>,
             options: <span class="prelude-val">None</span>,
             lock: <span class="prelude-val">None</span>,
+            metadata_service: <span class="prelude-val">None</span>,
         }
     }
 
@@ -265,6 +281,11 @@
         <span class="self">self
     </span>}
 
+    <span class="kw">pub fn </span>metadata_service(<span class="kw-2">mut </span><span class="self">self</span>, metadata_service: MetadataServiceRef) -&gt; <span class="self">Self </span>{
+        <span class="self">self</span>.metadata_service = <span class="prelude-val">Some</span>(metadata_service);
+        <span class="self">self
+    </span>}
+
     <span class="kw">pub async fn </span>build(<span class="self">self</span>) -&gt; MetaSrv {
         <span class="kw">let </span>started = Arc::new(AtomicBool::new(<span class="bool-val">false</span>));
 
@@ -277,6 +298,7 @@
             selector,
             handler_group,
             lock,
+            metadata_service,
         } = <span class="self">self</span>;
 
         <span class="kw">let </span>options = options.unwrap_or_default();
@@ -315,6 +337,9 @@
         <span class="kw">let </span>state_store = Arc::new(MetaStateStore::new(kv_store.clone()));
         <span class="kw">let </span>procedure_manager = Arc::new(LocalManager::new(config, state_store));
 
+        <span class="kw">let </span>metadata_service = metadata_service
+            .unwrap_or_else(|| Arc::new(DefaultMetadataService::new(kv_store.clone())));
+
         MetaSrv {
             started,
             options,
@@ -327,6 +352,7 @@
             meta_peer_client,
             lock,
             procedure_manager,
+            metadata_service,
         }
     }
 }

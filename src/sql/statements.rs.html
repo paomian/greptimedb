@@ -700,6 +700,89 @@
 <a href="#700" id="700">700</a>
 <a href="#701" id="701">701</a>
 <a href="#702" id="702">702</a>
+<a href="#703" id="703">703</a>
+<a href="#704" id="704">704</a>
+<a href="#705" id="705">705</a>
+<a href="#706" id="706">706</a>
+<a href="#707" id="707">707</a>
+<a href="#708" id="708">708</a>
+<a href="#709" id="709">709</a>
+<a href="#710" id="710">710</a>
+<a href="#711" id="711">711</a>
+<a href="#712" id="712">712</a>
+<a href="#713" id="713">713</a>
+<a href="#714" id="714">714</a>
+<a href="#715" id="715">715</a>
+<a href="#716" id="716">716</a>
+<a href="#717" id="717">717</a>
+<a href="#718" id="718">718</a>
+<a href="#719" id="719">719</a>
+<a href="#720" id="720">720</a>
+<a href="#721" id="721">721</a>
+<a href="#722" id="722">722</a>
+<a href="#723" id="723">723</a>
+<a href="#724" id="724">724</a>
+<a href="#725" id="725">725</a>
+<a href="#726" id="726">726</a>
+<a href="#727" id="727">727</a>
+<a href="#728" id="728">728</a>
+<a href="#729" id="729">729</a>
+<a href="#730" id="730">730</a>
+<a href="#731" id="731">731</a>
+<a href="#732" id="732">732</a>
+<a href="#733" id="733">733</a>
+<a href="#734" id="734">734</a>
+<a href="#735" id="735">735</a>
+<a href="#736" id="736">736</a>
+<a href="#737" id="737">737</a>
+<a href="#738" id="738">738</a>
+<a href="#739" id="739">739</a>
+<a href="#740" id="740">740</a>
+<a href="#741" id="741">741</a>
+<a href="#742" id="742">742</a>
+<a href="#743" id="743">743</a>
+<a href="#744" id="744">744</a>
+<a href="#745" id="745">745</a>
+<a href="#746" id="746">746</a>
+<a href="#747" id="747">747</a>
+<a href="#748" id="748">748</a>
+<a href="#749" id="749">749</a>
+<a href="#750" id="750">750</a>
+<a href="#751" id="751">751</a>
+<a href="#752" id="752">752</a>
+<a href="#753" id="753">753</a>
+<a href="#754" id="754">754</a>
+<a href="#755" id="755">755</a>
+<a href="#756" id="756">756</a>
+<a href="#757" id="757">757</a>
+<a href="#758" id="758">758</a>
+<a href="#759" id="759">759</a>
+<a href="#760" id="760">760</a>
+<a href="#761" id="761">761</a>
+<a href="#762" id="762">762</a>
+<a href="#763" id="763">763</a>
+<a href="#764" id="764">764</a>
+<a href="#765" id="765">765</a>
+<a href="#766" id="766">766</a>
+<a href="#767" id="767">767</a>
+<a href="#768" id="768">768</a>
+<a href="#769" id="769">769</a>
+<a href="#770" id="770">770</a>
+<a href="#771" id="771">771</a>
+<a href="#772" id="772">772</a>
+<a href="#773" id="773">773</a>
+<a href="#774" id="774">774</a>
+<a href="#775" id="775">775</a>
+<a href="#776" id="776">776</a>
+<a href="#777" id="777">777</a>
+<a href="#778" id="778">778</a>
+<a href="#779" id="779">779</a>
+<a href="#780" id="780">780</a>
+<a href="#781" id="781">781</a>
+<a href="#782" id="782">782</a>
+<a href="#783" id="783">783</a>
+<a href="#784" id="784">784</a>
+<a href="#785" id="785">785</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -733,18 +816,19 @@
 <span class="kw">use </span>common_base::bytes::Bytes;
 <span class="kw">use </span>common_time::Timestamp;
 <span class="kw">use </span>datatypes::prelude::ConcreteDataType;
-<span class="kw">use </span>datatypes::schema::{ColumnDefaultConstraint, ColumnSchema};
+<span class="kw">use </span>datatypes::schema::{ColumnDefaultConstraint, ColumnSchema, COMMENT_KEY};
 <span class="kw">use </span>datatypes::types::TimestampType;
 <span class="kw">use </span>datatypes::value::Value;
 <span class="kw">use </span>snafu::{ensure, OptionExt, ResultExt};
 
 <span class="kw">use </span><span class="kw">crate</span>::ast::{
-    ColumnDef, ColumnOption, ColumnOptionDef, DataType <span class="kw">as </span>SqlDataType, Expr, Value <span class="kw">as </span>SqlValue,
+    ColumnDef, ColumnOption, ColumnOptionDef, DataType <span class="kw">as </span>SqlDataType, Expr, TimezoneInfo,
+    Value <span class="kw">as </span>SqlValue,
 };
 <span class="kw">use </span><span class="kw">crate</span>::error::{
-    <span class="self">self</span>, ColumnTypeMismatchSnafu, ConvertToGrpcDataTypeSnafu, InvalidSqlValueSnafu,
-    ParseSqlValueSnafu, <span class="prelude-ty">Result</span>, SerializeColumnDefaultConstraintSnafu, TimestampOverflowSnafu,
-    UnsupportedDefaultValueSnafu,
+    <span class="self">self</span>, ColumnTypeMismatchSnafu, ConvertSqlValueSnafu, ConvertToGrpcDataTypeSnafu,
+    ConvertValueSnafu, InvalidSqlValueSnafu, ParseSqlValueSnafu, <span class="prelude-ty">Result</span>,
+    SerializeColumnDefaultConstraintSnafu, TimestampOverflowSnafu, UnsupportedDefaultValueSnafu,
 };
 
 <span class="kw">fn </span>parse_string_to_value(
@@ -899,7 +983,38 @@
         </span>}
         SqlValue::HexStringLiteral(s) =&gt; parse_hex_string(s)<span class="question-mark">?</span>,
         SqlValue::Placeholder(s) =&gt; <span class="kw">return </span>InvalidSqlValueSnafu { value: s }.fail(),
-        <span class="kw">_ </span>=&gt; <span class="macro">todo!</span>(<span class="string">&quot;Other sql value&quot;</span>),
+
+        <span class="comment">// TODO(dennis): supports binary string
+        </span><span class="kw">_ </span>=&gt; {
+            <span class="kw">return </span>ConvertSqlValueSnafu {
+                value: sql_val.clone(),
+                datatype: data_type.clone(),
+            }
+            .fail()
+        }
+    })
+}
+
+<span class="kw">pub fn </span>value_to_sql_value(val: <span class="kw-2">&amp;</span>Value) -&gt; <span class="prelude-ty">Result</span>&lt;SqlValue&gt; {
+    <span class="prelude-val">Ok</span>(<span class="kw">match </span>val {
+        Value::Int8(v) =&gt; SqlValue::Number(v.to_string(), <span class="bool-val">false</span>),
+        Value::UInt8(v) =&gt; SqlValue::Number(v.to_string(), <span class="bool-val">false</span>),
+        Value::Int16(v) =&gt; SqlValue::Number(v.to_string(), <span class="bool-val">false</span>),
+        Value::UInt16(v) =&gt; SqlValue::Number(v.to_string(), <span class="bool-val">false</span>),
+        Value::Int32(v) =&gt; SqlValue::Number(v.to_string(), <span class="bool-val">false</span>),
+        Value::UInt32(v) =&gt; SqlValue::Number(v.to_string(), <span class="bool-val">false</span>),
+        Value::Int64(v) =&gt; SqlValue::Number(v.to_string(), <span class="bool-val">false</span>),
+        Value::UInt64(v) =&gt; SqlValue::Number(v.to_string(), <span class="bool-val">false</span>),
+        Value::Float32(v) =&gt; SqlValue::Number(v.to_string(), <span class="bool-val">false</span>),
+        Value::Float64(v) =&gt; SqlValue::Number(v.to_string(), <span class="bool-val">false</span>),
+        Value::Boolean(b) =&gt; SqlValue::Boolean(<span class="kw-2">*</span>b),
+        Value::Date(d) =&gt; SqlValue::SingleQuotedString(d.to_string()),
+        Value::DateTime(d) =&gt; SqlValue::SingleQuotedString(d.to_string()),
+        Value::Timestamp(ts) =&gt; SqlValue::SingleQuotedString(ts.to_iso8601_string()),
+        Value::String(s) =&gt; SqlValue::SingleQuotedString(s.as_utf8().to_string()),
+        Value::Null =&gt; SqlValue::Null,
+        <span class="comment">// TODO(dennis): supports binary
+        </span><span class="kw">_ </span>=&gt; <span class="kw">return </span>ConvertValueSnafu { value: val.clone() }.fail(),
     })
 }
 
@@ -951,12 +1066,26 @@
     <span class="kw">let </span>default_constraint =
         parse_column_default_constraint(<span class="kw-2">&amp;</span>name, <span class="kw-2">&amp;</span>data_type, <span class="kw-2">&amp;</span>column_def.options)<span class="question-mark">?</span>;
 
-    ColumnSchema::new(name, data_type, is_nullable)
+    <span class="kw">let </span><span class="kw-2">mut </span>column_schema = ColumnSchema::new(name, data_type, is_nullable)
         .with_time_index(is_time_index)
         .with_default_constraint(default_constraint)
         .context(error::InvalidDefaultSnafu {
             column: <span class="kw-2">&amp;</span>column_def.name.value,
-        })
+        })<span class="question-mark">?</span>;
+
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(ColumnOption::Comment(c)) = column_def.options.iter().find_map(|o| {
+        <span class="kw">if </span><span class="macro">matches!</span>(o.option, ColumnOption::Comment(<span class="kw">_</span>)) {
+            <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>o.option)
+        } <span class="kw">else </span>{
+            <span class="prelude-val">None
+        </span>}
+    }) {
+        column_schema
+            .mut_metadata()
+            .insert(COMMENT_KEY.to_string(), c.to_string());
+    }
+
+    <span class="prelude-val">Ok</span>(column_schema)
 }
 
 <span class="doccomment">/// Convert `ColumnDef` in sqlparser to `ColumnDef` in gRPC proto.
@@ -1023,6 +1152,33 @@
             t: data_type.clone(),
         }
         .fail(),
+    }
+}
+
+<span class="kw">pub fn </span>concrete_data_type_to_sql_data_type(data_type: <span class="kw-2">&amp;</span>ConcreteDataType) -&gt; <span class="prelude-ty">Result</span>&lt;SqlDataType&gt; {
+    <span class="kw">match </span>data_type {
+        ConcreteDataType::Int64(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(SqlDataType::BigInt(<span class="prelude-val">None</span>)),
+        ConcreteDataType::UInt64(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(SqlDataType::UnsignedBigInt(<span class="prelude-val">None</span>)),
+        ConcreteDataType::Int32(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(SqlDataType::Int(<span class="prelude-val">None</span>)),
+        ConcreteDataType::UInt32(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(SqlDataType::UnsignedInt(<span class="prelude-val">None</span>)),
+        ConcreteDataType::Int16(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(SqlDataType::SmallInt(<span class="prelude-val">None</span>)),
+        ConcreteDataType::UInt16(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(SqlDataType::UnsignedSmallInt(<span class="prelude-val">None</span>)),
+        ConcreteDataType::Int8(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(SqlDataType::TinyInt(<span class="prelude-val">None</span>)),
+        ConcreteDataType::UInt8(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(SqlDataType::UnsignedTinyInt(<span class="prelude-val">None</span>)),
+        ConcreteDataType::String(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(SqlDataType::String),
+        ConcreteDataType::Float32(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(SqlDataType::Float(<span class="prelude-val">None</span>)),
+        ConcreteDataType::Float64(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(SqlDataType::Double),
+        ConcreteDataType::Boolean(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(SqlDataType::Boolean),
+        ConcreteDataType::Date(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(SqlDataType::Date),
+        ConcreteDataType::DateTime(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(SqlDataType::Datetime(<span class="prelude-val">None</span>)),
+        ConcreteDataType::Timestamp(ts_type) =&gt; <span class="prelude-val">Ok</span>(SqlDataType::Timestamp(
+            <span class="prelude-val">Some</span>(ts_type.precision()),
+            TimezoneInfo::None,
+        )),
+        ConcreteDataType::Binary(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(SqlDataType::Varbinary(<span class="prelude-val">None</span>)),
+        ConcreteDataType::Null(<span class="kw">_</span>) | ConcreteDataType::List(<span class="kw">_</span>) | ConcreteDataType::Dictionary(<span class="kw">_</span>) =&gt; {
+            <span class="macro">unreachable!</span>()
+        }
     }
 }
 
@@ -1378,10 +1534,16 @@
             name: <span class="string">&quot;col2&quot;</span>.into(),
             data_type: SqlDataType::String,
             collation: <span class="prelude-val">None</span>,
-            options: <span class="macro">vec!</span>[ColumnOptionDef {
-                name: <span class="prelude-val">None</span>,
-                option: ColumnOption::NotNull,
-            }],
+            options: <span class="macro">vec!</span>[
+                ColumnOptionDef {
+                    name: <span class="prelude-val">None</span>,
+                    option: ColumnOption::NotNull,
+                },
+                ColumnOptionDef {
+                    name: <span class="prelude-val">None</span>,
+                    option: ColumnOption::Comment(<span class="string">&quot;test comment&quot;</span>.to_string()),
+                },
+            ],
         };
 
         <span class="kw">let </span>column_schema = column_def_to_schema(<span class="kw-2">&amp;</span>column_def, <span class="bool-val">false</span>).unwrap();
@@ -1390,6 +1552,10 @@
         <span class="macro">assert_eq!</span>(ConcreteDataType::string_datatype(), column_schema.data_type);
         <span class="macro">assert!</span>(!column_schema.is_nullable());
         <span class="macro">assert!</span>(!column_schema.is_time_index());
+        <span class="macro">assert_eq!</span>(
+            column_schema.metadata().get(COMMENT_KEY),
+            <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span><span class="string">&quot;test comment&quot;</span>.to_string())
+        );
     }
 
     <span class="attr">#[test]

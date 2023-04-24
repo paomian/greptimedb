@@ -163,6 +163,28 @@
 <a href="#163" id="163">163</a>
 <a href="#164" id="164">164</a>
 <a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -188,7 +210,7 @@
 <span class="kw">use </span>datafusion::physical_plan::SendableRecordBatchStream <span class="kw">as </span>DfSendableRecordBatchStream;
 <span class="kw">use </span>datatypes::prelude::{ConcreteDataType, ScalarVectorBuilder, VectorRef};
 <span class="kw">use </span>datatypes::schema::{ColumnSchema, Schema, SchemaRef};
-<span class="kw">use </span>datatypes::vectors::StringVectorBuilder;
+<span class="kw">use </span>datatypes::vectors::{StringVectorBuilder, UInt32VectorBuilder};
 <span class="kw">use </span>snafu::ResultExt;
 <span class="kw">use </span>table::metadata::TableType;
 
@@ -209,6 +231,8 @@
             ColumnSchema::new(<span class="string">&quot;table_schema&quot;</span>, ConcreteDataType::string_datatype(), <span class="bool-val">false</span>),
             ColumnSchema::new(<span class="string">&quot;table_name&quot;</span>, ConcreteDataType::string_datatype(), <span class="bool-val">false</span>),
             ColumnSchema::new(<span class="string">&quot;table_type&quot;</span>, ConcreteDataType::string_datatype(), <span class="bool-val">false</span>),
+            ColumnSchema::new(<span class="string">&quot;table_id&quot;</span>, ConcreteDataType::uint32_datatype(), <span class="bool-val">true</span>),
+            ColumnSchema::new(<span class="string">&quot;engine&quot;</span>, ConcreteDataType::string_datatype(), <span class="bool-val">true</span>),
         ]));
         <span class="self">Self </span>{
             schema,
@@ -238,6 +262,8 @@
     schema_names: StringVectorBuilder,
     table_names: StringVectorBuilder,
     table_types: StringVectorBuilder,
+    table_ids: UInt32VectorBuilder,
+    engines: StringVectorBuilder,
 }
 
 <span class="kw">impl </span>InformationSchemaTablesBuilder {
@@ -250,6 +276,8 @@
             schema_names: StringVectorBuilder::with_capacity(<span class="number">42</span>),
             table_names: StringVectorBuilder::with_capacity(<span class="number">42</span>),
             table_types: StringVectorBuilder::with_capacity(<span class="number">42</span>),
+            table_ids: UInt32VectorBuilder::with_capacity(<span class="number">42</span>),
+            engines: StringVectorBuilder::with_capacity(<span class="number">42</span>),
         }
     }
 
@@ -265,7 +293,15 @@
             <span class="kw">let </span><span class="prelude-val">Some</span>(schema) = <span class="self">self</span>.catalog_provider.schema(<span class="kw-2">&amp;</span>schema_name)<span class="question-mark">? </span><span class="kw">else </span>{ <span class="kw">continue </span>};
             <span class="kw">for </span>table_name <span class="kw">in </span>schema.table_names()<span class="question-mark">? </span>{
                 <span class="kw">let </span><span class="prelude-val">Some</span>(table) = schema.table(<span class="kw-2">&amp;</span>table_name).<span class="kw">await</span><span class="question-mark">? </span><span class="kw">else </span>{ <span class="kw">continue </span>};
-                <span class="self">self</span>.add_table(<span class="kw-2">&amp;</span>catalog_name, <span class="kw-2">&amp;</span>schema_name, <span class="kw-2">&amp;</span>table_name, table.table_type());
+                <span class="kw">let </span>table_info = table.table_info();
+                <span class="self">self</span>.add_table(
+                    <span class="kw-2">&amp;</span>catalog_name,
+                    <span class="kw-2">&amp;</span>schema_name,
+                    <span class="kw-2">&amp;</span>table_name,
+                    table.table_type(),
+                    <span class="prelude-val">Some</span>(table_info.ident.table_id),
+                    <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>table_info.meta.engine),
+                );
             }
         }
 
@@ -275,6 +311,8 @@
             INFORMATION_SCHEMA_NAME,
             TABLES,
             TableType::View,
+            <span class="prelude-val">None</span>,
+            <span class="prelude-val">None</span>,
         );
 
         <span class="self">self</span>.finish()
@@ -286,6 +324,8 @@
         schema_name: <span class="kw-2">&amp;</span>str,
         table_name: <span class="kw-2">&amp;</span>str,
         table_type: TableType,
+        table_id: <span class="prelude-ty">Option</span>&lt;u32&gt;,
+        engine: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt;,
     ) {
         <span class="self">self</span>.catalog_names.push(<span class="prelude-val">Some</span>(catalog_name));
         <span class="self">self</span>.schema_names.push(<span class="prelude-val">Some</span>(schema_name));
@@ -295,6 +335,8 @@
             TableType::View =&gt; <span class="string">&quot;VIEW&quot;</span>,
             TableType::Temporary =&gt; <span class="string">&quot;LOCAL TEMPORARY&quot;</span>,
         }));
+        <span class="self">self</span>.table_ids.push(table_id);
+        <span class="self">self</span>.engines.push(engine);
     }
 
     <span class="kw">fn </span>finish(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RecordBatch&gt; {
@@ -303,6 +345,8 @@
             Arc::new(<span class="self">self</span>.schema_names.finish()),
             Arc::new(<span class="self">self</span>.table_names.finish()),
             Arc::new(<span class="self">self</span>.table_types.finish()),
+            Arc::new(<span class="self">self</span>.table_ids.finish()),
+            Arc::new(<span class="self">self</span>.engines.finish()),
         ];
         RecordBatch::new(<span class="self">self</span>.schema.clone(), columns).context(CreateRecordBatchSnafu)
     }

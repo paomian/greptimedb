@@ -253,6 +253,10 @@
 <a href="#253" id="253">253</a>
 <a href="#254" id="254">254</a>
 <a href="#255" id="255">255</a>
+<a href="#256" id="256">256</a>
+<a href="#257" id="257">257</a>
+<a href="#258" id="258">258</a>
+<a href="#259" id="259">259</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -347,7 +351,7 @@
     }
 }
 
-<span class="kw">pub fn </span>create_table_schema(expr: <span class="kw-2">&amp;</span>CreateTableExpr) -&gt; <span class="prelude-ty">Result</span>&lt;RawSchema&gt; {
+<span class="kw">pub fn </span>create_table_schema(expr: <span class="kw-2">&amp;</span>CreateTableExpr, require_time_index: bool) -&gt; <span class="prelude-ty">Result</span>&lt;RawSchema&gt; {
     <span class="kw">let </span>column_schemas = expr
         .column_defs
         .iter()
@@ -356,14 +360,17 @@
         })
         .collect::&lt;<span class="prelude-ty">Result</span>&lt;Vec&lt;ColumnSchema&gt;&gt;&gt;()<span class="question-mark">?</span>;
 
-    <span class="macro">ensure!</span>(
-        column_schemas
-            .iter()
-            .any(|column| column.name == expr.time_index),
-        MissingTimestampColumnSnafu {
-            msg: <span class="macro">format!</span>(<span class="string">&quot;CreateExpr: {expr:?}&quot;</span>)
-        }
-    );
+    <span class="comment">// allow external table schema without the time index
+    </span><span class="kw">if </span>require_time_index {
+        <span class="macro">ensure!</span>(
+            column_schemas
+                .iter()
+                .any(|column| column.name == expr.time_index),
+            MissingTimestampColumnSnafu {
+                msg: <span class="macro">format!</span>(<span class="string">&quot;CreateExpr: {expr:?}&quot;</span>)
+            }
+        );
+    }
 
     <span class="kw">let </span>column_schemas = column_schemas
         .into_iter()
@@ -382,8 +389,9 @@
 <span class="kw">pub fn </span>create_expr_to_request(
     table_id: TableId,
     expr: CreateTableExpr,
+    require_time_index: bool,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;CreateTableRequest&gt; {
-    <span class="kw">let </span>schema = create_table_schema(<span class="kw-2">&amp;</span>expr)<span class="question-mark">?</span>;
+    <span class="kw">let </span>schema = create_table_schema(<span class="kw-2">&amp;</span>expr, require_time_index)<span class="question-mark">?</span>;
     <span class="kw">let </span>primary_key_indices = expr
         .primary_keys
         .iter()

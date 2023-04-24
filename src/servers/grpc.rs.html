@@ -153,6 +153,26 @@
 <a href="#153" id="153">153</a>
 <a href="#154" id="154">154</a>
 <a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
+<a href="#163" id="163">163</a>
+<a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -170,12 +190,14 @@
 </span><span class="kw">mod </span>database;
 <span class="kw">pub mod </span>flight;
 <span class="kw">pub mod </span>handler;
+<span class="kw">pub mod </span>prom_query_gateway;
 
 <span class="kw">use </span>std::net::SocketAddr;
 <span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>api::v1::greptime_database_server::{GreptimeDatabase, GreptimeDatabaseServer};
 <span class="kw">use </span>api::v1::health_check_server::{HealthCheck, HealthCheckServer};
+<span class="kw">use </span>api::v1::prometheus_gateway_server::{PrometheusGateway, PrometheusGatewayServer};
 <span class="kw">use </span>api::v1::{HealthCheckRequest, HealthCheckResponse};
 <span class="kw">use </span>arrow_flight::flight_service_server::{FlightService, FlightServiceServer};
 <span class="kw">use </span>async_trait::async_trait;
@@ -189,6 +211,7 @@
 <span class="kw">use </span>tokio_stream::wrappers::TcpListenerStream;
 <span class="kw">use </span>tonic::{Request, Response, Status};
 
+<span class="kw">use </span><span class="self">self</span>::prom_query_gateway::PrometheusGatewayService;
 <span class="kw">use </span><span class="kw">crate</span>::auth::UserProviderRef;
 <span class="kw">use </span><span class="kw">crate</span>::error::{
     AlreadyStartedSnafu, GrpcReflectionServiceSnafu, <span class="prelude-ty">Result</span>, StartGrpcSnafu, TcpBindSnafu,
@@ -196,6 +219,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::grpc::database::DatabaseService;
 <span class="kw">use </span><span class="kw">crate</span>::grpc::flight::FlightHandler;
 <span class="kw">use </span><span class="kw">crate</span>::grpc::handler::GreptimeRequestHandler;
+<span class="kw">use </span><span class="kw">crate</span>::prom::PromHandlerRef;
 <span class="kw">use </span><span class="kw">crate</span>::query_handler::grpc::ServerGrpcQueryHandlerRef;
 <span class="kw">use </span><span class="kw">crate</span>::server::Server;
 
@@ -204,11 +228,14 @@
 <span class="kw">pub struct </span>GrpcServer {
     shutdown_tx: Mutex&lt;<span class="prelude-ty">Option</span>&lt;Sender&lt;()&gt;&gt;&gt;,
     request_handler: Arc&lt;GreptimeRequestHandler&gt;,
+    <span class="doccomment">/// Handler for Prometheus-compatible PromQL queries. Only present for frontend server.
+    </span>promql_handler: <span class="prelude-ty">Option</span>&lt;PromHandlerRef&gt;,
 }
 
 <span class="kw">impl </span>GrpcServer {
     <span class="kw">pub fn </span>new(
         query_handler: ServerGrpcQueryHandlerRef,
+        promql_handler: <span class="prelude-ty">Option</span>&lt;PromHandlerRef&gt;,
         user_provider: <span class="prelude-ty">Option</span>&lt;UserProviderRef&gt;,
         runtime: Arc&lt;Runtime&gt;,
     ) -&gt; <span class="self">Self </span>{
@@ -220,6 +247,7 @@
         <span class="self">Self </span>{
             shutdown_tx: Mutex::new(<span class="prelude-val">None</span>),
             request_handler,
+            promql_handler,
         }
     }
 
@@ -233,6 +261,13 @@
 
     <span class="kw">pub fn </span>create_healthcheck_service(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; HealthCheckServer&lt;<span class="kw">impl </span>HealthCheck&gt; {
         HealthCheckServer::new(HealthCheckHandler)
+    }
+
+    <span class="kw">pub fn </span>create_prom_query_gateway_service(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        handler: PromHandlerRef,
+    ) -&gt; PrometheusGatewayServer&lt;<span class="kw">impl </span>PrometheusGateway&gt; {
+        PrometheusGatewayServer::new(PrometheusGatewayService::new(handler))
     }
 }
 
@@ -292,10 +327,15 @@
             .context(GrpcReflectionServiceSnafu)<span class="question-mark">?</span>;
 
         <span class="comment">// Would block to serve requests.
-        </span>tonic::transport::Server::builder()
+        </span><span class="kw">let </span><span class="kw-2">mut </span>builder = tonic::transport::Server::builder()
             .add_service(<span class="self">self</span>.create_flight_service())
             .add_service(<span class="self">self</span>.create_database_service())
-            .add_service(<span class="self">self</span>.create_healthcheck_service())
+            .add_service(<span class="self">self</span>.create_healthcheck_service());
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(promql_handler) = <span class="kw-2">&amp;</span><span class="self">self</span>.promql_handler {
+            builder =
+                builder.add_service(<span class="self">self</span>.create_prom_query_gateway_service(promql_handler.clone()))
+        }
+        builder
             .add_service(reflection_service)
             .serve_with_incoming_shutdown(TcpListenerStream::new(listener), rx.map(drop))
             .<span class="kw">await

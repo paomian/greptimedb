@@ -529,23 +529,23 @@
 <span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 </span><span class="kw">pub struct </span>ProcedureConfig {
-    <span class="doccomment">/// Storage config for procedure manager.
-    </span><span class="kw">pub </span>store: ObjectStoreConfig,
     <span class="doccomment">/// Max retry times of procedure.
     </span><span class="kw">pub </span>max_retry_times: usize,
     <span class="doccomment">/// Initial retry delay of procedures, increases exponentially.
     </span><span class="attr">#[serde(with = <span class="string">&quot;humantime_serde&quot;</span>)]
     </span><span class="kw">pub </span>retry_delay: Duration,
+    <span class="doccomment">/// Storage config for procedure manager.
+    </span><span class="kw">pub </span>store: ObjectStoreConfig,
 }
 
 <span class="kw">impl </span>Default <span class="kw">for </span>ProcedureConfig {
     <span class="kw">fn </span>default() -&gt; ProcedureConfig {
         ProcedureConfig {
+            max_retry_times: <span class="number">3</span>,
+            retry_delay: Duration::from_millis(<span class="number">500</span>),
             store: ObjectStoreConfig::File(FileConfig {
                 data_dir: <span class="string">&quot;/tmp/greptimedb/procedure/&quot;</span>.to_string(),
             }),
-            max_retry_times: <span class="number">3</span>,
-            retry_delay: Duration::from_millis(<span class="number">500</span>),
         }
     }
 }

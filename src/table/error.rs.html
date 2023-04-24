@@ -174,6 +174,15 @@
 <a href="#174" id="174">174</a>
 <a href="#175" id="175">175</a>
 <a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -306,6 +315,12 @@
         table_id: TableId,
         location: Location,
     },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Missing time index column in table: {}&quot;</span>, table_name))]
+    </span>MissingTimeIndexColumn {
+        table_name: String,
+        location: Location,
+    },
 }
 
 <span class="kw">impl </span>ErrorExt <span class="kw">for </span>Error {
@@ -328,7 +343,10 @@
             Error::ParseTableOption { .. }
             | Error::EngineNotFound { .. }
             | Error::EngineExist { .. } =&gt; StatusCode::InvalidArguments,
-            Error::InvalidTable { .. } =&gt; StatusCode::Internal,
+
+            Error::InvalidTable { .. } | Error::MissingTimeIndexColumn { .. } =&gt; {
+                StatusCode::Internal
+            }
         }
     }
 

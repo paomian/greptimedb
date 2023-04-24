@@ -698,6 +698,10 @@
 <a href="#698" id="698">698</a>
 <a href="#699" id="699">699</a>
 <a href="#700" id="700">700</a>
+<a href="#701" id="701">701</a>
+<a href="#702" id="702">702</a>
+<a href="#703" id="703">703</a>
+<a href="#704" id="704">704</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -717,7 +721,7 @@
 </span><span class="kw">mod </span>tests;
 
 <span class="kw">use </span>std::collections::HashMap;
-<span class="kw">use </span>std::sync::{Arc, RwLock};
+<span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">pub use </span>common_catalog::consts::MITO_ENGINE;
@@ -726,7 +730,9 @@
 <span class="kw">use </span>common_procedure::{BoxedProcedure, ProcedureManager};
 <span class="kw">use </span>common_telemetry::tracing::log::info;
 <span class="kw">use </span>common_telemetry::{debug, logging};
+<span class="kw">use </span>dashmap::DashMap;
 <span class="kw">use </span>datatypes::schema::Schema;
+<span class="kw">use </span>key_lock::KeyLock;
 <span class="kw">use </span>object_store::ObjectStore;
 <span class="kw">use </span>snafu::{ensure, OptionExt, ResultExt};
 <span class="kw">use </span>store_api::storage::{
@@ -738,14 +744,12 @@
     region_id, region_name, table_dir, EngineContext, TableEngine, TableEngineProcedure,
     TableReference,
 };
-<span class="kw">use </span>table::error::TableOperationSnafu;
 <span class="kw">use </span>table::metadata::{TableInfo, TableInfoBuilder, TableMetaBuilder, TableType, TableVersion};
 <span class="kw">use </span>table::requests::{
     AlterKind, AlterTableRequest, CreateTableRequest, DropTableRequest, OpenTableRequest,
 };
 <span class="kw">use </span>table::table::{AlterContext, TableRef};
 <span class="kw">use </span>table::{error <span class="kw">as </span>table_error, <span class="prelude-ty">Result </span><span class="kw">as </span>TableResult, Table};
-<span class="kw">use </span>tokio::sync::Mutex;
 
 <span class="kw">use </span><span class="kw">crate</span>::config::EngineConfig;
 <span class="kw">use </span><span class="kw">crate</span>::engine::procedure::{AlterMitoTable, CreateMitoTable, DropMitoTable};
@@ -908,12 +912,12 @@
     <span class="doccomment">/// All tables opened by the engine. Map key is formatted [TableReference].
     ///
     /// Writing to `tables` should also hold the `table_mutex`.
-    </span>tables: RwLock&lt;HashMap&lt;String, Arc&lt;MitoTable&lt;S::Region&gt;&gt;&gt;&gt;,
+    </span>tables: DashMap&lt;String, Arc&lt;MitoTable&lt;S::Region&gt;&gt;&gt;,
     object_store: ObjectStore,
     storage_engine: S,
     <span class="doccomment">/// Table mutex is used to protect the operations such as creating/opening/closing
     /// a table, to avoid things like opening the same table simultaneously.
-    </span>table_mutex: Mutex&lt;()&gt;,
+    </span>table_mutex: Arc&lt;KeyLock&lt;String&gt;&gt;,
 }
 
 <span class="kw">fn </span>build_row_key_desc(
@@ -1092,7 +1096,7 @@
         <span class="kw">let </span>table_dir = table_dir(catalog_name, schema_name, table_id);
         <span class="kw">let </span><span class="kw-2">mut </span>regions = HashMap::with_capacity(request.region_numbers.len());
 
-        <span class="kw">let </span>_lock = <span class="self">self</span>.table_mutex.lock().<span class="kw">await</span>;
+        <span class="kw">let </span>_lock = <span class="self">self</span>.table_mutex.lock(table_ref.to_string()).<span class="kw">await</span>;
         <span class="comment">// Checks again, read lock should be enough since we are guarded by the mutex.
         </span><span class="kw">if let </span><span class="prelude-val">Some</span>(table) = <span class="self">self</span>.get_table(<span class="kw-2">&amp;</span>table_ref) {
             <span class="kw">return if </span>request.create_if_not_exists {
@@ -1181,10 +1185,8 @@
             table_id
         );
 
-        <span class="self">self</span>.tables
-            .write()
-            .unwrap()
-            .insert(table_ref.to_string(), table.clone());
+        <span class="comment">// already locked
+        </span><span class="self">self</span>.tables.insert(table_ref.to_string(), table.clone());
 
         <span class="prelude-val">Ok</span>(table)
     }
@@ -1210,7 +1212,9 @@
 
         <span class="comment">// Acquires the mutex before opening a new table.
         </span><span class="kw">let </span>table = {
-            <span class="kw">let </span>_lock = <span class="self">self</span>.table_mutex.lock().<span class="kw">await</span>;
+            <span class="kw">let </span>table_name_key = table_ref.to_string();
+            <span class="kw">let </span>_lock = <span class="self">self</span>.table_mutex.lock(table_name_key.clone()).<span class="kw">await</span>;
+
             <span class="comment">// Checks again, read lock should be enough since we are guarded by the mutex.
             </span><span class="kw">if let </span><span class="prelude-val">Some</span>(table) = <span class="self">self</span>.get_table(<span class="kw-2">&amp;</span>table_ref) {
                 <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(table));
@@ -1223,7 +1227,7 @@
             <span class="kw">let </span><span class="prelude-val">Some</span>((manifest, table_info)) = <span class="self">self
                 </span>.recover_table_manifest_and_info(table_name, <span class="kw-2">&amp;</span>table_dir)
                 .<span class="kw">await</span>.map_err(BoxedError::new)
-                .context(TableOperationSnafu)<span class="question-mark">? </span><span class="kw">else </span>{ <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>) };
+                .context(table_error::TableOperationSnafu)<span class="question-mark">? </span><span class="kw">else </span>{ <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>) };
 
             <span class="kw">let </span>opts = OpenOptions {
                 parent_dir: table_dir.to_string(),
@@ -1264,10 +1268,8 @@
 
             <span class="kw">let </span>table = Arc::new(MitoTable::new(table_info, regions, manifest));
 
-            <span class="self">self</span>.tables
-                .write()
-                .unwrap()
-                .insert(table_ref.to_string(), table.clone());
+            <span class="comment">// already locked
+            </span><span class="self">self</span>.tables.insert(table_ref.to_string(), table.clone());
             <span class="prelude-val">Some</span>(table <span class="kw">as _</span>)
         };
 
@@ -1298,20 +1300,15 @@
 
     <span class="kw">fn </span>get_table(<span class="kw-2">&amp;</span><span class="self">self</span>, table_ref: <span class="kw-2">&amp;</span>TableReference) -&gt; <span class="prelude-ty">Option</span>&lt;TableRef&gt; {
         <span class="self">self</span>.tables
-            .read()
-            .unwrap()
             .get(<span class="kw-2">&amp;</span>table_ref.to_string())
-            .cloned()
-            .map(|table| table <span class="kw">as _</span>)
+            .map(|en| en.value().clone() <span class="kw">as _</span>)
     }
 
     <span class="doccomment">/// Returns the [MitoTable].
     </span><span class="kw">fn </span>get_mito_table(<span class="kw-2">&amp;</span><span class="self">self</span>, table_ref: <span class="kw-2">&amp;</span>TableReference) -&gt; <span class="prelude-ty">Option</span>&lt;Arc&lt;MitoTable&lt;S::Region&gt;&gt;&gt; {
         <span class="self">self</span>.tables
-            .read()
-            .unwrap()
             .get(<span class="kw-2">&amp;</span>table_ref.to_string())
-            .cloned()
+            .map(|en| en.value().clone())
     }
 
     <span class="kw">async fn </span>alter_table(<span class="kw-2">&amp;</span><span class="self">self</span>, _ctx: <span class="kw-2">&amp;</span>EngineContext, req: AlterTableRequest) -&gt; <span class="prelude-ty">Result</span>&lt;TableRef&gt; {
@@ -1350,10 +1347,14 @@
             </span>.context(error::AlterTableSnafu { table_name })<span class="question-mark">?</span>;
 
         <span class="kw">if let </span>AlterKind::RenameTable { new_table_name } = <span class="kw-2">&amp;</span>req.alter_kind {
-            <span class="kw">let </span><span class="kw-2">mut </span>tables = <span class="self">self</span>.tables.write().unwrap();
-            tables.remove(<span class="kw-2">&amp;</span>table_ref.to_string());
+            <span class="kw">let </span>removed = {
+                <span class="kw">let </span>_lock = <span class="self">self</span>.table_mutex.lock(table_ref.to_string()).<span class="kw">await</span>;
+                <span class="self">self</span>.tables.remove(<span class="kw-2">&amp;</span>table_ref.to_string())
+            };
+            <span class="macro">ensure!</span>(removed.is_some(), error::TableNotFoundSnafu { table_name });
             table_ref.table = new_table_name.as_str();
-            tables.insert(table_ref.to_string(), table.clone());
+            <span class="kw">let </span>_lock = <span class="self">self</span>.table_mutex.lock(table_ref.to_string()).<span class="kw">await</span>;
+            <span class="self">self</span>.tables.insert(table_ref.to_string(), table.clone());
         }
         <span class="prelude-val">Ok</span>(table)
     }
@@ -1366,35 +1367,42 @@
             table: <span class="kw-2">&amp;</span>req.table_name,
         };
         <span class="comment">// todo(ruihang): reclaim persisted data
-        </span><span class="prelude-val">Ok</span>(<span class="self">self
-            </span>.tables
-            .write()
-            .unwrap()
-            .remove(<span class="kw-2">&amp;</span>table_reference.to_string())
-            .is_some())
+        </span><span class="kw">let </span>_lock = <span class="self">self</span>.table_mutex.lock(table_reference.to_string()).<span class="kw">await</span>;
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.tables.remove(<span class="kw-2">&amp;</span>table_reference.to_string()).is_some())
     }
 
     <span class="kw">async fn </span>close(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; TableResult&lt;()&gt; {
-        <span class="kw">let </span>_lock = <span class="self">self</span>.table_mutex.lock().<span class="kw">await</span>;
-
-        <span class="kw">let </span>tables = <span class="self">self</span>.tables.write().unwrap().clone();
-
-        futures::future::try_join_all(tables.values().map(|t| t.close()))
-            .<span class="kw">await
-            </span>.map_err(BoxedError::new)
-            .context(table_error::TableOperationSnafu)<span class="question-mark">?</span>;
+        futures::future::try_join_all(
+            <span class="self">self</span>.tables
+                .iter()
+                .map(|item| close_table(<span class="self">self</span>.table_mutex.clone(), item.value().clone())),
+        )
+        .<span class="kw">await
+        </span>.map_err(BoxedError::new)
+        .context(table_error::TableOperationSnafu)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
 }
 
+<span class="kw">async fn </span>close_table(lock: Arc&lt;KeyLock&lt;String&gt;&gt;, table: TableRef) -&gt; TableResult&lt;()&gt; {
+    <span class="kw">let </span>info = table.table_info();
+    <span class="kw">let </span>table_ref = TableReference {
+        catalog: <span class="kw-2">&amp;</span>info.catalog_name,
+        schema: <span class="kw-2">&amp;</span>info.schema_name,
+        table: <span class="kw-2">&amp;</span>info.name,
+    };
+    <span class="kw">let </span>_lock = lock.lock(table_ref.to_string()).<span class="kw">await</span>;
+    table.close().<span class="kw">await
+</span>}
+
 <span class="kw">impl</span>&lt;S: StorageEngine&gt; MitoEngineInner&lt;S&gt; {
     <span class="kw">fn </span>new(_config: EngineConfig, storage_engine: S, object_store: ObjectStore) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
-            tables: RwLock::new(HashMap::default()),
+            tables: DashMap::new(),
             storage_engine,
             object_store,
-            table_mutex: Mutex::new(()),
+            table_mutex: Arc::new(KeyLock::new()),
         }
     }
 }

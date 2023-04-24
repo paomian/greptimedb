@@ -861,6 +861,15 @@
 <a href="#861" id="861">861</a>
 <a href="#862" id="862">862</a>
 <a href="#863" id="863">863</a>
+<a href="#864" id="864">864</a>
+<a href="#865" id="865">865</a>
+<a href="#866" id="866">866</a>
+<a href="#867" id="867">867</a>
+<a href="#868" id="868">868</a>
+<a href="#869" id="869">869</a>
+<a href="#870" id="870">870</a>
+<a href="#871" id="871">871</a>
+<a href="#872" id="872">872</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -883,13 +892,12 @@
 <span class="kw">use </span>arc_swap::ArcSwap;
 <span class="kw">use </span>async_stream::stream;
 <span class="kw">use </span>async_trait::async_trait;
-<span class="kw">use </span>common_catalog::consts::{
-    DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME, MIN_USER_TABLE_ID, MITO_ENGINE,
-};
+<span class="kw">use </span>common_catalog::consts::{MIN_USER_TABLE_ID, MITO_ENGINE};
 <span class="kw">use </span>common_telemetry::{debug, error, info};
 <span class="kw">use </span>dashmap::DashMap;
 <span class="kw">use </span>futures::Stream;
-<span class="kw">use </span>futures_util::StreamExt;
+<span class="kw">use </span>futures_util::{StreamExt, TryStreamExt};
+<span class="kw">use </span>key_lock::KeyLock;
 <span class="kw">use </span>parking_lot::RwLock;
 <span class="kw">use </span>snafu::{OptionExt, ResultExt};
 <span class="kw">use </span>table::engine::manager::TableEngineManagerRef;
@@ -900,8 +908,9 @@
 <span class="kw">use </span>tokio::sync::Mutex;
 
 <span class="kw">use </span><span class="kw">crate</span>::error::{
-    CatalogNotFoundSnafu, CreateTableSnafu, InvalidCatalogValueSnafu, OpenTableSnafu, <span class="prelude-ty">Result</span>,
-    SchemaNotFoundSnafu, TableEngineNotFoundSnafu, TableExistsSnafu, UnimplementedSnafu,
+    CatalogNotFoundSnafu, CreateTableSnafu, InvalidCatalogValueSnafu, OpenTableSnafu,
+    ParallelOpenTableSnafu, <span class="prelude-ty">Result</span>, SchemaNotFoundSnafu, TableEngineNotFoundSnafu,
+    TableExistsSnafu, UnimplementedSnafu,
 };
 <span class="kw">use </span><span class="kw">crate</span>::helper::{
     build_catalog_prefix, build_schema_prefix, build_table_global_prefix, CatalogKey, CatalogValue,
@@ -1050,13 +1059,6 @@
         <span class="kw">let </span><span class="kw-2">mut </span>res = HashMap::new();
         <span class="kw">let </span>max_table_id = MIN_USER_TABLE_ID - <span class="number">1</span>;
 
-        <span class="comment">// initiate default catalog and schema
-        </span><span class="kw">let </span>default_catalog = <span class="self">self
-            </span>.create_catalog_and_schema(DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
-        res.insert(DEFAULT_CATALOG_NAME.to_string(), default_catalog);
-        <span class="macro">info!</span>(<span class="string">&quot;Default catalog and schema registered&quot;</span>);
-
         <span class="kw">let </span><span class="kw-2">mut </span>catalogs = <span class="self">self</span>.iter_remote_catalogs().<span class="kw">await</span>;
         <span class="kw">while let </span><span class="prelude-val">Some</span>(r) = catalogs.next().<span class="kw">await </span>{
             <span class="kw">let </span>CatalogKey { catalog_name, .. } = r<span class="question-mark">?</span>;
@@ -1117,15 +1119,31 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="macro">info!</span>(<span class="string">&quot;initializing tables in {}.{}&quot;</span>, catalog_name, schema_name);
         <span class="kw">let </span><span class="kw-2">mut </span>table_num = <span class="number">0</span>;
-        <span class="kw">let </span><span class="kw-2">mut </span>tables = <span class="self">self</span>.iter_remote_tables(catalog_name, schema_name).<span class="kw">await</span>;
-        <span class="kw">while let </span><span class="prelude-val">Some</span>(r) = tables.next().<span class="kw">await </span>{
-            <span class="kw">let </span>(table_key, table_value) = r<span class="question-mark">?</span>;
-            <span class="kw">let </span>table_ref = <span class="self">self</span>.open_or_create_table(<span class="kw-2">&amp;</span>table_key, <span class="kw-2">&amp;</span>table_value).<span class="kw">await</span><span class="question-mark">?</span>;
-            schema.register_table(table_key.table_name.to_string(), table_ref)<span class="question-mark">?</span>;
-            <span class="macro">info!</span>(<span class="string">&quot;Registered table {}&quot;</span>, <span class="kw-2">&amp;</span>table_key.table_name);
-            max_table_id = max_table_id.max(table_value.table_id());
+        <span class="kw">let </span>tables = <span class="self">self</span>.iter_remote_tables(catalog_name, schema_name).<span class="kw">await</span>;
+
+        <span class="kw">let </span>kvs = tables.try_collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>node_id = <span class="self">self</span>.node_id;
+        <span class="kw">let </span>joins = kvs
+            .into_iter()
+            .map(|(table_key, table_value)| {
+                <span class="kw">let </span>engine_manager = <span class="self">self</span>.engine_manager.clone();
+                common_runtime::spawn_bg(<span class="kw">async move </span>{
+                    open_or_create_table(node_id, engine_manager, <span class="kw-2">&amp;</span>table_key, <span class="kw-2">&amp;</span>table_value).<span class="kw">await
+                </span>})
+            })
+            .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+        <span class="kw">let </span>vec = futures::future::join_all(joins).<span class="kw">await</span>;
+        <span class="kw">for </span>res <span class="kw">in </span>vec {
+            <span class="kw">let </span>table_ref = res.context(ParallelOpenTableSnafu)<span class="question-mark">??</span>;
+            <span class="kw">let </span>table_info = table_ref.table_info();
+            <span class="kw">let </span>table_name = <span class="kw-2">&amp;</span>table_info.name;
+            <span class="kw">let </span>table_id = table_info.ident.table_id;
+            schema.register_table(table_name.clone(), table_ref)<span class="question-mark">?</span>;
+            <span class="macro">info!</span>(<span class="string">&quot;Registered table {}&quot;</span>, table_name);
+            max_table_id = max_table_id.max(table_id);
             table_num += <span class="number">1</span>;
         }
+
         <span class="macro">info!</span>(
             <span class="string">&quot;initialized tables in {}.{}, total: {}&quot;</span>,
             catalog_name, schema_name, table_num
@@ -1173,87 +1191,88 @@
         <span class="macro">info!</span>(<span class="string">&quot;Created catalog &#39;{catalog_key}&quot;</span>);
         <span class="prelude-val">Ok</span>(catalog_provider)
     }
+}
 
-    <span class="kw">async fn </span>open_or_create_table(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        table_key: <span class="kw-2">&amp;</span>TableGlobalKey,
-        table_value: <span class="kw-2">&amp;</span>TableGlobalValue,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;TableRef&gt; {
-        <span class="kw">let </span>context = EngineContext {};
-        <span class="kw">let </span>TableGlobalKey {
-            catalog_name,
-            schema_name,
-            table_name,
-            ..
-        } = table_key;
+<span class="kw">async fn </span>open_or_create_table(
+    node_id: u64,
+    engine_manager: TableEngineManagerRef,
+    table_key: <span class="kw-2">&amp;</span>TableGlobalKey,
+    table_value: <span class="kw-2">&amp;</span>TableGlobalValue,
+) -&gt; <span class="prelude-ty">Result</span>&lt;TableRef&gt; {
+    <span class="kw">let </span>context = EngineContext {};
+    <span class="kw">let </span>TableGlobalKey {
+        catalog_name,
+        schema_name,
+        table_name,
+        ..
+    } = table_key;
 
-        <span class="kw">let </span>table_id = table_value.table_id();
+    <span class="kw">let </span>table_id = table_value.table_id();
 
-        <span class="kw">let </span>TableGlobalValue {
-            table_info,
-            regions_id_map,
-            ..
-        } = table_value;
+    <span class="kw">let </span>TableGlobalValue {
+        table_info,
+        regions_id_map,
+        ..
+    } = table_value;
 
-        <span class="comment">// unwrap safety: checked in yielding this table when `iter_remote_tables`
-        </span><span class="kw">let </span>region_numbers = regions_id_map.get(<span class="kw-2">&amp;</span><span class="self">self</span>.node_id).unwrap();
+    <span class="comment">// unwrap safety: checked in yielding this table when `iter_remote_tables`
+    </span><span class="kw">let </span>region_numbers = regions_id_map.get(<span class="kw-2">&amp;</span>node_id).unwrap();
 
-        <span class="kw">let </span>request = OpenTableRequest {
-            catalog_name: catalog_name.clone(),
-            schema_name: schema_name.clone(),
-            table_name: table_name.clone(),
-            table_id,
-        };
-        <span class="kw">let </span>engine = <span class="self">self
-            </span>.engine_manager
+    <span class="kw">let </span>request = OpenTableRequest {
+        catalog_name: catalog_name.clone(),
+        schema_name: schema_name.clone(),
+        table_name: table_name.clone(),
+        table_id,
+    };
+    <span class="kw">let </span>engine =
+        engine_manager
             .engine(<span class="kw-2">&amp;</span>table_info.meta.engine)
             .context(TableEngineNotFoundSnafu {
                 engine_name: <span class="kw-2">&amp;</span>table_info.meta.engine,
             })<span class="question-mark">?</span>;
-        <span class="kw">match </span>engine
-            .open_table(<span class="kw-2">&amp;</span>context, request)
-            .<span class="kw">await
-            </span>.with_context(|<span class="kw">_</span>| OpenTableSnafu {
-                table_info: <span class="macro">format!</span>(<span class="string">&quot;{catalog_name}.{schema_name}.{table_name}, id:{table_id}&quot;</span>),
-            })<span class="question-mark">? </span>{
-            <span class="prelude-val">Some</span>(table) =&gt; {
-                <span class="macro">info!</span>(
-                    <span class="string">&quot;Table opened: {}.{}.{}&quot;</span>,
-                    catalog_name, schema_name, table_name
-                );
-                <span class="prelude-val">Ok</span>(table)
-            }
-            <span class="prelude-val">None </span>=&gt; {
-                <span class="macro">info!</span>(
-                    <span class="string">&quot;Try create table: {}.{}.{}&quot;</span>,
-                    catalog_name, schema_name, table_name
-                );
+    <span class="kw">match </span>engine
+        .open_table(<span class="kw-2">&amp;</span>context, request)
+        .<span class="kw">await
+        </span>.with_context(|<span class="kw">_</span>| OpenTableSnafu {
+            table_info: <span class="macro">format!</span>(<span class="string">&quot;{catalog_name}.{schema_name}.{table_name}, id:{table_id}&quot;</span>),
+        })<span class="question-mark">? </span>{
+        <span class="prelude-val">Some</span>(table) =&gt; {
+            <span class="macro">info!</span>(
+                <span class="string">&quot;Table opened: {}.{}.{}&quot;</span>,
+                catalog_name, schema_name, table_name
+            );
+            <span class="prelude-val">Ok</span>(table)
+        }
+        <span class="prelude-val">None </span>=&gt; {
+            <span class="macro">info!</span>(
+                <span class="string">&quot;Try create table: {}.{}.{}&quot;</span>,
+                catalog_name, schema_name, table_name
+            );
 
-                <span class="kw">let </span>meta = <span class="kw-2">&amp;</span>table_info.meta;
-                <span class="kw">let </span>req = CreateTableRequest {
-                    id: table_id,
-                    catalog_name: catalog_name.clone(),
-                    schema_name: schema_name.clone(),
-                    table_name: table_name.clone(),
-                    desc: <span class="prelude-val">None</span>,
-                    schema: meta.schema.clone(),
-                    region_numbers: region_numbers.clone(),
-                    primary_key_indices: meta.primary_key_indices.clone(),
-                    create_if_not_exists: <span class="bool-val">true</span>,
-                    table_options: meta.options.clone(),
-                    engine: engine.name().to_string(),
-                };
+            <span class="kw">let </span>meta = <span class="kw-2">&amp;</span>table_info.meta;
+            <span class="kw">let </span>req = CreateTableRequest {
+                id: table_id,
+                catalog_name: catalog_name.clone(),
+                schema_name: schema_name.clone(),
+                table_name: table_name.clone(),
+                desc: <span class="prelude-val">None</span>,
+                schema: meta.schema.clone(),
+                region_numbers: region_numbers.clone(),
+                primary_key_indices: meta.primary_key_indices.clone(),
+                create_if_not_exists: <span class="bool-val">true</span>,
+                table_options: meta.options.clone(),
+                engine: engine.name().to_string(),
+            };
 
-                engine
-                    .create_table(<span class="kw-2">&amp;</span>context, req)
-                    .<span class="kw">await
-                    </span>.context(CreateTableSnafu {
-                        table_info: <span class="macro">format!</span>(
-                            <span class="string">&quot;{}.{}.{}, id:{}&quot;</span>,
-                            <span class="kw-2">&amp;</span>catalog_name, <span class="kw-2">&amp;</span>schema_name, <span class="kw-2">&amp;</span>table_name, table_id
-                        ),
-                    })
-            }
+            engine
+                .create_table(<span class="kw-2">&amp;</span>context, req)
+                .<span class="kw">await
+                </span>.context(CreateTableSnafu {
+                    table_info: <span class="macro">format!</span>(
+                        <span class="string">&quot;{}.{}.{}, id:{}&quot;</span>,
+                        <span class="kw-2">&amp;</span>catalog_name, <span class="kw-2">&amp;</span>schema_name, <span class="kw-2">&amp;</span>table_name, table_id
+                    ),
+                })
         }
     }
 }
@@ -1600,8 +1619,8 @@
     schema_name: String,
     node_id: u64,
     backend: KvBackendRef,
-    tables: Arc&lt;ArcSwap&lt;HashMap&lt;String, TableRef&gt;&gt;&gt;,
-    mutex: Arc&lt;Mutex&lt;()&gt;&gt;,
+    tables: Arc&lt;ArcSwap&lt;DashMap&lt;String, TableRef&gt;&gt;&gt;,
+    mutex: Arc&lt;KeyLock&lt;String&gt;&gt;,
 }
 
 <span class="kw">impl </span>RemoteSchemaProvider {
@@ -1638,11 +1657,16 @@
     </span>}
 
     <span class="kw">fn </span>table_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;String&gt;&gt; {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.tables.load().keys().cloned().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;())
+        <span class="prelude-val">Ok</span>(<span class="self">self
+            </span>.tables
+            .load()
+            .iter()
+            .map(|en| en.key().clone())
+            .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;())
     }
 
     <span class="kw">async fn </span>table(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;TableRef&gt;&gt; {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.tables.load().get(name).cloned())
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.tables.load().get(name).map(|en| en.value().clone()))
     }
 
     <span class="kw">fn </span>register_table(<span class="kw-2">&amp;</span><span class="self">self</span>, name: String, table: TableRef) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;TableRef&gt;&gt; {
@@ -1659,7 +1683,7 @@
 
         <span class="kw">let </span>prev = std::thread::spawn(<span class="kw">move </span>|| {
             common_runtime::block_on_read(<span class="kw">async move </span>{
-                <span class="kw">let </span>_guard = mutex.lock().<span class="kw">await</span>;
+                <span class="kw">let </span>_guard = mutex.lock(table_key.clone()).<span class="kw">await</span>;
                 backend
                     .set(
                         table_key.as_bytes(),
@@ -1671,11 +1695,8 @@
                     table_key, table_value
                 );
 
-                <span class="kw">let </span>prev_tables = tables.load();
-                <span class="kw">let </span><span class="kw-2">mut </span>new_tables = HashMap::with_capacity(prev_tables.len() + <span class="number">1</span>);
-                new_tables.clone_from(<span class="kw-2">&amp;</span>prev_tables);
-                <span class="kw">let </span>prev = new_tables.insert(name, table);
-                tables.store(Arc::new(new_tables));
+                <span class="kw">let </span>tables = tables.load();
+                <span class="kw">let </span>prev = tables.insert(name, table);
                 <span class="prelude-val">Ok</span>(prev)
             })
         })
@@ -1699,18 +1720,15 @@
         <span class="kw">let </span>tables = <span class="self">self</span>.tables.clone();
         <span class="kw">let </span>prev = std::thread::spawn(<span class="kw">move </span>|| {
             common_runtime::block_on_read(<span class="kw">async move </span>{
-                <span class="kw">let </span>_guard = mutex.lock().<span class="kw">await</span>;
+                <span class="kw">let </span>_guard = mutex.lock(table_key.clone()).<span class="kw">await</span>;
                 backend.delete(table_key.as_bytes()).<span class="kw">await</span><span class="question-mark">?</span>;
                 <span class="macro">debug!</span>(
                     <span class="string">&quot;Successfully deleted catalog table entry, key: {}&quot;</span>,
                     table_key
                 );
 
-                <span class="kw">let </span>prev_tables = tables.load();
-                <span class="kw">let </span><span class="kw-2">mut </span>new_tables = HashMap::with_capacity(prev_tables.len() + <span class="number">1</span>);
-                new_tables.clone_from(<span class="kw-2">&amp;</span>prev_tables);
-                <span class="kw">let </span>prev = new_tables.remove(<span class="kw-2">&amp;</span>table_name);
-                tables.store(Arc::new(new_tables));
+                <span class="kw">let </span>tables = tables.load();
+                <span class="kw">let </span>prev = tables.remove(<span class="kw-2">&amp;</span>table_name).map(|en| en.<span class="number">1</span>);
                 <span class="prelude-val">Ok</span>(prev)
             })
         })

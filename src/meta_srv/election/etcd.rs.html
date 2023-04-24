@@ -342,9 +342,7 @@
             </span>.context(error::EtcdFailedSnafu)<span class="question-mark">?</span>;
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(leader) = res.leader() {
-            <span class="kw">let </span>(<span class="kw-2">mut </span>keeper, <span class="kw-2">mut </span>receiver) = <span class="self">self
-                </span>.client
-                .lease_client()
+            <span class="kw">let </span>(<span class="kw-2">mut </span>keeper, <span class="kw-2">mut </span>receiver) = lease_client
                 .keep_alive(lease_id)
                 .<span class="kw">await
                 </span>.context(error::EtcdFailedSnafu)<span class="question-mark">?</span>;
@@ -373,11 +371,13 @@
                             }
                         }
                     } <span class="kw">else </span>{
-                        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="self">self
-                            </span>.leader_watcher
-                            .send(LeaderChangeMessage::StepDown(Arc::new(leader.clone())))
-                        {
-                            <span class="macro">error!</span>(<span class="string">&quot;Failed to send leader change message, error: {e}&quot;</span>);
+                        <span class="kw">if </span><span class="self">self</span>.is_leader.load(Ordering::Relaxed) {
+                            <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="self">self
+                                </span>.leader_watcher
+                                .send(LeaderChangeMessage::StepDown(Arc::new(leader.clone())))
+                            {
+                                <span class="macro">error!</span>(<span class="string">&quot;Failed to send leader change message, error: {e}&quot;</span>);
+                            }
                         }
                         <span class="kw">break</span>;
                     }

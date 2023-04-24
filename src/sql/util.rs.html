@@ -20,6 +20,22 @@
 <a href="#20" id="20">20</a>
 <a href="#21" id="21">21</a>
 <a href="#22" id="22">22</a>
+<a href="#23" id="23">23</a>
+<a href="#24" id="24">24</a>
+<a href="#25" id="25">25</a>
+<a href="#26" id="26">26</a>
+<a href="#27" id="27">27</a>
+<a href="#28" id="28">28</a>
+<a href="#29" id="29">29</a>
+<a href="#30" id="30">30</a>
+<a href="#31" id="31">31</a>
+<a href="#32" id="32">32</a>
+<a href="#33" id="33">33</a>
+<a href="#34" id="34">34</a>
+<a href="#35" id="35">35</a>
+<a href="#36" id="36">36</a>
+<a href="#37" id="37">37</a>
+<a href="#38" id="38">38</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -34,13 +50,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="kw">use </span>sqlparser::ast::Value;
+</span><span class="kw">use </span>std::collections::HashMap;
+
+<span class="kw">use </span>sqlparser::ast::{SqlOption, Value};
 
 <span class="kw">pub fn </span>parse_option_string(value: Value) -&gt; <span class="prelude-ty">Option</span>&lt;String&gt; {
     <span class="kw">match </span>value {
         Value::SingleQuotedString(v) | Value::DoubleQuotedString(v) =&gt; <span class="prelude-val">Some</span>(v),
         <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
     }
+}
+
+<span class="doccomment">/// Converts options to HashMap&lt;String, String&gt;.
+/// All keys are lowercase.
+</span><span class="kw">pub fn </span>to_lowercase_options_map(opts: <span class="kw-2">&amp;</span>[SqlOption]) -&gt; HashMap&lt;String, String&gt; {
+    <span class="kw">let </span><span class="kw-2">mut </span>map = HashMap::with_capacity(opts.len());
+    <span class="kw">for </span>SqlOption { name, value } <span class="kw">in </span>opts {
+        <span class="kw">let </span>value_str = <span class="kw">match </span>value {
+            Value::SingleQuotedString(s) | Value::DoubleQuotedString(s) =&gt; s.clone(),
+            <span class="kw">_ </span>=&gt; value.to_string(),
+        };
+        map.insert(name.value.to_lowercase().clone(), value_str);
+    }
+    map
 }
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="sql" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (34e6673a0 2023-02-25)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>

@@ -132,6 +132,19 @@
 <a href="#132" id="132">132</a>
 <a href="#133" id="133">133</a>
 <a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -155,12 +168,14 @@
 <span class="kw">use </span>common_query::physical_plan::{Partitioning, PhysicalPlan, PhysicalPlanRef};
 <span class="kw">use </span>common_recordbatch::SendableRecordBatchStream;
 <span class="kw">use </span>datafusion::execution::context::TaskContext;
+<span class="kw">use </span>datafusion_physical_expr::PhysicalSortExpr;
 <span class="kw">use </span>datatypes::schema::SchemaRef;
 <span class="kw">use </span>snafu::OptionExt;
 
 <span class="kw">pub struct </span>SimpleTableScan {
     stream: Mutex&lt;<span class="prelude-ty">Option</span>&lt;SendableRecordBatchStream&gt;&gt;,
     schema: SchemaRef,
+    output_ordering: <span class="prelude-ty">Option</span>&lt;Vec&lt;PhysicalSortExpr&gt;&gt;,
 }
 
 <span class="kw">impl </span>Debug <span class="kw">for </span>SimpleTableScan {
@@ -175,11 +190,18 @@
 <span class="kw">impl </span>SimpleTableScan {
     <span class="kw">pub fn </span>new(stream: SendableRecordBatchStream) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>schema = stream.schema();
+
         <span class="self">Self </span>{
             stream: Mutex::new(<span class="prelude-val">Some</span>(stream)),
             schema,
+            output_ordering: <span class="prelude-val">None</span>,
         }
     }
+
+    <span class="kw">pub fn </span>with_output_ordering(<span class="kw-2">mut </span><span class="self">self</span>, output_ordering: Vec&lt;PhysicalSortExpr&gt;) -&gt; <span class="self">Self </span>{
+        <span class="self">self</span>.output_ordering = <span class="prelude-val">Some</span>(output_ordering);
+        <span class="self">self
+    </span>}
 }
 
 <span class="kw">impl </span>PhysicalPlan <span class="kw">for </span>SimpleTableScan {
@@ -193,6 +215,10 @@
 
     <span class="kw">fn </span>output_partitioning(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Partitioning {
         Partitioning::UnknownPartitioning(<span class="number">1</span>)
+    }
+
+    <span class="kw">fn </span>output_ordering(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>[PhysicalSortExpr]&gt; {
+        <span class="self">self</span>.output_ordering.as_deref()
     }
 
     <span class="kw">fn </span>children(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;PhysicalPlanRef&gt; {

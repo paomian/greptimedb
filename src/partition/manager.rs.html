@@ -284,6 +284,27 @@
 <a href="#284" id="284">284</a>
 <a href="#285" id="285">285</a>
 <a href="#286" id="286">286</a>
+<a href="#287" id="287">287</a>
+<a href="#288" id="288">288</a>
+<a href="#289" id="289">289</a>
+<a href="#290" id="290">290</a>
+<a href="#291" id="291">291</a>
+<a href="#292" id="292">292</a>
+<a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -306,7 +327,7 @@
 <span class="kw">use </span>datatypes::prelude::Value;
 <span class="kw">use </span>meta_client::rpc::{Peer, TableName, TableRoute};
 <span class="kw">use </span>snafu::{ensure, OptionExt, ResultExt};
-<span class="kw">use </span>store_api::storage::RegionNumber;
+<span class="kw">use </span>store_api::storage::{RegionId, RegionNumber};
 <span class="kw">use </span>table::requests::InsertRequest;
 
 <span class="kw">use </span><span class="kw">crate</span>::columns::RangeColumnsPartitionRule;
@@ -325,6 +346,12 @@
 /// - filters (in case of select, deletion and update)
 </span><span class="kw">pub struct </span>PartitionRuleManager {
     table_routes: Arc&lt;TableRoutes&gt;,
+}
+
+<span class="attr">#[derive(Debug)]
+</span><span class="kw">pub struct </span>PartitionInfo {
+    <span class="kw">pub </span>id: RegionId,
+    <span class="kw">pub </span>partition: PartitionDef,
 }
 
 <span class="kw">impl </span>PartitionRuleManager {
@@ -354,7 +381,7 @@
                 .region_routes
                 .iter()
                 .find_map(|x| {
-                    <span class="kw">if </span>x.region.id == <span class="kw-2">*</span>region <span class="kw">as </span>u64 {
+                    <span class="kw">if </span>x.region.id == <span class="kw-2">*</span>region <span class="kw">as </span>RegionId {
                         x.leader_peer.clone()
                     } <span class="kw">else </span>{
                         <span class="prelude-val">None
@@ -372,8 +399,7 @@
         <span class="prelude-val">Ok</span>(datanodes)
     }
 
-    <span class="doccomment">/// Get partition rule of given table.
-    </span><span class="kw">pub async fn </span>find_table_partition_rule(<span class="kw-2">&amp;</span><span class="self">self</span>, table: <span class="kw-2">&amp;</span>TableName) -&gt; <span class="prelude-ty">Result</span>&lt;PartitionRuleRef&gt; {
+    <span class="kw">pub async fn </span>find_table_partitions(<span class="kw-2">&amp;</span><span class="self">self</span>, table: <span class="kw-2">&amp;</span>TableName) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;PartitionInfo&gt;&gt; {
         <span class="kw">let </span>route = <span class="self">self</span>.table_routes.get_route(table).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="macro">ensure!</span>(
             !route.region_routes.is_empty(),
@@ -393,20 +419,36 @@
                     table_name: table.to_string(),
                 })<span class="question-mark">?</span>;
             <span class="kw">let </span>partition_def = PartitionDef::try_from(partition)<span class="question-mark">?</span>;
-            partitions.push((r.region.id, partition_def));
+
+            partitions.push(PartitionInfo {
+                id: r.region.id,
+                partition: partition_def,
+            });
         }
-        partitions.sort_by(|a, b| a.<span class="number">1</span>.partition_bounds().cmp(b.<span class="number">1</span>.partition_bounds()));
+        partitions.sort_by(|a, b| {
+            a.partition
+                .partition_bounds()
+                .cmp(b.partition.partition_bounds())
+        });
 
         <span class="macro">ensure!</span>(
             partitions
                 .windows(<span class="number">2</span>)
-                .all(|w| w[<span class="number">0</span>].<span class="number">1</span>.partition_columns() == w[<span class="number">1</span>].<span class="number">1</span>.partition_columns()),
+                .all(|w| w[<span class="number">0</span>].partition.partition_columns() == w[<span class="number">1</span>].partition.partition_columns()),
             error::InvalidTableRouteDataSnafu {
                 table_name: table.to_string(),
                 err_msg: <span class="string">&quot;partition columns of all regions are not the same&quot;
             </span>}
         );
-        <span class="kw">let </span>partition_columns = partitions[<span class="number">0</span>].<span class="number">1</span>.partition_columns();
+
+        <span class="prelude-val">Ok</span>(partitions)
+    }
+
+    <span class="doccomment">/// Get partition rule of given table.
+    </span><span class="kw">pub async fn </span>find_table_partition_rule(<span class="kw-2">&amp;</span><span class="self">self</span>, table: <span class="kw-2">&amp;</span>TableName) -&gt; <span class="prelude-ty">Result</span>&lt;PartitionRuleRef&gt; {
+        <span class="kw">let </span>partitions = <span class="self">self</span>.find_table_partitions(table).<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="kw">let </span>partition_columns = partitions[<span class="number">0</span>].partition.partition_columns();
         <span class="macro">ensure!</span>(
             !partition_columns.is_empty(),
             error::InvalidTableRouteDataSnafu {
@@ -417,7 +459,7 @@
 
         <span class="kw">let </span>regions = partitions
             .iter()
-            .map(|x| x.<span class="number">0 </span><span class="kw">as </span>u32)
+            .map(|x| x.id <span class="kw">as </span>u32)
             .collect::&lt;Vec&lt;RegionNumber&gt;&gt;();
 
         <span class="comment">// TODO(LFC): Serializing and deserializing partition rule is ugly, must find a much more elegant way.
@@ -426,7 +468,7 @@
                 <span class="comment">// Omit the last &quot;MAXVALUE&quot;.
                 </span><span class="kw">let </span>bounds = partitions
                     .iter()
-                    .filter_map(|(<span class="kw">_</span>, p)| <span class="kw">match </span><span class="kw-2">&amp;</span>p.partition_bounds()[<span class="number">0</span>] {
+                    .filter_map(|info| <span class="kw">match </span><span class="kw-2">&amp;</span>info.partition.partition_bounds()[<span class="number">0</span>] {
                         PartitionBound::Value(v) =&gt; <span class="prelude-val">Some</span>(v.clone()),
                         PartitionBound::MaxValue =&gt; <span class="prelude-val">None</span>,
                     })
@@ -440,7 +482,7 @@
             <span class="kw">_ </span>=&gt; {
                 <span class="kw">let </span>bounds = partitions
                     .iter()
-                    .map(|x| x.<span class="number">1</span>.partition_bounds().clone())
+                    .map(|x| x.partition.partition_bounds().clone())
                     .collect::&lt;Vec&lt;Vec&lt;PartitionBound&gt;&gt;&gt;();
                 Arc::new(RangeColumnsPartitionRule::new(
                     partition_columns.clone(),
@@ -474,7 +516,7 @@
             }
             target.into_iter().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
         } <span class="kw">else </span>{
-            partition_rule.find_regions(<span class="kw-2">&amp;</span>[])<span class="question-mark">?
+            partition_rule.find_regions_by_exprs(<span class="kw-2">&amp;</span>[])<span class="question-mark">?
         </span>};
         <span class="macro">ensure!</span>(
             !regions.is_empty(),
@@ -514,7 +556,7 @@
                     }
                 })<span class="question-mark">?</span>;
                 <span class="kw">return </span><span class="prelude-val">Ok</span>(partition_rule
-                    .find_regions(<span class="kw-2">&amp;</span>[PartitionExpr::new(column, op, value)])<span class="question-mark">?
+                    .find_regions_by_exprs(<span class="kw-2">&amp;</span>[PartitionExpr::new(column, op, value)])<span class="question-mark">?
                     </span>.into_iter()
                     .collect::&lt;HashSet&lt;RegionNumber&gt;&gt;());
             }
@@ -542,7 +584,7 @@
 
     <span class="comment">// Returns all regions for not supported partition expr as a safety hatch.
     </span><span class="prelude-val">Ok</span>(partition_rule
-        .find_regions(<span class="kw-2">&amp;</span>[])<span class="question-mark">?
+        .find_regions_by_exprs(<span class="kw-2">&amp;</span>[])<span class="question-mark">?
         </span>.into_iter()
         .collect::&lt;HashSet&lt;RegionNumber&gt;&gt;())
 }

@@ -642,7 +642,7 @@
         <span class="kw">let </span><span class="kw-2">mut </span>frontend = build_frontend(plugins.clone(), datanode.get_instance()).<span class="kw">await</span><span class="question-mark">?</span>;
 
         frontend
-            .build_servers(<span class="kw-2">&amp;</span>fe_opts, plugins)
+            .build_servers(<span class="kw-2">&amp;</span>fe_opts)
             .<span class="kw">await
             </span>.context(StartFrontendSnafu)<span class="question-mark">?</span>;
 

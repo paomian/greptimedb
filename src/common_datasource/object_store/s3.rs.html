@@ -109,7 +109,7 @@
 <span class="kw">pub fn </span>build_s3_backend(
     host: <span class="kw-2">&amp;</span>str,
     path: <span class="kw-2">&amp;</span>str,
-    connection: HashMap&lt;String, String&gt;,
+    connection: <span class="kw-2">&amp;</span>HashMap&lt;String, String&gt;,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;ObjectStore&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>builder = S3::default();
 

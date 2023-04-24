@@ -398,6 +398,52 @@
 <a href="#398" id="398">398</a>
 <a href="#399" id="399">399</a>
 <a href="#400" id="400">400</a>
+<a href="#401" id="401">401</a>
+<a href="#402" id="402">402</a>
+<a href="#403" id="403">403</a>
+<a href="#404" id="404">404</a>
+<a href="#405" id="405">405</a>
+<a href="#406" id="406">406</a>
+<a href="#407" id="407">407</a>
+<a href="#408" id="408">408</a>
+<a href="#409" id="409">409</a>
+<a href="#410" id="410">410</a>
+<a href="#411" id="411">411</a>
+<a href="#412" id="412">412</a>
+<a href="#413" id="413">413</a>
+<a href="#414" id="414">414</a>
+<a href="#415" id="415">415</a>
+<a href="#416" id="416">416</a>
+<a href="#417" id="417">417</a>
+<a href="#418" id="418">418</a>
+<a href="#419" id="419">419</a>
+<a href="#420" id="420">420</a>
+<a href="#421" id="421">421</a>
+<a href="#422" id="422">422</a>
+<a href="#423" id="423">423</a>
+<a href="#424" id="424">424</a>
+<a href="#425" id="425">425</a>
+<a href="#426" id="426">426</a>
+<a href="#427" id="427">427</a>
+<a href="#428" id="428">428</a>
+<a href="#429" id="429">429</a>
+<a href="#430" id="430">430</a>
+<a href="#431" id="431">431</a>
+<a href="#432" id="432">432</a>
+<a href="#433" id="433">433</a>
+<a href="#434" id="434">434</a>
+<a href="#435" id="435">435</a>
+<a href="#436" id="436">436</a>
+<a href="#437" id="437">437</a>
+<a href="#438" id="438">438</a>
+<a href="#439" id="439">439</a>
+<a href="#440" id="440">440</a>
+<a href="#441" id="441">441</a>
+<a href="#442" id="442">442</a>
+<a href="#443" id="443">443</a>
+<a href="#444" id="444">444</a>
+<a href="#445" id="445">445</a>
+<a href="#446" id="446">446</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -418,11 +464,12 @@
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>common_catalog::consts::IMMUTABLE_FILE_ENGINE;
 <span class="kw">use </span>common_error::prelude::BoxedError;
+<span class="kw">use </span>common_procedure::{BoxedProcedure, ProcedureManager};
 <span class="kw">use </span>common_telemetry::{debug, logging};
 <span class="kw">use </span>datatypes::schema::Schema;
 <span class="kw">use </span>object_store::ObjectStore;
 <span class="kw">use </span>snafu::ResultExt;
-<span class="kw">use </span>table::engine::{table_dir, EngineContext, TableEngine, TableReference};
+<span class="kw">use </span>table::engine::{table_dir, EngineContext, TableEngine, TableEngineProcedure, TableReference};
 <span class="kw">use </span>table::error::TableOperationSnafu;
 <span class="kw">use </span>table::metadata::{TableInfo, TableInfoBuilder, TableMetaBuilder, TableType};
 <span class="kw">use </span>table::requests::{AlterTableRequest, CreateTableRequest, DropTableRequest, OpenTableRequest};
@@ -430,6 +477,7 @@
 <span class="kw">use </span>tokio::sync::Mutex;
 
 <span class="kw">use </span><span class="kw">crate</span>::config::EngineConfig;
+<span class="kw">use </span><span class="kw">crate</span>::engine::procedure::{<span class="self">self</span>, CreateImmutableFileTable, DropImmutableFileTable};
 <span class="kw">use </span><span class="kw">crate</span>::engine::INIT_TABLE_VERSION;
 <span class="kw">use </span><span class="kw">crate</span>::error::{
     BuildTableInfoSnafu, BuildTableMetaSnafu, DropTableSnafu, InvalidRawSchemaSnafu, <span class="prelude-ty">Result</span>,
@@ -439,7 +487,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::manifest::table_manifest_dir;
 <span class="kw">use </span><span class="kw">crate</span>::table::immutable::{ImmutableFileTable, ImmutableFileTableRef};
 
-<span class="doccomment">///  [TableEngine] implementation.
+<span class="doccomment">/// [TableEngine] implementation.
 </span><span class="attr">#[derive(Clone)]
 </span><span class="kw">pub struct </span>ImmutableFileTableEngine {
     inner: Arc&lt;EngineInner&gt;,
@@ -515,6 +563,38 @@
     </span>}
 }
 
+<span class="attr">#[async_trait]
+</span><span class="kw">impl </span>TableEngineProcedure <span class="kw">for </span>ImmutableFileTableEngine {
+    <span class="kw">fn </span>create_table_procedure(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        _ctx: <span class="kw-2">&amp;</span>EngineContext,
+        request: CreateTableRequest,
+    ) -&gt; TableResult&lt;BoxedProcedure&gt; {
+        <span class="kw">let </span>procedure = Box::new(CreateImmutableFileTable::new(request, <span class="self">self</span>.clone()));
+        <span class="prelude-val">Ok</span>(procedure)
+    }
+
+    <span class="kw">fn </span>alter_table_procedure(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        _ctx: <span class="kw-2">&amp;</span>EngineContext,
+        _request: AlterTableRequest,
+    ) -&gt; TableResult&lt;BoxedProcedure&gt; {
+        table_error::UnsupportedSnafu {
+            operation: <span class="string">&quot;ALTER TABLE&quot;</span>,
+        }
+        .fail()
+    }
+
+    <span class="kw">fn </span>drop_table_procedure(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        _ctx: <span class="kw-2">&amp;</span>EngineContext,
+        request: DropTableRequest,
+    ) -&gt; TableResult&lt;BoxedProcedure&gt; {
+        <span class="kw">let </span>procedure = Box::new(DropImmutableFileTable::new(request, <span class="self">self</span>.clone()));
+        <span class="prelude-val">Ok</span>(procedure)
+    }
+}
+
 <span class="attr">#[cfg(test)]
 </span><span class="kw">impl </span>ImmutableFileTableEngine {
     <span class="kw">pub async fn </span>close_table(<span class="kw-2">&amp;</span><span class="self">self</span>, table_ref: <span class="kw-2">&amp;</span>TableReference&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; TableResult&lt;()&gt; {
@@ -527,6 +607,14 @@
         ImmutableFileTableEngine {
             inner: Arc::new(EngineInner::new(config, object_store)),
         }
+    }
+
+    <span class="doccomment">/// Register all procedure loaders to the procedure manager.
+    ///
+    /// # Panics
+    /// Panics on error.
+    </span><span class="kw">pub fn </span>register_procedure_loaders(<span class="kw-2">&amp;</span><span class="self">self</span>, procedure_manager: <span class="kw-2">&amp;</span><span class="kw">dyn </span>ProcedureManager) {
+        procedure::register_procedure_loaders(<span class="self">self</span>.clone(), procedure_manager);
     }
 }
 
@@ -699,7 +787,11 @@
                 table_id, table_info
             );
 
-            <span class="kw">let </span>table = Arc::new(ImmutableFileTable::new(table_info, metadata));
+            <span class="kw">let </span>table = Arc::new(
+                ImmutableFileTable::new(table_info, metadata)
+                    .map_err(BoxedError::new)
+                    .context(table_error::TableOperationSnafu)<span class="question-mark">?</span>,
+            );
 
             <span class="self">self</span>.tables
                 .write()

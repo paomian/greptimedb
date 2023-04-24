@@ -271,6 +271,34 @@
 <a href="#271" id="271">271</a>
 <a href="#272" id="272">272</a>
 <a href="#273" id="273">273</a>
+<a href="#274" id="274">274</a>
+<a href="#275" id="275">275</a>
+<a href="#276" id="276">276</a>
+<a href="#277" id="277">277</a>
+<a href="#278" id="278">278</a>
+<a href="#279" id="279">279</a>
+<a href="#280" id="280">280</a>
+<a href="#281" id="281">281</a>
+<a href="#282" id="282">282</a>
+<a href="#283" id="283">283</a>
+<a href="#284" id="284">284</a>
+<a href="#285" id="285">285</a>
+<a href="#286" id="286">286</a>
+<a href="#287" id="287">287</a>
+<a href="#288" id="288">288</a>
+<a href="#289" id="289">289</a>
+<a href="#290" id="290">290</a>
+<a href="#291" id="291">291</a>
+<a href="#292" id="292">292</a>
+<a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -293,17 +321,20 @@
 <span class="kw">use </span>common_error::prelude::BoxedError;
 <span class="kw">use </span>datanode::instance::sql::table_idents_to_full_name;
 <span class="kw">use </span>datatypes::schema::ColumnSchema;
+<span class="kw">use </span>file_table_engine::table::immutable::ImmutableFileTableOptions;
+<span class="kw">use </span>query::sql::prepare_immutable_file_table_files_and_schema;
 <span class="kw">use </span>session::context::QueryContextRef;
 <span class="kw">use </span>snafu::{ensure, ResultExt};
-<span class="kw">use </span>sql::ast::{ColumnDef, ColumnOption, SqlOption, TableConstraint, Value};
+<span class="kw">use </span>sql::ast::{ColumnDef, ColumnOption, TableConstraint};
 <span class="kw">use </span>sql::statements::column_def_to_schema;
-<span class="kw">use </span>sql::statements::create::{CreateTable, TIME_INDEX};
-<span class="kw">use </span>table::requests::TableOptions;
+<span class="kw">use </span>sql::statements::create::{CreateExternalTable, CreateTable, TIME_INDEX};
+<span class="kw">use </span>sql::util::to_lowercase_options_map;
+<span class="kw">use </span>table::requests::{TableOptions, IMMUTABLE_TABLE_META_KEY};
 
 <span class="kw">use </span><span class="kw">crate</span>::error::{
     <span class="self">self</span>, BuildCreateExprOnInsertionSnafu, ColumnDataTypeSnafu,
     ConvertColumnDefaultConstraintSnafu, IllegalPrimaryKeysDefSnafu, InvalidSqlSnafu,
-    ParseSqlSnafu, <span class="prelude-ty">Result</span>, UnrecognizedTableOptionSnafu,
+    ParseSqlSnafu, <span class="prelude-ty">Result</span>,
 };
 
 <span class="kw">pub type </span>CreateExprFactoryRef = Arc&lt;<span class="kw">dyn </span>CreateExprFactory + Send + Sync&gt;;
@@ -348,6 +379,44 @@
     }
 }
 
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>create_external_expr(
+    create: CreateExternalTable,
+    query_ctx: QueryContextRef,
+) -&gt; <span class="prelude-ty">Result</span>&lt;CreateTableExpr&gt; {
+    <span class="kw">let </span>(catalog_name, schema_name, table_name) =
+        table_idents_to_full_name(<span class="kw-2">&amp;</span>create.name, query_ctx)
+            .map_err(BoxedError::new)
+            .context(error::ExternalSnafu)<span class="question-mark">?</span>;
+
+    <span class="kw">let </span><span class="kw-2">mut </span>options = create.options;
+
+    <span class="kw">let </span>(files, schema) = prepare_immutable_file_table_files_and_schema(<span class="kw-2">&amp;</span>options, <span class="kw-2">&amp;</span>create.columns)
+        .<span class="kw">await
+        </span>.context(error::PrepareImmutableTableSnafu)<span class="question-mark">?</span>;
+
+    <span class="kw">let </span>meta = ImmutableFileTableOptions { files };
+    options.insert(
+        IMMUTABLE_TABLE_META_KEY.to_string(),
+        serde_json::to_string(<span class="kw-2">&amp;</span>meta).context(error::EncodeJsonSnafu)<span class="question-mark">?</span>,
+    );
+
+    <span class="kw">let </span>expr = CreateTableExpr {
+        catalog_name,
+        schema_name,
+        table_name,
+        desc: <span class="string">&quot;&quot;</span>.to_string(),
+        column_defs: column_schemas_to_defs(schema.column_schemas)<span class="question-mark">?</span>,
+        time_index: <span class="string">&quot;&quot;</span>.to_string(),
+        primary_keys: <span class="macro">vec!</span>[],
+        create_if_not_exists: create.if_not_exists,
+        table_options: options,
+        table_id: <span class="prelude-val">None</span>,
+        region_ids: <span class="macro">vec!</span>[],
+        engine: create.engine.to_string(),
+    };
+    <span class="prelude-val">Ok</span>(expr)
+}
+
 <span class="doccomment">/// Convert `CreateTable` statement to `CreateExpr` gRPC request.
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>create_to_expr(
     create: <span class="kw-2">&amp;</span>CreateTable,
@@ -359,7 +428,10 @@
             .context(error::ExternalSnafu)<span class="question-mark">?</span>;
 
     <span class="kw">let </span>time_index = find_time_index(<span class="kw-2">&amp;</span>create.constraints)<span class="question-mark">?</span>;
-    <span class="kw">let </span>table_options = HashMap::from(<span class="kw-2">&amp;</span>stmt_options_to_table_options(<span class="kw-2">&amp;</span>create.options)<span class="question-mark">?</span>);
+    <span class="kw">let </span>table_options = HashMap::from(
+        <span class="kw-2">&amp;</span>TableOptions::try_from(<span class="kw-2">&amp;</span>to_lowercase_options_map(<span class="kw-2">&amp;</span>create.options))
+            .context(error::UnrecognizedTableOptionSnafu)<span class="question-mark">?</span>,
+    );
     <span class="kw">let </span>expr = CreateTableExpr {
         catalog_name,
         schema_name,
@@ -500,22 +572,6 @@
             })
         })
         .collect()
-}
-
-<span class="comment">// TODO(hl): This function is intentionally duplicated with that one in src/datanode/src/sql/create.rs:261
-// since we are going to remove the statement parsing stuff from datanode.
-// Refer: https://github.com/GreptimeTeam/greptimedb/issues/1010
-</span><span class="kw">fn </span>stmt_options_to_table_options(opts: <span class="kw-2">&amp;</span>[SqlOption]) -&gt; error::Result&lt;TableOptions&gt; {
-    <span class="kw">let </span><span class="kw-2">mut </span>map = HashMap::with_capacity(opts.len());
-    <span class="kw">for </span>SqlOption { name, value } <span class="kw">in </span>opts {
-        <span class="kw">let </span>value_str = <span class="kw">match </span>value {
-            Value::SingleQuotedString(s) | Value::DoubleQuotedString(s) =&gt; s.clone(),
-            <span class="kw">_ </span>=&gt; value.to_string(),
-        };
-        map.insert(name.value.clone(), value_str);
-    }
-    <span class="kw">let </span>options = TableOptions::try_from(<span class="kw-2">&amp;</span>map).context(UnrecognizedTableOptionSnafu)<span class="question-mark">?</span>;
-    <span class="prelude-val">Ok</span>(options)
 }
 
 <span class="attr">#[cfg(test)]

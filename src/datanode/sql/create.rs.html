@@ -581,12 +581,6 @@
 <a href="#581" id="581">581</a>
 <a href="#582" id="582">582</a>
 <a href="#583" id="583">583</a>
-<a href="#584" id="584">584</a>
-<a href="#585" id="585">585</a>
-<a href="#586" id="586">586</a>
-<a href="#587" id="587">587</a>
-<a href="#588" id="588">588</a>
-<a href="#589" id="589">589</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -610,10 +604,10 @@
 <span class="kw">use </span>datatypes::schema::RawSchema;
 <span class="kw">use </span>session::context::QueryContextRef;
 <span class="kw">use </span>snafu::{ensure, OptionExt, ResultExt};
-<span class="kw">use </span>sql::ast::{ColumnOption, SqlOption, TableConstraint, Value};
+<span class="kw">use </span>sql::ast::{ColumnOption, TableConstraint};
 <span class="kw">use </span>sql::statements::column_def_to_schema;
-<span class="kw">use </span>sql::statements::create::CreateTable;
-<span class="kw">use </span>store_api::storage::consts::TIME_INDEX_NAME;
+<span class="kw">use </span>sql::statements::create::{CreateTable, TIME_INDEX};
+<span class="kw">use </span>sql::util::to_lowercase_options_map;
 <span class="kw">use </span>table::engine::{EngineContext, TableReference};
 <span class="kw">use </span>table::metadata::TableId;
 <span class="kw">use </span>table::requests::<span class="kw-2">*</span>;
@@ -621,9 +615,10 @@
 
 <span class="kw">use </span><span class="kw">crate</span>::error::{
     <span class="self">self</span>, CatalogNotFoundSnafu, CatalogSnafu, ConstraintNotSupportedSnafu, CreateTableSnafu,
-    IllegalPrimaryKeysDefSnafu, InsertSystemCatalogSnafu, KeyColumnNotFoundSnafu,
-    RegisterSchemaSnafu, <span class="prelude-ty">Result</span>, SchemaExistsSnafu, SchemaNotFoundSnafu, SubmitProcedureSnafu,
-    TableEngineNotFoundSnafu, UnrecognizedTableOptionSnafu, WaitProcedureSnafu,
+    EngineProcedureNotFoundSnafu, IllegalPrimaryKeysDefSnafu, InsertSystemCatalogSnafu,
+    KeyColumnNotFoundSnafu, RegisterSchemaSnafu, <span class="prelude-ty">Result</span>, SchemaExistsSnafu, SchemaNotFoundSnafu,
+    SubmitProcedureSnafu, TableEngineNotFoundSnafu, UnrecognizedTableOptionSnafu,
+    WaitProcedureSnafu,
 };
 <span class="kw">use </span><span class="kw">crate</span>::sql::SqlHandler;
 
@@ -739,11 +734,17 @@
                 .context(TableEngineNotFoundSnafu {
                     engine_name: <span class="kw-2">&amp;</span>req.engine,
                 })<span class="question-mark">?</span>;
+        <span class="kw">let </span>engine_procedure = <span class="self">self
+            </span>.table_engine_manager
+            .engine_procedure(<span class="kw-2">&amp;</span>req.engine)
+            .context(EngineProcedureNotFoundSnafu {
+                engine_name: <span class="kw-2">&amp;</span>req.engine,
+            })<span class="question-mark">?</span>;
         <span class="kw">let </span>procedure = CreateTableProcedure::new(
             req,
             <span class="self">self</span>.catalog_manager.clone(),
             table_engine.clone(),
-            <span class="self">self</span>.engine_procedure.clone(),
+            engine_procedure,
         );
         <span class="kw">let </span>procedure_with_id = ProcedureWithId::with_random_id(Box::new(procedure));
         <span class="kw">let </span>procedure_id = procedure_with_id.id;
@@ -812,7 +813,7 @@
                     is_primary,
                 } =&gt; {
                     <span class="kw">if let </span><span class="prelude-val">Some</span>(name) = name {
-                        <span class="kw">if </span>name.value == TIME_INDEX_NAME {
+                        <span class="kw">if </span>name.value == TIME_INDEX {
                             ts_index = <span class="kw-2">*</span>col_map.get(<span class="kw-2">&amp;</span>columns[<span class="number">0</span>].value).context(
                                 KeyColumnNotFoundSnafu {
                                     name: columns[<span class="number">0</span>].value.to_string(),
@@ -874,7 +875,8 @@
             })
             .collect::&lt;<span class="prelude-ty">Result</span>&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;&gt;()<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>table_options = stmt_options_to_table_options(<span class="kw-2">&amp;</span>stmt.options)<span class="question-mark">?</span>;
+        <span class="kw">let </span>table_options = TableOptions::try_from(<span class="kw-2">&amp;</span>to_lowercase_options_map(<span class="kw-2">&amp;</span>stmt.options))
+            .context(UnrecognizedTableOptionSnafu)<span class="question-mark">?</span>;
         <span class="kw">let </span>schema = RawSchema::new(columns_schemas);
         <span class="kw">let </span>request = CreateTableRequest {
             id: table_id,
@@ -891,20 +893,6 @@
         };
         <span class="prelude-val">Ok</span>(request)
     }
-}
-
-<span class="kw">fn </span>stmt_options_to_table_options(opts: <span class="kw-2">&amp;</span>[SqlOption]) -&gt; error::Result&lt;TableOptions&gt; {
-    <span class="kw">let </span><span class="kw-2">mut </span>map = HashMap::with_capacity(opts.len());
-    <span class="kw">for </span>SqlOption { name, value } <span class="kw">in </span>opts {
-        <span class="kw">let </span>value_str = <span class="kw">match </span>value {
-            Value::SingleQuotedString(s) =&gt; s.clone(),
-            Value::DoubleQuotedString(s) =&gt; s.clone(),
-            <span class="kw">_ </span>=&gt; value.to_string(),
-        };
-        map.insert(name.value.clone(), value_str);
-    }
-    <span class="kw">let </span>options = TableOptions::try_from(<span class="kw-2">&amp;</span>map).context(UnrecognizedTableOptionSnafu)<span class="question-mark">?</span>;
-    <span class="prelude-val">Ok</span>(options)
 }
 
 <span class="attr">#[cfg(test)]
@@ -941,7 +929,7 @@
     </span><span class="kw">async fn </span>test_create_table_with_options() {
         <span class="kw">let </span>sql = <span class="string">r#&quot;
             CREATE TABLE demo_table (
-                &quot;timestamp&quot; BIGINT TIME INDEX, 
+                &quot;timestamp&quot; BIGINT TIME INDEX,
                 &quot;value&quot; DOUBLE,
                 host STRING PRIMARY KEY
             ) engine=mito with(regions=1, ttl=&#39;7days&#39;,write_buffer_size=&#39;32MB&#39;,some=&#39;other&#39;);&quot;#</span>;
@@ -965,7 +953,7 @@
         <span class="kw">let </span>parsed_stmt = sql_to_statement(
             <span class="string">r#&quot;
             CREATE TABLE demo_table(
-                &quot;timestamp&quot; BIGINT TIME INDEX, 
+                &quot;timestamp&quot; BIGINT TIME INDEX,
                 &quot;value&quot; DOUBLE,
                 host STRING PRIMARY KEY
             ) engine=mito with(regions=1);&quot;#</span>,

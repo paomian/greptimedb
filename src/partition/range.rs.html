@@ -372,7 +372,7 @@
         })
     }
 
-    <span class="kw">fn </span>find_regions(<span class="kw-2">&amp;</span><span class="self">self</span>, exprs: <span class="kw-2">&amp;</span>[PartitionExpr]) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;RegionNumber&gt;, Error&gt; {
+    <span class="kw">fn </span>find_regions_by_exprs(<span class="kw-2">&amp;</span><span class="self">self</span>, exprs: <span class="kw-2">&amp;</span>[PartitionExpr]) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;RegionNumber&gt;, Error&gt; {
         <span class="kw">if </span>exprs.is_empty() {
             <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="self">self</span>.regions.clone());
         }
@@ -449,7 +449,7 @@
                     op,
                     value: value.into(),
                 };
-                <span class="kw">let </span>regions = rule.find_regions(<span class="kw-2">&amp;</span>[expr]).unwrap();
+                <span class="kw">let </span>regions = rule.find_regions_by_exprs(<span class="kw-2">&amp;</span>[expr]).unwrap();
                 <span class="macro">assert_eq!</span>(
                     regions,
                     expected_regions.into_iter().collect::&lt;Vec&lt;RegionNumber&gt;&gt;()

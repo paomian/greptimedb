@@ -375,7 +375,8 @@
     SerializeProcedureSnafu, SubprocedureFailedSnafu, TableExistsSnafu, TableNotFoundSnafu,
 };
 
-<span class="kw">pub struct </span>AlterTableProcedure {
+<span class="doccomment">/// Procedure to alter a table.
+</span><span class="kw">pub struct </span>AlterTableProcedure {
     data: AlterTableData,
     catalog_manager: CatalogManagerRef,
     engine_procedure: TableEngineProcedureRef,
@@ -431,8 +432,8 @@
             data: AlterTableData {
                 state: AlterTableState::Prepare,
                 request,
-                subprocedure_id: <span class="prelude-val">None</span>,
                 table_id: <span class="prelude-val">None</span>,
+                subprocedure_id: <span class="prelude-val">None</span>,
             },
             catalog_manager,
             engine_procedure,
@@ -480,13 +481,13 @@
             </span>.catalog_manager
             .catalog(<span class="kw-2">&amp;</span><span class="self">self</span>.data.request.catalog_name)
             .context(AccessCatalogSnafu)<span class="question-mark">?
-            </span>.with_context(|| CatalogNotFoundSnafu {
+            </span>.context(CatalogNotFoundSnafu {
                 name: <span class="kw-2">&amp;</span><span class="self">self</span>.data.request.catalog_name,
             })<span class="question-mark">?</span>;
         <span class="kw">let </span>schema = catalog
             .schema(<span class="kw-2">&amp;</span><span class="self">self</span>.data.request.schema_name)
             .context(AccessCatalogSnafu)<span class="question-mark">?
-            </span>.with_context(|| SchemaNotFoundSnafu {
+            </span>.context(SchemaNotFoundSnafu {
                 name: <span class="kw-2">&amp;</span><span class="self">self</span>.data.request.schema_name,
             })<span class="question-mark">?</span>;
 
@@ -565,12 +566,11 @@
                     </span><span class="prelude-val">Ok</span>(Status::Done)
                 }
             }
-            ProcedureState::Failed { .. } =&gt; {
+            ProcedureState::Failed { error } =&gt; {
                 <span class="comment">// Return error if the subprocedure is failed.
-                </span>SubprocedureFailedSnafu {
+                </span><span class="prelude-val">Err</span>(error).context(SubprocedureFailedSnafu {
                     subprocedure_id: sub_id,
-                }
-                .fail()<span class="question-mark">?
+                })<span class="question-mark">?
             </span>}
         }
     }
@@ -619,7 +619,7 @@
     ///
     /// Available after [AlterTableState::Prepare] state.
     </span>table_id: <span class="prelude-ty">Option</span>&lt;TableId&gt;,
-    <span class="doccomment">/// Id of the subprocedure to create this table in the engine.
+    <span class="doccomment">/// Id of the subprocedure to alter this table in the engine.
     ///
     /// This id is `Some` while the procedure is in [AlterTableState::EngineAlterTable]
     /// state.

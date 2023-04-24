@@ -538,6 +538,9 @@
 <a href="#538" id="538">538</a>
 <a href="#539" id="539">539</a>
 <a href="#540" id="540">540</a>
+<a href="#541" id="541">541</a>
+<a href="#542" id="542">542</a>
+<a href="#543" id="543">543</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -805,10 +808,17 @@
         <span class="comment">// Rename key in tables map.
         </span><span class="kw">if let </span>AlterKind::RenameTable { new_table_name } = <span class="kw-2">&amp;</span><span class="self">self</span>.data.request.alter_kind {
             <span class="kw">let </span><span class="kw-2">mut </span>table_ref = <span class="self">self</span>.data.table_ref();
-            <span class="kw">let </span><span class="kw-2">mut </span>tables = <span class="self">self</span>.engine_inner.tables.write().unwrap();
-            tables.remove(<span class="kw-2">&amp;</span>table_ref.to_string());
+            <span class="kw">let </span>removed = {
+                <span class="kw">let </span>_lock = <span class="self">self</span>.engine_inner.table_mutex.lock(table_ref.to_string());
+                <span class="self">self</span>.engine_inner.tables.remove(<span class="kw-2">&amp;</span>table_ref.to_string())
+            };
+            <span class="macro">ensure!</span>(removed.is_some(), TableNotFoundSnafu { table_name });
+
             table_ref.table = new_table_name.as_str();
-            tables.insert(table_ref.to_string(), <span class="self">self</span>.table.clone());
+            <span class="kw">let </span>_lock = <span class="self">self</span>.engine_inner.table_mutex.lock(table_ref.to_string());
+            <span class="self">self</span>.engine_inner
+                .tables
+                .insert(table_ref.to_string(), <span class="self">self</span>.table.clone());
         }
 
         <span class="prelude-val">Ok</span>(Status::Done)
@@ -867,11 +877,7 @@
 
 <span class="kw">impl </span>AlterTableData {
     <span class="kw">fn </span>table_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; TableReference {
-        TableReference {
-            catalog: <span class="kw-2">&amp;</span><span class="self">self</span>.request.catalog_name,
-            schema: <span class="kw-2">&amp;</span><span class="self">self</span>.request.schema_name,
-            table: <span class="kw-2">&amp;</span><span class="self">self</span>.request.table_name,
-        }
+        <span class="self">self</span>.request.table_ref()
     }
 }
 

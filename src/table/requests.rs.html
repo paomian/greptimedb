@@ -290,6 +290,59 @@
 <a href="#290" id="290">290</a>
 <a href="#291" id="291">291</a>
 <a href="#292" id="292">292</a>
+<a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
+<a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
+<a href="#328" id="328">328</a>
+<a href="#329" id="329">329</a>
+<a href="#330" id="330">330</a>
+<a href="#331" id="331">331</a>
+<a href="#332" id="332">332</a>
+<a href="#333" id="333">333</a>
+<a href="#334" id="334">334</a>
+<a href="#335" id="335">335</a>
+<a href="#336" id="336">336</a>
+<a href="#337" id="337">337</a>
+<a href="#338" id="338">338</a>
+<a href="#339" id="339">339</a>
+<a href="#340" id="340">340</a>
+<a href="#341" id="341">341</a>
+<a href="#342" id="342">342</a>
+<a href="#343" id="343">343</a>
+<a href="#344" id="344">344</a>
+<a href="#345" id="345">345</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -316,9 +369,15 @@
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>store_api::storage::RegionNumber;
 
+<span class="kw">use </span><span class="kw">crate</span>::engine::TableReference;
 <span class="kw">use </span><span class="kw">crate</span>::error;
 <span class="kw">use </span><span class="kw">crate</span>::error::ParseTableOptionSnafu;
 <span class="kw">use </span><span class="kw">crate</span>::metadata::TableId;
+
+<span class="kw">pub const </span>IMMUTABLE_TABLE_META_KEY: <span class="kw-2">&amp;</span>str = <span class="string">&quot;IMMUTABLE_TABLE_META&quot;</span>;
+<span class="kw">pub const </span>IMMUTABLE_TABLE_LOCATION_KEY: <span class="kw-2">&amp;</span>str = <span class="string">&quot;LOCATION&quot;</span>;
+<span class="kw">pub const </span>IMMUTABLE_TABLE_PATTERN_KEY: <span class="kw-2">&amp;</span>str = <span class="string">&quot;PATTERN&quot;</span>;
+<span class="kw">pub const </span>IMMUTABLE_TABLE_FORMAT_KEY: <span class="kw-2">&amp;</span>str = <span class="string">&quot;FORMAT&quot;</span>;
 
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>CreateDatabaseRequest {
@@ -342,6 +401,16 @@
     <span class="kw">pub </span>engine: String,
 }
 
+<span class="kw">impl </span>CreateTableRequest {
+    <span class="kw">pub fn </span>table_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; TableReference {
+        TableReference {
+            catalog: <span class="kw-2">&amp;</span><span class="self">self</span>.catalog_name,
+            schema: <span class="kw-2">&amp;</span><span class="self">self</span>.schema_name,
+            table: <span class="kw-2">&amp;</span><span class="self">self</span>.table_name,
+        }
+    }
+}
+
 <span class="attr">#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
 </span><span class="kw">pub struct </span>TableOptions {
@@ -358,6 +427,7 @@
 
 <span class="kw">pub const </span>WRITE_BUFFER_SIZE_KEY: <span class="kw-2">&amp;</span>str = <span class="string">&quot;write_buffer_size&quot;</span>;
 <span class="kw">pub const </span>TTL_KEY: <span class="kw-2">&amp;</span>str = <span class="string">&quot;ttl&quot;</span>;
+<span class="kw">pub const </span>REGIONS_KEY: <span class="kw-2">&amp;</span>str = <span class="string">&quot;regions&quot;</span>;
 <span class="kw">pub const </span>COMPACTION_TIME_WINDOW_KEY: <span class="kw-2">&amp;</span>str = <span class="string">&quot;compaction_time_window&quot;</span>;
 
 <span class="kw">impl </span>TryFrom&lt;<span class="kw-2">&amp;</span>HashMap&lt;String, String&gt;&gt; <span class="kw">for </span>TableOptions {
@@ -402,7 +472,11 @@
             };
         }
         options.extra_options = HashMap::from_iter(value.iter().filter_map(|(k, v)| {
-            <span class="kw">if </span>k != WRITE_BUFFER_SIZE_KEY &amp;&amp; k != TTL_KEY &amp;&amp; k != COMPACTION_TIME_WINDOW_KEY {
+            <span class="kw">if </span>k != WRITE_BUFFER_SIZE_KEY
+                &amp;&amp; k != REGIONS_KEY
+                &amp;&amp; k != TTL_KEY
+                &amp;&amp; k != COMPACTION_TIME_WINDOW_KEY
+            {
                 <span class="prelude-val">Some</span>((k.clone(), v.clone()))
             } <span class="kw">else </span>{
                 <span class="prelude-val">None
@@ -459,6 +533,14 @@
 }
 
 <span class="kw">impl </span>AlterTableRequest {
+    <span class="kw">pub fn </span>table_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; TableReference {
+        TableReference {
+            catalog: <span class="kw-2">&amp;</span><span class="self">self</span>.catalog_name,
+            schema: <span class="kw-2">&amp;</span><span class="self">self</span>.schema_name,
+            table: <span class="kw-2">&amp;</span><span class="self">self</span>.table_name,
+        }
+    }
+
     <span class="kw">pub fn </span>is_rename_table(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
         <span class="macro">matches!</span>(<span class="self">self</span>.alter_kind, AlterKind::RenameTable { .. })
     }
@@ -484,6 +566,16 @@
     <span class="kw">pub </span>catalog_name: String,
     <span class="kw">pub </span>schema_name: String,
     <span class="kw">pub </span>table_name: String,
+}
+
+<span class="kw">impl </span>DropTableRequest {
+    <span class="kw">pub fn </span>table_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; TableReference {
+        TableReference {
+            catalog: <span class="kw-2">&amp;</span><span class="self">self</span>.catalog_name,
+            schema: <span class="kw-2">&amp;</span><span class="self">self</span>.schema_name,
+            table: <span class="kw-2">&amp;</span><span class="self">self</span>.table_name,
+        }
+    }
 }
 
 <span class="attr">#[derive(Debug)]
@@ -517,6 +609,7 @@
     <span class="kw">pub </span>schema_name: String,
     <span class="kw">pub </span>table_name: String,
     <span class="kw">pub </span>location: String,
+    <span class="kw">pub </span>with: HashMap&lt;String, String&gt;,
     <span class="kw">pub </span>connection: HashMap&lt;String, String&gt;,
     <span class="kw">pub </span>pattern: <span class="prelude-ty">Option</span>&lt;String&gt;,
     <span class="kw">pub </span>direction: CopyDirection,
@@ -530,6 +623,19 @@
     <span class="kw">pub </span>region_number: <span class="prelude-ty">Option</span>&lt;RegionNumber&gt;,
     <span class="doccomment">/// Wait until the flush is done.
     </span><span class="kw">pub </span>wait: <span class="prelude-ty">Option</span>&lt;bool&gt;,
+}
+
+<span class="attr">#[macro_export]
+</span><span class="macro">macro_rules! </span>meter_insert_request {
+    (<span class="macro-nonterminal">$req</span>: expr) =&gt; {
+        <span class="macro">meter_macros::write_meter!</span>(
+            <span class="macro-nonterminal">$req</span>.catalog_name.to_string(),
+            <span class="macro-nonterminal">$req</span>.schema_name.to_string(),
+            <span class="macro-nonterminal">$req</span>.table_name.to_string(),
+            <span class="macro-nonterminal">$req</span>.region_number,
+            <span class="macro-nonterminal">$req
+        </span>);
+    };
 }
 
 <span class="attr">#[cfg(test)]

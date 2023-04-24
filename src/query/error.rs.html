@@ -149,6 +149,81 @@
 <a href="#149" id="149">149</a>
 <a href="#150" id="150">150</a>
 <a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
+<a href="#163" id="163">163</a>
+<a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -167,6 +242,8 @@
 
 <span class="kw">use </span>common_error::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>datafusion::error::DataFusionError;
+<span class="kw">use </span>datatypes::prelude::ConcreteDataType;
+<span class="kw">use </span>datatypes::value::Value;
 <span class="kw">use </span>snafu::{Location, Snafu};
 
 <span class="attr">#[derive(Debug, Snafu)]
@@ -261,6 +338,68 @@
         table_name: String,
         location: Location,
     },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to convert value to sql value: {}&quot;</span>, value))]
+    </span>ConvertSqlValue {
+        value: Value,
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: sql::error::Error,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to convert concrete type to sql type: {:?}&quot;</span>, datatype))]
+    </span>ConvertSqlType {
+        datatype: ConcreteDataType,
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: sql::error::Error,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to parse SQL, source: {}&quot;</span>, source))]
+    </span>ParseSql {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: sql::error::Error,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Missing required field: {}&quot;</span>, name))]
+    </span>MissingRequiredField { name: String, location: Location },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to regex, source: {}&quot;</span>, source))]
+    </span>BuildRegex {
+        location: Location,
+        source: regex::Error,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to build data source backend, source: {}&quot;</span>, source))]
+    </span>BuildBackend {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: common_datasource::error::Error,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to list objects, source: {}&quot;</span>, source))]
+    </span>ListObjects {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: common_datasource::error::Error,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Unsupported file format: {}&quot;</span>, format))]
+    </span>UnsupportedFileFormat { format: String, location: Location },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to parse file format: {}&quot;</span>, source))]
+    </span>ParseFileFormat {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: common_datasource::error::Error,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to infer schema: {}&quot;</span>, source))]
+    </span>InferSchema {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: common_datasource::error::Error,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to convert datafusion schema, source: {}&quot;</span>, source))]
+    </span>ConvertSchema {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: datatypes::error::Error,
+    },
 }
 
 <span class="kw">impl </span>ErrorExt <span class="kw">for </span>Error {
@@ -274,17 +413,28 @@
             | SchemaNotFound { .. }
             | TableNotFound { .. }
             | ParseTimestamp { .. }
-            | ParseFloat { .. } =&gt; StatusCode::InvalidArguments,
+            | ParseFloat { .. }
+            | MissingRequiredField { .. }
+            | BuildRegex { .. }
+            | UnsupportedFileFormat { .. }
+            | ConvertSchema { .. } =&gt; StatusCode::InvalidArguments,
+
+            BuildBackend { .. } | ListObjects { .. } =&gt; StatusCode::StorageUnavailable,
+
+            ParseFileFormat { source, .. } | InferSchema { source, .. } =&gt; source.status_code(),
+
             QueryAccessDenied { .. } =&gt; StatusCode::AccessDenied,
             Catalog { source } =&gt; source.status_code(),
             VectorComputation { source } | ConvertDatafusionSchema { source } =&gt; {
                 source.status_code()
             }
+            ParseSql { source } =&gt; source.status_code(),
             CreateRecordBatch { source } =&gt; source.status_code(),
             QueryExecution { source } | QueryPlan { source } =&gt; source.status_code(),
             DataFusion { .. } | MissingTimestampColumn { .. } =&gt; StatusCode::Internal,
             Sql { source } =&gt; source.status_code(),
             PlanSql { .. } =&gt; StatusCode::PlanQuery,
+            ConvertSqlType { source, .. } | ConvertSqlValue { source, .. } =&gt; source.status_code(),
         }
     }
 

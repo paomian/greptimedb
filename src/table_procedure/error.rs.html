@@ -93,6 +93,7 @@
 <a href="#93" id="93">93</a>
 <a href="#94" id="94">94</a>
 <a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -108,6 +109,7 @@
 // limitations under the License.
 
 </span><span class="kw">use </span>std::any::Any;
+<span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>common_error::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>common_procedure::ProcedureId;
@@ -152,6 +154,7 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;Subprocedure {} failed&quot;</span>, subprocedure_id))]
     </span>SubprocedureFailed {
         subprocedure_id: ProcedureId,
+        source: Arc&lt;common_procedure::Error&gt;,
         location: Location,
     },
 
@@ -166,9 +169,8 @@
         <span class="kw">use </span>Error::<span class="kw-2">*</span>;
 
         <span class="kw">match </span><span class="self">self </span>{
-            SerializeProcedure { .. } | DeserializeProcedure { .. } | SubprocedureFailed { .. } =&gt; {
-                StatusCode::Internal
-            }
+            SerializeProcedure { .. } | DeserializeProcedure { .. } =&gt; StatusCode::Internal,
+            SubprocedureFailed { source, .. } =&gt; source.status_code(),
             InvalidRawSchema { source, .. } =&gt; source.status_code(),
             AccessCatalog { source } =&gt; source.status_code(),
             CatalogNotFound { .. } | SchemaNotFound { .. } | TableExists { .. } =&gt; {

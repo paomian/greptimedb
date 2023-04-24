@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"opaque":[""],"struct":["ImmutableFileTable"],"type":["ImmutableFileTableRef"]};
+window.SIDEBAR_ITEMS = {"opaque":[""],"struct":["ImmutableFileTable","ImmutableFileTableOptions"],"type":["ImmutableFileTableRef"]};

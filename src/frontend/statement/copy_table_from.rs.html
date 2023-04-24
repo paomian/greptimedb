@@ -286,6 +286,10 @@
 <a href="#286" id="286">286</a>
 <a href="#287" id="287">287</a>
 <a href="#288" id="288">288</a>
+<a href="#289" id="289">289</a>
+<a href="#290" id="290">290</a>
+<a href="#291" id="291">291</a>
+<a href="#292" id="292">292</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -334,7 +338,7 @@
         <span class="kw">let </span>(_schema, _host, path) = parse_url(<span class="kw-2">&amp;</span>req.location).context(error::ParseUrlSnafu)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>object_store =
-            build_backend(<span class="kw-2">&amp;</span>req.location, req.connection).context(error::BuildBackendSnafu)<span class="question-mark">?</span>;
+            build_backend(<span class="kw-2">&amp;</span>req.location, <span class="kw-2">&amp;</span>req.connection).context(error::BuildBackendSnafu)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>(dir, filename) = find_dir_and_filename(<span class="kw-2">&amp;</span>path);
         <span class="kw">let </span>regex = req
@@ -365,6 +369,10 @@
         <span class="kw">let </span><span class="kw-2">mut </span>rows_inserted = <span class="number">0</span>;
         <span class="kw">for </span>entry <span class="kw">in </span>entries.iter() {
             <span class="kw">let </span>path = entry.path();
+            <span class="comment">// skips directories.
+            </span><span class="kw">if </span>entry.path().ends_with(<span class="string">&#39;/&#39;</span>) {
+                <span class="kw">continue</span>;
+            }
             <span class="kw">let </span>reader = object_store
                 .reader(path)
                 .<span class="kw">await

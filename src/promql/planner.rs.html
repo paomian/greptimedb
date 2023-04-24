@@ -1944,6 +1944,7 @@
 <a href="#1944" id="1944">1944</a>
 <a href="#1945" id="1945">1945</a>
 <a href="#1946" id="1946">1946</a>
+<a href="#1947" id="1947">1947</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1997,9 +1998,9 @@
     EmptyMetric, InstantManipulate, Millisecond, RangeManipulate, SeriesDivide, SeriesNormalize,
 };
 <span class="kw">use </span><span class="kw">crate</span>::functions::{
-    AbsentOverTime, AvgOverTime, Changes, CountOverTime, Delta, HoltWinters, IDelta, Increase,
-    LastOverTime, MaxOverTime, MinOverTime, PredictLinear, PresentOverTime, QuantileOverTime, Rate,
-    Resets, StddevOverTime, StdvarOverTime, SumOverTime,
+    AbsentOverTime, AvgOverTime, Changes, CountOverTime, Delta, Deriv, HoltWinters, IDelta,
+    Increase, LastOverTime, MaxOverTime, MinOverTime, PredictLinear, PresentOverTime,
+    QuantileOverTime, Rate, Resets, StddevOverTime, StdvarOverTime, SumOverTime,
 };
 
 <span class="kw">const </span>LEFT_PLAN_JOIN_ALIAS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;lhs&quot;</span>;
@@ -2722,6 +2723,7 @@
             <span class="string">&quot;irate&quot; </span>=&gt; ScalarFunc::Udf(IDelta::&lt;<span class="bool-val">true</span>&gt;::scalar_udf()),
             <span class="string">&quot;resets&quot; </span>=&gt; ScalarFunc::Udf(Resets::scalar_udf()),
             <span class="string">&quot;changes&quot; </span>=&gt; ScalarFunc::Udf(Changes::scalar_udf()),
+            <span class="string">&quot;deriv&quot; </span>=&gt; ScalarFunc::Udf(Deriv::scalar_udf()),
             <span class="string">&quot;avg_over_time&quot; </span>=&gt; ScalarFunc::Udf(AvgOverTime::scalar_udf()),
             <span class="string">&quot;min_over_time&quot; </span>=&gt; ScalarFunc::Udf(MinOverTime::scalar_udf()),
             <span class="string">&quot;max_over_time&quot; </span>=&gt; ScalarFunc::Udf(MaxOverTime::scalar_udf()),

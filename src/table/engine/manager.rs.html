@@ -125,6 +125,63 @@
 <a href="#125" id="125">125</a>
 <a href="#126" id="126">126</a>
 <a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
+<a href="#163" id="163">163</a>
+<a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -146,38 +203,70 @@
 <span class="kw">use </span>common_telemetry::error;
 <span class="kw">use </span>snafu::{ensure, OptionExt};
 
-<span class="kw">use </span><span class="kw">crate</span>::engine::TableEngineRef;
+<span class="kw">use </span><span class="kw">crate</span>::engine::{TableEngineProcedureRef, TableEngineRef};
 <span class="kw">use </span><span class="kw">crate</span>::error::{EngineExistSnafu, EngineNotFoundSnafu, <span class="prelude-ty">Result</span>};
 
 <span class="attr">#[async_trait::async_trait]
 </span><span class="kw">pub trait </span>TableEngineManager: Send + Sync {
-    <span class="doccomment">/// returns `error::EngineNotFound` if engine not found
+    <span class="doccomment">/// returns [Error::EngineNotFound](crate::error::Error::EngineNotFound) if engine not found
     </span><span class="kw">fn </span>engine(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;TableEngineRef&gt;;
 
-    <span class="doccomment">/// returns `error::EngineExist` if engine exists
+    <span class="doccomment">/// returns [Error::EngineExist](crate::error::Error::EngineExist) if engine exists
     </span><span class="kw">fn </span>register_engine(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str, engine: TableEngineRef) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt;;
 
     <span class="doccomment">/// closes all registered engines
     </span><span class="kw">async fn </span>close(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt;;
+
+    <span class="doccomment">/// returns [TableEngineProcedureRef] of specific engine `name` or
+    /// [Error::EngineNotFound](crate::error::Error::EngineNotFound) if engine not found
+    </span><span class="kw">fn </span>engine_procedure(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;TableEngineProcedureRef&gt;;
 }
 <span class="kw">pub type </span>TableEngineManagerRef = Arc&lt;<span class="kw">dyn </span>TableEngineManager&gt;;
 
 <span class="doccomment">/// Simple in-memory table engine manager
 </span><span class="kw">pub struct </span>MemoryTableEngineManager {
     <span class="kw">pub </span>engines: RwLock&lt;HashMap&lt;String, TableEngineRef&gt;&gt;,
+    engine_procedures: RwLock&lt;HashMap&lt;String, TableEngineProcedureRef&gt;&gt;,
 }
 
 <span class="kw">impl </span>MemoryTableEngineManager {
-    <span class="kw">pub fn </span>new(engine: TableEngineRef) -&gt; <span class="self">Self </span>{
+    <span class="doccomment">/// Create a new [MemoryTableEngineManager] with single table `engine`.
+    </span><span class="kw">pub fn </span>new(engine: TableEngineRef) -&gt; <span class="self">Self </span>{
         MemoryTableEngineManager::alias(engine.name().to_string(), engine)
     }
 
-    <span class="kw">pub fn </span>alias(name: String, engine: TableEngineRef) -&gt; <span class="self">Self </span>{
+    <span class="doccomment">/// Create a new [MemoryTableEngineManager] with single table `engine` and
+    /// an alias `name` instead of the engine&#39;s name.
+    </span><span class="kw">pub fn </span>alias(name: String, engine: TableEngineRef) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span><span class="kw-2">mut </span>engines = HashMap::new();
         engines.insert(name, engine);
         <span class="kw">let </span>engines = RwLock::new(engines);
 
-        MemoryTableEngineManager { engines }
+        MemoryTableEngineManager {
+            engines,
+            engine_procedures: RwLock::new(HashMap::new()),
+        }
+    }
+
+    <span class="doccomment">/// Attach the `engine_procedures` to the manager.
+    </span><span class="kw">pub fn </span>with_engine_procedures(
+        <span class="kw-2">mut </span><span class="self">self</span>,
+        engine_procedures: HashMap&lt;String, TableEngineProcedureRef&gt;,
+    ) -&gt; <span class="self">Self </span>{
+        <span class="self">self</span>.engine_procedures = RwLock::new(engine_procedures);
+        <span class="self">self
+    </span>}
+
+    <span class="kw">pub fn </span>with(engines: Vec&lt;TableEngineRef&gt;) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span>engines = engines
+            .into_iter()
+            .map(|engine| (engine.name().to_string(), engine))
+            .collect::&lt;HashMap&lt;<span class="kw">_</span>, <span class="kw">_</span>&gt;&gt;();
+        <span class="kw">let </span>engines = RwLock::new(engines);
+        MemoryTableEngineManager {
+            engines,
+            engine_procedures: RwLock::new(HashMap::new()),
+        }
     }
 }
 
@@ -218,6 +307,14 @@
 
         <span class="prelude-val">Ok</span>(())
     }
+
+    <span class="kw">fn </span>engine_procedure(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;TableEngineProcedureRef&gt; {
+        <span class="kw">let </span>engine_procedures = <span class="self">self</span>.engine_procedures.read().unwrap();
+        engine_procedures
+            .get(name)
+            .cloned()
+            .context(EngineNotFoundSnafu { engine: name })
+    }
 }
 
 <span class="attr">#[cfg(test)]
@@ -235,6 +332,12 @@
         <span class="kw">let </span>table_engine_ref = Arc::new(table_engine);
         <span class="kw">let </span>table_engine_manager = MemoryTableEngineManager::new(table_engine_ref.clone());
 
+        <span class="comment">// Attach engine procedures.
+        </span><span class="kw">let </span><span class="kw-2">mut </span>engine_procedures = HashMap::new();
+        <span class="kw">let </span>engine_procedure: TableEngineProcedureRef = table_engine_ref.clone();
+        engine_procedures.insert(table_engine_ref.name().to_string(), engine_procedure);
+        <span class="kw">let </span>table_engine_manager = table_engine_manager.with_engine_procedures(engine_procedures);
+
         table_engine_manager
             .register_engine(<span class="string">&quot;yet_another&quot;</span>, table_engine_ref.clone())
             .unwrap();
@@ -249,7 +352,18 @@
 
         <span class="kw">let </span>missing = table_engine_manager.engine(<span class="string">&quot;not_exists&quot;</span>);
 
-        <span class="macro">assert_matches!</span>(missing.err().unwrap(), error::Error::EngineNotFound { .. })
+        <span class="macro">assert_matches!</span>(missing.err().unwrap(), error::Error::EngineNotFound { .. });
+
+        <span class="macro">assert!</span>(table_engine_manager
+            .engine_procedure(table_engine_ref.name())
+            .is_ok());
+        <span class="macro">assert_matches!</span>(
+            table_engine_manager
+                .engine_procedure(<span class="string">&quot;unknown&quot;</span>)
+                .err()
+                .unwrap(),
+            error::Error::EngineNotFound { .. }
+        );
     }
 }
 </code></pre></div>

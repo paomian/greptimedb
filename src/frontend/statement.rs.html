@@ -187,6 +187,9 @@
 <a href="#187" id="187">187</a>
 <a href="#188" id="188">188</a>
 <a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -355,7 +358,7 @@
     <span class="kw">let </span>CopyTableArgument {
         location,
         connection,
-        pattern,
+        with,
         table_name,
         ..
     } = <span class="kw">match </span>stmt {
@@ -366,11 +369,14 @@
         .map_err(BoxedError::new)
         .context(ExternalSnafu)<span class="question-mark">?</span>;
 
+    <span class="kw">let </span>pattern = with.get(<span class="string">&quot;PATTERN&quot;</span>).cloned();
+
     <span class="prelude-val">Ok</span>(CopyTableRequest {
         catalog_name,
         schema_name,
         table_name,
         location,
+        with,
         connection,
         pattern,
         direction,

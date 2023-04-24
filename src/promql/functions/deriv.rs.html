@@ -108,8 +108,8 @@
 <span class="kw">use </span><span class="kw">crate</span>::functions::{extract_array, linear_regression};
 <span class="kw">use </span><span class="kw">crate</span>::range_array::RangeArray;
 
-<span class="attr">#[range_fn(name = <span class="string">&quot;Deriv&quot;</span>, ret = <span class="string">&quot;Float64Array&quot;</span>, display_name = <span class="string">&quot;prom_drive&quot;</span>)]
-</span><span class="kw">pub fn </span>drive(times: <span class="kw-2">&amp;</span>TimestampMillisecondArray, values: <span class="kw-2">&amp;</span>Float64Array) -&gt; <span class="prelude-ty">Option</span>&lt;f64&gt; {
+<span class="attr">#[range_fn(name = <span class="string">&quot;Deriv&quot;</span>, ret = <span class="string">&quot;Float64Array&quot;</span>, display_name = <span class="string">&quot;prom_deriv&quot;</span>)]
+</span><span class="kw">pub fn </span>deriv(times: <span class="kw-2">&amp;</span>TimestampMillisecondArray, values: <span class="kw-2">&amp;</span>Float64Array) -&gt; <span class="prelude-ty">Option</span>&lt;f64&gt; {
     <span class="kw">if </span>values.len() &lt; <span class="number">2 </span>{
         <span class="prelude-val">None
     </span>} <span class="kw">else </span>{

@@ -350,7 +350,6 @@
 <a href="#350" id="350">350</a>
 <a href="#351" id="351">351</a>
 <a href="#352" id="352">352</a>
-<a href="#353" id="353">353</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -564,12 +563,11 @@
                 </span><span class="self">self</span>.data.state = CreateTableState::RegisterCatalog;
                 <span class="prelude-val">Ok</span>(Status::executing(<span class="bool-val">true</span>))
             }
-            ProcedureState::Failed { .. } =&gt; {
+            ProcedureState::Failed { error } =&gt; {
                 <span class="comment">// Return error if the subprocedure is failed.
-                </span>SubprocedureFailedSnafu {
+                </span><span class="prelude-val">Err</span>(error).context(SubprocedureFailedSnafu {
                     subprocedure_id: sub_id,
-                }
-                .fail()<span class="question-mark">?
+                })<span class="question-mark">?
             </span>}
         }
     }

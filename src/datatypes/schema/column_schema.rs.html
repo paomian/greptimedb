@@ -375,6 +375,12 @@
 <a href="#375" id="375">375</a>
 <a href="#376" id="376">376</a>
 <a href="#377" id="377">377</a>
+<a href="#378" id="378">378</a>
+<a href="#379" id="379">379</a>
+<a href="#380" id="380">380</a>
+<a href="#381" id="381">381</a>
+<a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -405,6 +411,7 @@
 
 <span class="doccomment">/// Key used to store whether the column is time index in arrow field&#39;s metadata.
 </span><span class="kw">pub const </span>TIME_INDEX_KEY: <span class="kw-2">&amp;</span>str = <span class="string">&quot;greptime:time_index&quot;</span>;
+<span class="kw">pub const </span>COMMENT_KEY: <span class="kw-2">&amp;</span>str = <span class="string">&quot;greptime:storage:comment&quot;</span>;
 <span class="doccomment">/// Key used to store default constraint in arrow field&#39;s metadata.
 </span><span class="kw">const </span>DEFAULT_CONSTRAINT_KEY: <span class="kw-2">&amp;</span>str = <span class="string">&quot;greptime:default_constraint&quot;</span>;
 
@@ -453,6 +460,11 @@
     <span class="attr">#[inline]
     </span><span class="kw">pub fn </span>metadata(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Metadata {
         <span class="kw-2">&amp;</span><span class="self">self</span>.metadata
+    }
+
+    <span class="attr">#[inline]
+    </span><span class="kw">pub fn </span>mut_metadata(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>Metadata {
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>.metadata
     }
 
     <span class="kw">pub fn </span>with_time_index(<span class="kw-2">mut </span><span class="self">self</span>, is_time_index: bool) -&gt; <span class="self">Self </span>{

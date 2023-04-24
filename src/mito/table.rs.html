@@ -856,6 +856,8 @@
                 new_info.meta = new_meta;
             }
         }
+        <span class="comment">// Do create_alter_operation first to bump next_column_id in meta.
+        </span><span class="kw">let </span>alter_op = create_alter_operation(table_name, <span class="kw-2">&amp;</span>req.alter_kind, <span class="kw-2">&amp;mut </span>new_info.meta)<span class="question-mark">?</span>;
         <span class="comment">// Increase version of the table.
         </span>new_info.ident.version = table_info.ident.version + <span class="number">1</span>;
 
@@ -878,9 +880,7 @@
             .map_err(BoxedError::new)
             .context(table_error::TableOperationSnafu)<span class="question-mark">?</span>;
 
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(alter_op) =
-            create_alter_operation(table_name, <span class="kw-2">&amp;</span>req.alter_kind, <span class="kw-2">&amp;mut </span>new_info.meta)<span class="question-mark">?
-        </span>{
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(alter_op) = alter_op {
             <span class="comment">// TODO(yingwen): Error handling. Maybe the region need to provide a method to
             // validate the request first.
             </span><span class="kw">let </span>regions = <span class="self">self</span>.regions();

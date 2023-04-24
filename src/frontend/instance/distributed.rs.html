@@ -733,6 +733,113 @@
 <a href="#733" id="733">733</a>
 <a href="#734" id="734">734</a>
 <a href="#735" id="735">735</a>
+<a href="#736" id="736">736</a>
+<a href="#737" id="737">737</a>
+<a href="#738" id="738">738</a>
+<a href="#739" id="739">739</a>
+<a href="#740" id="740">740</a>
+<a href="#741" id="741">741</a>
+<a href="#742" id="742">742</a>
+<a href="#743" id="743">743</a>
+<a href="#744" id="744">744</a>
+<a href="#745" id="745">745</a>
+<a href="#746" id="746">746</a>
+<a href="#747" id="747">747</a>
+<a href="#748" id="748">748</a>
+<a href="#749" id="749">749</a>
+<a href="#750" id="750">750</a>
+<a href="#751" id="751">751</a>
+<a href="#752" id="752">752</a>
+<a href="#753" id="753">753</a>
+<a href="#754" id="754">754</a>
+<a href="#755" id="755">755</a>
+<a href="#756" id="756">756</a>
+<a href="#757" id="757">757</a>
+<a href="#758" id="758">758</a>
+<a href="#759" id="759">759</a>
+<a href="#760" id="760">760</a>
+<a href="#761" id="761">761</a>
+<a href="#762" id="762">762</a>
+<a href="#763" id="763">763</a>
+<a href="#764" id="764">764</a>
+<a href="#765" id="765">765</a>
+<a href="#766" id="766">766</a>
+<a href="#767" id="767">767</a>
+<a href="#768" id="768">768</a>
+<a href="#769" id="769">769</a>
+<a href="#770" id="770">770</a>
+<a href="#771" id="771">771</a>
+<a href="#772" id="772">772</a>
+<a href="#773" id="773">773</a>
+<a href="#774" id="774">774</a>
+<a href="#775" id="775">775</a>
+<a href="#776" id="776">776</a>
+<a href="#777" id="777">777</a>
+<a href="#778" id="778">778</a>
+<a href="#779" id="779">779</a>
+<a href="#780" id="780">780</a>
+<a href="#781" id="781">781</a>
+<a href="#782" id="782">782</a>
+<a href="#783" id="783">783</a>
+<a href="#784" id="784">784</a>
+<a href="#785" id="785">785</a>
+<a href="#786" id="786">786</a>
+<a href="#787" id="787">787</a>
+<a href="#788" id="788">788</a>
+<a href="#789" id="789">789</a>
+<a href="#790" id="790">790</a>
+<a href="#791" id="791">791</a>
+<a href="#792" id="792">792</a>
+<a href="#793" id="793">793</a>
+<a href="#794" id="794">794</a>
+<a href="#795" id="795">795</a>
+<a href="#796" id="796">796</a>
+<a href="#797" id="797">797</a>
+<a href="#798" id="798">798</a>
+<a href="#799" id="799">799</a>
+<a href="#800" id="800">800</a>
+<a href="#801" id="801">801</a>
+<a href="#802" id="802">802</a>
+<a href="#803" id="803">803</a>
+<a href="#804" id="804">804</a>
+<a href="#805" id="805">805</a>
+<a href="#806" id="806">806</a>
+<a href="#807" id="807">807</a>
+<a href="#808" id="808">808</a>
+<a href="#809" id="809">809</a>
+<a href="#810" id="810">810</a>
+<a href="#811" id="811">811</a>
+<a href="#812" id="812">812</a>
+<a href="#813" id="813">813</a>
+<a href="#814" id="814">814</a>
+<a href="#815" id="815">815</a>
+<a href="#816" id="816">816</a>
+<a href="#817" id="817">817</a>
+<a href="#818" id="818">818</a>
+<a href="#819" id="819">819</a>
+<a href="#820" id="820">820</a>
+<a href="#821" id="821">821</a>
+<a href="#822" id="822">822</a>
+<a href="#823" id="823">823</a>
+<a href="#824" id="824">824</a>
+<a href="#825" id="825">825</a>
+<a href="#826" id="826">826</a>
+<a href="#827" id="827">827</a>
+<a href="#828" id="828">828</a>
+<a href="#829" id="829">829</a>
+<a href="#830" id="830">830</a>
+<a href="#831" id="831">831</a>
+<a href="#832" id="832">832</a>
+<a href="#833" id="833">833</a>
+<a href="#834" id="834">834</a>
+<a href="#835" id="835">835</a>
+<a href="#836" id="836">836</a>
+<a href="#837" id="837">837</a>
+<a href="#838" id="838">838</a>
+<a href="#839" id="839">839</a>
+<a href="#840" id="840">840</a>
+<a href="#841" id="841">841</a>
+<a href="#842" id="842">842</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -754,8 +861,8 @@
 
 <span class="kw">use </span>api::helper::ColumnDataTypeWrapper;
 <span class="kw">use </span>api::v1::{
-    column_def, AlterExpr, CreateDatabaseExpr, CreateTableExpr, DropTableExpr, FlushTableExpr,
-    InsertRequest, TableId,
+    column_def, AlterExpr, CreateDatabaseExpr, CreateTableExpr, DeleteRequest, DropTableExpr,
+    FlushTableExpr, InsertRequest, TableId,
 };
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>catalog::helper::{SchemaKey, SchemaValue};
@@ -777,15 +884,17 @@
     CompareAndPutRequest, CreateRequest <span class="kw">as </span>MetaCreateRequest, Partition <span class="kw">as </span>MetaPartition,
     RouteRequest, RouteResponse, TableName,
 };
+<span class="kw">use </span>partition::manager::PartitionInfo;
 <span class="kw">use </span>partition::partition::{PartitionBound, PartitionDef};
 <span class="kw">use </span>query::error::QueryExecutionSnafu;
 <span class="kw">use </span>query::query_engine::SqlStatementExecutor;
 <span class="kw">use </span>session::context::QueryContextRef;
 <span class="kw">use </span>snafu::{ensure, OptionExt, ResultExt};
-<span class="kw">use </span>sql::ast::Value <span class="kw">as </span>SqlValue;
-<span class="kw">use </span>sql::statements::create::Partitions;
-<span class="kw">use </span>sql::statements::sql_value_to_value;
+<span class="kw">use </span>sql::ast::{Ident, Value <span class="kw">as </span>SqlValue};
+<span class="kw">use </span>sql::statements::create::{PartitionEntry, Partitions};
 <span class="kw">use </span>sql::statements::statement::Statement;
+<span class="kw">use </span>sql::statements::{<span class="self">self</span>, sql_value_to_value};
+<span class="kw">use </span>table::engine::TableReference;
 <span class="kw">use </span>table::metadata::{RawTableInfo, RawTableMeta, TableIdent, TableType};
 <span class="kw">use </span>table::requests::TableOptions;
 <span class="kw">use </span>table::table::AlterContext;
@@ -797,11 +906,13 @@
     <span class="self">self</span>, AlterExprToRequestSnafu, CatalogEntrySerdeSnafu, CatalogSnafu, ColumnDataTypeSnafu,
     DeserializePartitionSnafu, InvokeDatanodeSnafu, ParseSqlSnafu, PrimaryKeyNotFoundSnafu,
     RequestDatanodeSnafu, RequestMetaSnafu, <span class="prelude-ty">Result</span>, SchemaExistsSnafu, StartMetaClientSnafu,
-    TableAlreadyExistSnafu, TableNotFoundSnafu, TableSnafu, ToTableInsertRequestSnafu,
-    UnrecognizedTableOptionSnafu,
+    TableAlreadyExistSnafu, TableNotFoundSnafu, TableSnafu, ToTableDeleteRequestSnafu,
+    ToTableInsertRequestSnafu, UnrecognizedTableOptionSnafu,
 };
 <span class="kw">use </span><span class="kw">crate</span>::expr_factory;
 <span class="kw">use </span><span class="kw">crate</span>::table::DistTable;
+
+<span class="kw">const </span>MAX_VALUE: <span class="kw-2">&amp;</span>str = <span class="string">&quot;MAXVALUE&quot;</span>;
 
 <span class="attr">#[derive(Clone)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>DistInstance {
@@ -1058,25 +1169,30 @@
                     database_name: stmt.name.to_string(),
                     create_if_not_exists: stmt.if_not_exists,
                 };
-                <span class="kw">return </span><span class="self">self</span>.handle_create_database(expr, query_ctx).<span class="kw">await</span>;
-            }
+                <span class="self">self</span>.handle_create_database(expr, query_ctx).<span class="kw">await
+            </span>}
             Statement::CreateTable(stmt) =&gt; {
                 <span class="kw">let </span>create_expr = <span class="kw-2">&amp;mut </span>expr_factory::create_to_expr(<span class="kw-2">&amp;</span>stmt, query_ctx)<span class="question-mark">?</span>;
                 <span class="kw">let _ </span>= <span class="self">self</span>.create_table(create_expr, stmt.partitions).<span class="kw">await</span><span class="question-mark">?</span>;
                 <span class="prelude-val">Ok</span>(Output::AffectedRows(<span class="number">0</span>))
             }
+            Statement::CreateExternalTable(stmt) =&gt; {
+                <span class="kw">let </span>create_expr = <span class="kw-2">&amp;mut </span>expr_factory::create_external_expr(stmt, query_ctx).<span class="kw">await</span><span class="question-mark">?</span>;
+                <span class="self">self</span>.create_table(create_expr, <span class="prelude-val">None</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+                <span class="prelude-val">Ok</span>(Output::AffectedRows(<span class="number">0</span>))
+            }
             Statement::Alter(alter_table) =&gt; {
                 <span class="kw">let </span>expr = grpc::to_alter_expr(alter_table, query_ctx)<span class="question-mark">?</span>;
-                <span class="kw">return </span><span class="self">self</span>.handle_alter_table(expr).<span class="kw">await</span>;
-            }
+                <span class="self">self</span>.handle_alter_table(expr).<span class="kw">await
+            </span>}
             Statement::DropTable(stmt) =&gt; {
                 <span class="kw">let </span>(catalog, schema, table) =
                     table_idents_to_full_name(stmt.table_name(), query_ctx)
                         .map_err(BoxedError::new)
                         .context(error::ExternalSnafu)<span class="question-mark">?</span>;
                 <span class="kw">let </span>table_name = TableName::new(catalog, schema, table);
-                <span class="kw">return </span><span class="self">self</span>.drop_table(table_name).<span class="kw">await</span>;
-            }
+                <span class="self">self</span>.drop_table(table_name).<span class="kw">await
+            </span>}
             Statement::Insert(insert) =&gt; {
                 <span class="kw">let </span>(catalog, schema, table) =
                     table_idents_to_full_name(insert.table_name(), query_ctx.clone())
@@ -1095,18 +1211,46 @@
                         .<span class="kw">await
                         </span>.context(InvokeDatanodeSnafu)<span class="question-mark">?</span>;
 
-                <span class="kw">return </span><span class="prelude-val">Ok</span>(Output::AffectedRows(
+                <span class="prelude-val">Ok</span>(Output::AffectedRows(
                     table.insert(insert_request).<span class="kw">await</span>.context(TableSnafu)<span class="question-mark">?</span>,
-                ));
+                ))
             }
-            <span class="kw">_ </span>=&gt; {
-                <span class="kw">return </span>error::NotSupportedSnafu {
-                    feat: <span class="macro">format!</span>(<span class="string">&quot;{stmt:?}&quot;</span>),
-                }
-                .fail()
+            Statement::ShowCreateTable(show) =&gt; {
+                <span class="kw">let </span>(catalog, schema, table) =
+                    table_idents_to_full_name(<span class="kw-2">&amp;</span>show.table_name, query_ctx.clone())
+                        .map_err(BoxedError::new)
+                        .context(error::ExternalSnafu)<span class="question-mark">?</span>;
+
+                <span class="kw">let </span>table_ref = <span class="self">self
+                    </span>.catalog_manager
+                    .table(<span class="kw-2">&amp;</span>catalog, <span class="kw-2">&amp;</span>schema, <span class="kw-2">&amp;</span>table)
+                    .<span class="kw">await
+                    </span>.context(CatalogSnafu)<span class="question-mark">?
+                    </span>.context(TableNotFoundSnafu { table_name: <span class="kw-2">&amp;</span>table })<span class="question-mark">?</span>;
+                <span class="kw">let </span>table_name = TableName::new(catalog, schema, table);
+
+                <span class="self">self</span>.show_create_table(table_name, table_ref).<span class="kw">await
+            </span>}
+            <span class="kw">_ </span>=&gt; error::NotSupportedSnafu {
+                feat: <span class="macro">format!</span>(<span class="string">&quot;{stmt:?}&quot;</span>),
             }
+            .fail(),
         }
-        .context(error::ExecuteStatementSnafu)
+    }
+
+    <span class="kw">async fn </span>show_create_table(<span class="kw-2">&amp;</span><span class="self">self</span>, table_name: TableName, table: TableRef) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
+        <span class="kw">let </span>partitions = <span class="self">self
+            </span>.catalog_manager
+            .partition_manager()
+            .find_table_partitions(<span class="kw-2">&amp;</span>table_name)
+            .<span class="kw">await
+            </span>.context(error::FindTablePartitionRuleSnafu {
+                table_name: <span class="kw-2">&amp;</span>table_name.table_name,
+            })<span class="question-mark">?</span>;
+
+        <span class="kw">let </span>partitions = create_partitions_stmt(partitions)<span class="question-mark">?</span>;
+
+        query::sql::show_create_table(table, partitions).context(error::ExecuteStatementSnafu)
     }
 
     <span class="doccomment">/// Handles distributed database creation
@@ -1220,10 +1364,10 @@
             </span>.context(RequestMetaSnafu)
     }
 
-    <span class="comment">// TODO(LFC): Refactor insertion implementation for DistTable,
-    // GRPC InsertRequest to Table InsertRequest, than split Table InsertRequest, than assemble each GRPC InsertRequest, is rather inefficient,
-    // should operate on GRPC InsertRequest directly.
-    // Also remember to check the &quot;region_number&quot; carried in InsertRequest, too.
+    <span class="comment">// TODO(LFC): Refactor GRPC insertion and deletion implementation here,
+    // Take insertion as an example. GRPC insertion is converted to Table InsertRequest here,
+    // than split the Table InsertRequest in DistTable, than assemble each GRPC InsertRequest there.
+    // Rather inefficient, should operate on GRPC InsertRequest directly.
     </span><span class="kw">async fn </span>handle_dist_insert(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         request: InsertRequest,
@@ -1232,17 +1376,47 @@
         <span class="kw">let </span>catalog = <span class="kw-2">&amp;</span>ctx.current_catalog();
         <span class="kw">let </span>schema = <span class="kw-2">&amp;</span>ctx.current_schema();
         <span class="kw">let </span>table_name = <span class="kw-2">&amp;</span>request.table_name;
+        <span class="kw">let </span>table_ref = TableReference::full(catalog, schema, table_name);
+
         <span class="kw">let </span>table = <span class="self">self
             </span>.catalog_manager
             .table(catalog, schema, table_name)
             .<span class="kw">await
             </span>.context(CatalogSnafu)<span class="question-mark">?
-            </span>.context(TableNotFoundSnafu { table_name })<span class="question-mark">?</span>;
+            </span>.with_context(|| TableNotFoundSnafu {
+                table_name: table_ref.to_string(),
+            })<span class="question-mark">?</span>;
 
         <span class="kw">let </span>request = common_grpc_expr::insert::to_table_insert_request(catalog, schema, request)
             .context(ToTableInsertRequestSnafu)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>affected_rows = table.insert(request).<span class="kw">await</span>.context(TableSnafu)<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(Output::AffectedRows(affected_rows))
+    }
+
+    <span class="kw">async fn </span>handle_dist_delete(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        request: DeleteRequest,
+        ctx: QueryContextRef,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
+        <span class="kw">let </span>catalog = <span class="kw-2">&amp;</span>ctx.current_catalog();
+        <span class="kw">let </span>schema = <span class="kw-2">&amp;</span>ctx.current_schema();
+        <span class="kw">let </span>table_name = <span class="kw-2">&amp;</span>request.table_name;
+        <span class="kw">let </span>table_ref = TableReference::full(catalog, schema, table_name);
+
+        <span class="kw">let </span>table = <span class="self">self
+            </span>.catalog_manager
+            .table(catalog, schema, table_name)
+            .<span class="kw">await
+            </span>.context(CatalogSnafu)<span class="question-mark">?
+            </span>.with_context(|| TableNotFoundSnafu {
+                table_name: table_ref.to_string(),
+            })<span class="question-mark">?</span>;
+
+        <span class="kw">let </span>request = common_grpc_expr::delete::to_table_delete_request(request)
+            .context(ToTableDeleteRequestSnafu)<span class="question-mark">?</span>;
+
+        <span class="kw">let </span>affected_rows = table.delete(request).<span class="kw">await</span>.context(TableSnafu)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(Output::AffectedRows(affected_rows))
     }
 
@@ -1264,6 +1438,46 @@
             </span>.map_err(BoxedError::new)
             .context(QueryExecutionSnafu)
     }
+}
+
+<span class="kw">fn </span>create_partitions_stmt(partitions: Vec&lt;PartitionInfo&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Partitions&gt;&gt; {
+    <span class="kw">if </span>partitions.is_empty() {
+        <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
+    }
+
+    <span class="kw">let </span>column_list: Vec&lt;Ident&gt; = partitions[<span class="number">0</span>]
+        .partition
+        .partition_columns()
+        .iter()
+        .map(|name| name[..].into())
+        .collect();
+
+    <span class="kw">let </span>entries = partitions
+        .into_iter()
+        .map(|info| {
+            <span class="comment">// Generated the partition name from id
+            </span><span class="kw">let </span>name = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;r{}&quot;</span>, info.id);
+            <span class="kw">let </span>bounds = info.partition.partition_bounds();
+            <span class="kw">let </span>value_list = bounds
+                .iter()
+                .map(|b| <span class="kw">match </span>b {
+                    PartitionBound::Value(v) =&gt; statements::value_to_sql_value(v)
+                        .with_context(|<span class="kw">_</span>| error::ConvertSqlValueSnafu { value: v.clone() }),
+                    PartitionBound::MaxValue =&gt; <span class="prelude-val">Ok</span>(SqlValue::Number(MAX_VALUE.to_string(), <span class="bool-val">false</span>)),
+                })
+                .collect::&lt;<span class="prelude-ty">Result</span>&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;&gt;()<span class="question-mark">?</span>;
+
+            <span class="prelude-val">Ok</span>(PartitionEntry {
+                name: name[..].into(),
+                value_list,
+            })
+        })
+        .collect::&lt;<span class="prelude-ty">Result</span>&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;&gt;()<span class="question-mark">?</span>;
+
+    <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(Partitions {
+        column_list,
+        entries,
+    }))
 }
 
 <span class="kw">fn </span>create_table_info(create_table: <span class="kw-2">&amp;</span>CreateTableExpr) -&gt; <span class="prelude-ty">Result</span>&lt;RawTableInfo&gt; {
@@ -1306,7 +1520,7 @@
         schema: raw_schema,
         primary_key_indices,
         value_indices: <span class="macro">vec!</span>[],
-        engine: <span class="string">&quot;mito&quot;</span>.to_string(),
+        engine: create_table.engine.clone(),
         next_column_id: column_schemas.len() <span class="kw">as </span>u32,
         region_numbers: <span class="macro">vec!</span>[],
         engine_options: HashMap::new(),
@@ -1386,7 +1600,7 @@
                 <span class="comment">// indexing is safe here because we have checked that &quot;value_list&quot; and &quot;column_list&quot; are matched in size
                 </span><span class="kw">let </span>(column_name, data_type) = <span class="kw-2">&amp;</span>column_name_and_type[i];
                 <span class="kw">let </span>v = <span class="kw">match </span>v {
-                    SqlValue::Number(n, <span class="kw">_</span>) <span class="kw">if </span>n == <span class="string">&quot;MAXVALUE&quot; </span>=&gt; PartitionBound::MaxValue,
+                    SqlValue::Number(n, <span class="kw">_</span>) <span class="kw">if </span>n == MAX_VALUE =&gt; PartitionBound::MaxValue,
                     <span class="kw">_ </span>=&gt; PartitionBound::Value(
                         sql_value_to_value(column_name, data_type, v).context(ParseSqlSnafu)<span class="question-mark">?</span>,
                     ),

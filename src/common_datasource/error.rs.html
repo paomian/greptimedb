@@ -140,6 +140,43 @@
 <a href="#140" id="140">140</a>
 <a href="#141" id="141">141</a>
 <a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
+<a href="#163" id="163">163</a>
+<a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -164,19 +201,32 @@
 #[snafu(visibility(<span class="kw">pub</span>))]
 </span><span class="kw">pub enum </span>Error {
     <span class="attr">#[snafu(display(<span class="string">&quot;Unsupported compression type: {}&quot;</span>, compression_type))]
-    </span>UnsupportedCompressionType { compression_type: String },
+    </span>UnsupportedCompressionType {
+        compression_type: String,
+        location: Location,
+    },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Unsupported backend protocol: {}&quot;</span>, protocol))]
-    </span>UnsupportedBackendProtocol { protocol: String },
+    </span>UnsupportedBackendProtocol {
+        protocol: String,
+        location: Location,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Unsupported format protocol: {}&quot;</span>, format))]
+    </span>UnsupportedFormat { format: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;empty host: {}&quot;</span>, url))]
-    </span>EmptyHostPath { url: String },
+    </span>EmptyHostPath { url: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid path: {}&quot;</span>, path))]
-    </span>InvalidPath { path: String },
+    </span>InvalidPath { path: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid url: {}, error :{}&quot;</span>, url, source))]
-    </span>InvalidUrl { url: String, source: ParseError },
+    </span>InvalidUrl {
+        url: String,
+        source: ParseError,
+        location: Location,
+    },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to decompression, source: {}&quot;</span>, source))]
     </span>Decompression {
@@ -224,13 +274,29 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid connection: {}&quot;</span>, msg))]
-    </span>InvalidConnection { msg: String },
+    </span>InvalidConnection { msg: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to join handle: {}&quot;</span>, source))]
     </span>JoinHandle {
         location: Location,
         source: tokio::task::JoinError,
     },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to parse format {} with value: {}&quot;</span>, key, value))]
+    </span>ParseFormat {
+        key: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
+        value: String,
+        location: Location,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to merge schema: {}&quot;</span>, source))]
+    </span>MergeSchema {
+        source: arrow_schema::ArrowError,
+        location: Location,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Missing required field: {}&quot;</span>, name))]
+    </span>MissingRequiredField { name: String, location: Location },
 }
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
@@ -245,13 +311,17 @@
 
             UnsupportedBackendProtocol { .. }
             | UnsupportedCompressionType { .. }
+            | UnsupportedFormat { .. }
             | InvalidConnection { .. }
             | InvalidUrl { .. }
             | EmptyHostPath { .. }
             | InvalidPath { .. }
             | InferSchema { .. }
             | ReadParquetSnafu { .. }
-            | ParquetToSchema { .. } =&gt; StatusCode::InvalidArguments,
+            | ParquetToSchema { .. }
+            | ParseFormat { .. }
+            | MergeSchema { .. }
+            | MissingRequiredField { .. } =&gt; StatusCode::InvalidArguments,
 
             Decompression { .. } | JoinHandle { .. } =&gt; StatusCode::Unexpected,
         }
@@ -272,13 +342,17 @@
             ParquetToSchema { location, .. } =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>location),
             Decompression { location, .. } =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>location),
             JoinHandle { location, .. } =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>location),
+            ParseFormat { location, .. } =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>location),
+            MergeSchema { location, .. } =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>location),
+            MissingRequiredField { location, .. } =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>location),
 
-            UnsupportedBackendProtocol { .. }
-            | EmptyHostPath { .. }
-            | InvalidPath { .. }
-            | InvalidUrl { .. }
-            | InvalidConnection { .. }
-            | UnsupportedCompressionType { .. } =&gt; <span class="prelude-val">None</span>,
+            UnsupportedBackendProtocol { location, .. } =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>location),
+            EmptyHostPath { location, .. } =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>location),
+            InvalidPath { location, .. } =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>location),
+            InvalidUrl { location, .. } =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>location),
+            InvalidConnection { location, .. } =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>location),
+            UnsupportedCompressionType { location, .. } =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>location),
+            UnsupportedFormat { location, .. } =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>location),
         }
     }
 }

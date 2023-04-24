@@ -354,6 +354,11 @@
 <a href="#354" id="354">354</a>
 <a href="#355" id="355">355</a>
 <a href="#356" id="356">356</a>
+<a href="#357" id="357">357</a>
+<a href="#358" id="358">358</a>
+<a href="#359" id="359">359</a>
+<a href="#360" id="360">360</a>
+<a href="#361" id="361">361</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -405,13 +410,18 @@
     <span class="doccomment">/// Specifies the output partitioning scheme of this plan
     </span><span class="kw">fn </span>output_partitioning(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Partitioning;
 
+    <span class="doccomment">/// returns `Some(keys)` that describes how the output was sorted.
+    </span><span class="kw">fn </span>output_ordering(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>[PhysicalSortExpr]&gt; {
+        <span class="prelude-val">None
+    </span>}
+
     <span class="doccomment">/// Get a list of child physical plans that provide the input for this plan. The returned list
     /// will be empty for leaf nodes, will contain a single value for unary nodes, or two
     /// values for binary nodes (such as joins).
     </span><span class="kw">fn </span>children(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;PhysicalPlanRef&gt;;
 
     <span class="doccomment">/// Returns a new plan where all children were replaced by new plans.
-    /// The size of `children` must be equal to the size of `PhysicalPlan::children()`.
+    /// The size of `children` must be equal to the size of [`PhysicalPlan::children()`].
     </span><span class="kw">fn </span>with_new_children(<span class="kw-2">&amp;</span><span class="self">self</span>, children: Vec&lt;PhysicalPlanRef&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;PhysicalPlanRef&gt;;
 
     <span class="doccomment">/// Creates an RecordBatch stream.
@@ -505,8 +515,8 @@
     }
 
     <span class="kw">fn </span>output_ordering(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>[PhysicalSortExpr]&gt; {
-        <span class="prelude-val">None
-    </span>}
+        <span class="self">self</span>.<span class="number">0</span>.output_ordering()
+    }
 
     <span class="kw">fn </span>children(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;Arc&lt;<span class="kw">dyn </span>DfPhysicalPlan&gt;&gt; {
         <span class="self">self</span>.<span class="number">0

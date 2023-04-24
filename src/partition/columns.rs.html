@@ -434,7 +434,7 @@
 <span class="kw">use </span>snafu::ensure;
 <span class="kw">use </span>store_api::storage::RegionNumber;
 
-<span class="kw">use </span><span class="kw">crate</span>::error::{<span class="self">self</span>, Error};
+<span class="kw">use </span><span class="kw">crate</span>::error::{<span class="self">self</span>, <span class="prelude-ty">Result</span>};
 <span class="kw">use </span><span class="kw">crate</span>::partition::{PartitionBound, PartitionExpr, PartitionRule};
 
 <span class="doccomment">/// A [RangeColumnsPartitionRule] is very similar to [RangePartitionRule] except that it allows
@@ -560,7 +560,7 @@
         <span class="self">self</span>.column_list.clone()
     }
 
-    <span class="kw">fn </span>find_region(<span class="kw-2">&amp;</span><span class="self">self</span>, values: <span class="kw-2">&amp;</span>[Value]) -&gt; <span class="prelude-ty">Result</span>&lt;RegionNumber, Error&gt; {
+    <span class="kw">fn </span>find_region(<span class="kw-2">&amp;</span><span class="self">self</span>, values: <span class="kw-2">&amp;</span>[Value]) -&gt; <span class="prelude-ty">Result</span>&lt;RegionNumber&gt; {
         <span class="macro">ensure!</span>(
             values.len() == <span class="self">self</span>.column_list.len(),
             error::RegionKeysSizeSnafu {
@@ -581,7 +581,7 @@
         })
     }
 
-    <span class="kw">fn </span>find_regions(<span class="kw-2">&amp;</span><span class="self">self</span>, exprs: <span class="kw-2">&amp;</span>[PartitionExpr]) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;RegionNumber&gt;, Error&gt; {
+    <span class="kw">fn </span>find_regions_by_exprs(<span class="kw-2">&amp;</span><span class="self">self</span>, exprs: <span class="kw-2">&amp;</span>[PartitionExpr]) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;RegionNumber&gt;&gt; {
         <span class="kw">let </span>regions = <span class="kw">if </span>exprs.iter().all(|x| <span class="self">self</span>.column_list.contains(<span class="kw-2">&amp;</span>x.column)) {
             <span class="kw">let </span>PartitionExpr {
                 column: <span class="kw">_</span>,
@@ -684,7 +684,7 @@
                     value: value.into(),
                 },
             ];
-            <span class="kw">let </span>regions = rule.find_regions(<span class="kw-2">&amp;</span>exprs).unwrap();
+            <span class="kw">let </span>regions = rule.find_regions_by_exprs(<span class="kw-2">&amp;</span>exprs).unwrap();
             <span class="macro">assert_eq!</span>(
                 regions,
                 expected_regions.into_iter().collect::&lt;Vec&lt;RegionNumber&gt;&gt;()
@@ -747,7 +747,7 @@
                 value: <span class="string">&quot;hz&quot;</span>.into(),
             },
         ];
-        <span class="kw">let </span>regions = rule.find_regions(<span class="kw-2">&amp;</span>exprs).unwrap();
+        <span class="kw">let </span>regions = rule.find_regions_by_exprs(<span class="kw-2">&amp;</span>exprs).unwrap();
         <span class="macro">assert_eq!</span>(regions, <span class="macro">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>]);
     }
 

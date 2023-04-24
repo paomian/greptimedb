@@ -1414,10 +1414,6 @@
 <a href="#1414" id="1414">1414</a>
 <a href="#1415" id="1415">1415</a>
 <a href="#1416" id="1416">1416</a>
-<a href="#1417" id="1417">1417</a>
-<a href="#1418" id="1418">1418</a>
-<a href="#1419" id="1419">1419</a>
-<a href="#1420" id="1420">1420</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1439,7 +1435,7 @@
 
 <span class="kw">use </span>common_error::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>datatypes::data_type::ConcreteDataType;
-<span class="kw">use </span>datatypes::schema::{ColumnSchema, Metadata};
+<span class="kw">use </span>datatypes::schema::{ColumnSchema, Metadata, COMMENT_KEY};
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>snafu::{ensure, Location, OptionExt};
 <span class="kw">use </span>store_api::storage::consts::{<span class="self">self</span>, ReservedColumnId};
@@ -1800,7 +1796,6 @@
 
 <span class="kw">const </span>METADATA_CF_ID_KEY: <span class="kw-2">&amp;</span>str = <span class="string">&quot;greptime:storage:cf_id&quot;</span>;
 <span class="kw">const </span>METADATA_COLUMN_ID_KEY: <span class="kw-2">&amp;</span>str = <span class="string">&quot;greptime:storage:column_id&quot;</span>;
-<span class="kw">const </span>METADATA_COMMENT_KEY: <span class="kw-2">&amp;</span>str = <span class="string">&quot;greptime:storage:comment&quot;</span>;
 
 <span class="attr">#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 </span><span class="kw">pub struct </span>ColumnMetadata {
@@ -1836,10 +1831,7 @@
         <span class="kw">let </span>metadata = column_schema.metadata();
         <span class="kw">let </span>cf_id = try_parse_int(metadata, METADATA_CF_ID_KEY, <span class="prelude-val">Some</span>(consts::DEFAULT_CF_ID))<span class="question-mark">?</span>;
         <span class="kw">let </span>column_id = try_parse_int(metadata, METADATA_COLUMN_ID_KEY, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-        <span class="kw">let </span>comment = metadata
-            .get(METADATA_COMMENT_KEY)
-            .cloned()
-            .unwrap_or_default();
+        <span class="kw">let </span>comment = metadata.get(COMMENT_KEY).cloned().unwrap_or_default();
 
         <span class="kw">let </span>desc = ColumnDescriptorBuilder::new(
             column_id,
@@ -1863,7 +1855,7 @@
         }
         metadata.insert(METADATA_COLUMN_ID_KEY.to_string(), <span class="self">self</span>.desc.id.to_string());
         <span class="kw">if </span>!<span class="self">self</span>.desc.comment.is_empty() {
-            metadata.insert(METADATA_COMMENT_KEY.to_string(), <span class="self">self</span>.desc.comment.clone());
+            metadata.insert(COMMENT_KEY.to_string(), <span class="self">self</span>.desc.comment.clone());
         }
 
         metadata

@@ -382,11 +382,6 @@
 <a href="#382" id="382">382</a>
 <a href="#383" id="383">383</a>
 <a href="#384" id="384">384</a>
-<a href="#385" id="385">385</a>
-<a href="#386" id="386">386</a>
-<a href="#387" id="387">387</a>
-<a href="#388" id="388">388</a>
-<a href="#389" id="389">389</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -647,10 +642,9 @@
         </span>{
             <span class="kw">let </span>table = Arc::new(MitoTable::new(table_info, <span class="self">self</span>.regions.clone(), manifest));
 
+            <span class="kw">let </span>_lock = <span class="self">self</span>.engine_inner.table_mutex.lock(table_ref.to_string());
             <span class="self">self</span>.engine_inner
                 .tables
-                .write()
-                .unwrap()
                 .insert(table_ref.to_string(), table);
             <span class="kw">return </span><span class="prelude-val">Ok</span>(Status::Done);
         }
@@ -658,10 +652,10 @@
         <span class="comment">// We need to persist the table manifest and create the table.
         </span><span class="kw">let </span>table = <span class="self">self</span>.write_manifest_and_create_table(<span class="kw-2">&amp;</span>table_dir).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>table = Arc::new(table);
+
+        <span class="kw">let </span>_lock = <span class="self">self</span>.engine_inner.table_mutex.lock(table_ref.to_string());
         <span class="self">self</span>.engine_inner
             .tables
-            .write()
-            .unwrap()
             .insert(table_ref.to_string(), table);
 
         <span class="prelude-val">Ok</span>(Status::Done)
@@ -735,11 +729,7 @@
 
 <span class="kw">impl </span>CreateTableData {
     <span class="kw">fn </span>table_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; TableReference {
-        TableReference {
-            catalog: <span class="kw-2">&amp;</span><span class="self">self</span>.request.catalog_name,
-            schema: <span class="kw-2">&amp;</span><span class="self">self</span>.request.schema_name,
-            table: <span class="kw-2">&amp;</span><span class="self">self</span>.request.table_name,
-        }
+        <span class="self">self</span>.request.table_ref()
     }
 }
 

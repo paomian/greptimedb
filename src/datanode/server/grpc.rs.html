@@ -257,6 +257,9 @@
 <a href="#257" id="257">257</a>
 <a href="#258" id="258">258</a>
 <a href="#259" id="259">259</a>
+<a href="#260" id="260">260</a>
+<a href="#261" id="261">261</a>
+<a href="#262" id="262">262</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -272,6 +275,7 @@
 // limitations under the License.
 
 </span><span class="kw">use </span>api::v1::{AlterExpr, CreateTableExpr, DropTableExpr, FlushTableExpr};
+<span class="kw">use </span>common_catalog::consts::IMMUTABLE_FILE_ENGINE;
 <span class="kw">use </span>common_grpc_expr::{alter_expr_to_request, create_expr_to_request};
 <span class="kw">use </span>common_query::Output;
 <span class="kw">use </span>common_telemetry::info;
@@ -317,7 +321,9 @@
             table_id
         };
 
-        <span class="kw">let </span>request = create_expr_to_request(table_id, expr).context(CreateExprToRequestSnafu)<span class="question-mark">?</span>;
+        <span class="kw">let </span>require_time_index = expr.engine != IMMUTABLE_FILE_ENGINE;
+        <span class="kw">let </span>request = create_expr_to_request(table_id, expr, require_time_index)
+            .context(CreateExprToRequestSnafu)<span class="question-mark">?</span>;
 
         <span class="self">self</span>.sql_handler()
             .execute(SqlRequest::CreateTable(request), QueryContext::arc())
@@ -377,7 +383,7 @@
     </span><span class="kw">async fn </span>test_create_expr_to_request() {
         common_telemetry::init_default_ut_logging();
         <span class="kw">let </span>expr = testing_create_expr();
-        <span class="kw">let </span>request = create_expr_to_request(<span class="number">1024</span>, expr).unwrap();
+        <span class="kw">let </span>request = create_expr_to_request(<span class="number">1024</span>, expr, <span class="bool-val">true</span>).unwrap();
         <span class="macro">assert_eq!</span>(request.id, MIN_USER_TABLE_ID);
         <span class="macro">assert_eq!</span>(request.catalog_name, <span class="string">&quot;greptime&quot;</span>.to_string());
         <span class="macro">assert_eq!</span>(request.schema_name, <span class="string">&quot;public&quot;</span>.to_string());
@@ -389,7 +395,7 @@
 
         <span class="kw">let </span><span class="kw-2">mut </span>expr = testing_create_expr();
         expr.primary_keys = <span class="macro">vec!</span>[<span class="string">&quot;host&quot;</span>.to_string(), <span class="string">&quot;not-exist-column&quot;</span>.to_string()];
-        <span class="kw">let </span>result = create_expr_to_request(<span class="number">1025</span>, expr);
+        <span class="kw">let </span>result = create_expr_to_request(<span class="number">1025</span>, expr, <span class="bool-val">true</span>);
         <span class="kw">let </span>err_msg = result.unwrap_err().to_string();
         <span class="macro">assert!</span>(
             err_msg.contains(<span class="string">&quot;Column `not-exist-column` not found in table `my-metrics`&quot;</span>),
@@ -401,11 +407,11 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_create_table_schema() {
         <span class="kw">let </span><span class="kw-2">mut </span>expr = testing_create_expr();
-        <span class="kw">let </span>schema = create_table_schema(<span class="kw-2">&amp;</span>expr).unwrap();
+        <span class="kw">let </span>schema = create_table_schema(<span class="kw-2">&amp;</span>expr, <span class="bool-val">true</span>).unwrap();
         <span class="macro">assert_eq!</span>(schema, expected_table_schema());
 
         expr.time_index = <span class="string">&quot;not-exist-column&quot;</span>.to_string();
-        <span class="kw">let </span>result = create_table_schema(<span class="kw-2">&amp;</span>expr);
+        <span class="kw">let </span>result = create_table_schema(<span class="kw-2">&amp;</span>expr, <span class="bool-val">true</span>);
         <span class="kw">let </span>err_msg = result.unwrap_err().to_string();
         <span class="macro">assert!</span>(
             err_msg.contains(<span class="string">&quot;Missing timestamp column&quot;</span>),

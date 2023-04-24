@@ -1202,10 +1202,6 @@
 <a href="#1202" id="1202">1202</a>
 <a href="#1203" id="1203">1203</a>
 <a href="#1204" id="1204">1204</a>
-<a href="#1205" id="1205">1205</a>
-<a href="#1206" id="1206">1206</a>
-<a href="#1207" id="1207">1207</a>
-<a href="#1208" id="1208">1208</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1283,7 +1279,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::expr_factory::{CreateExprFactoryRef, DefaultCreateExprFactory};
 <span class="kw">use </span><span class="kw">crate</span>::frontend::FrontendOptions;
 <span class="kw">use </span><span class="kw">crate</span>::instance::standalone::StandaloneGrpcQueryHandler;
-<span class="kw">use </span><span class="kw">crate</span>::metric;
+<span class="kw">use </span><span class="kw">crate</span>::metrics;
 <span class="kw">use </span><span class="kw">crate</span>::script::ScriptExecutor;
 <span class="kw">use </span><span class="kw">crate</span>::server::{start_server, ServerHandlers, Services};
 <span class="kw">use </span><span class="kw">crate</span>::statement::StatementExecutor;
@@ -1429,12 +1425,8 @@
         })
     }
 
-    <span class="kw">pub async fn </span>build_servers(
-        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        opts: <span class="kw-2">&amp;</span>FrontendOptions,
-        plugins: Arc&lt;Plugins&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="kw">let </span>servers = Services::build(opts, Arc::new(<span class="self">self</span>.clone()), plugins).<span class="kw">await</span><span class="question-mark">?</span>;
+    <span class="kw">pub async fn </span>build_servers(<span class="kw-2">&amp;mut </span><span class="self">self</span>, opts: <span class="kw-2">&amp;</span>FrontendOptions) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        <span class="kw">let </span>servers = Services::build(opts, Arc::new(<span class="self">self</span>.clone()), <span class="self">self</span>.plugins.clone()).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="self">self</span>.servers = Arc::new(servers);
 
         <span class="prelude-val">Ok</span>(())
@@ -1663,7 +1655,7 @@
     <span class="kw">type </span>Error = Error;
 
     <span class="kw">async fn </span>do_query(<span class="kw-2">&amp;</span><span class="self">self</span>, query: <span class="kw-2">&amp;</span>str, query_ctx: QueryContextRef) -&gt; Vec&lt;<span class="prelude-ty">Result</span>&lt;Output&gt;&gt; {
-        <span class="kw">let </span>_timer = <span class="macro">timer!</span>(metric::METRIC_HANDLE_SQL_ELAPSED);
+        <span class="kw">let </span>_timer = <span class="macro">timer!</span>(metrics::METRIC_HANDLE_SQL_ELAPSED);
 
         <span class="kw">let </span>query_interceptor = <span class="self">self</span>.plugins.get::&lt;SqlQueryInterceptorRef&lt;Error&gt;&gt;();
         <span class="kw">let </span>query = <span class="kw">match </span>query_interceptor.pre_parsing(query, query_ctx.clone()) {

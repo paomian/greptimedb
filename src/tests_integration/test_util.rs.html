@@ -376,6 +376,7 @@
 <a href="#376" id="376">376</a>
 <a href="#377" id="377">377</a>
 <a href="#378" id="378">378</a>
+<a href="#379" id="379">379</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -737,7 +738,8 @@
     instance.start().<span class="kw">await</span>.unwrap();
     <span class="kw">let </span>fe_instance_ref = Arc::new(fe_instance);
     <span class="kw">let </span>fe_grpc_server = Arc::new(GrpcServer::new(
-        ServerGrpcQueryHandlerAdaptor::arc(fe_instance_ref),
+        ServerGrpcQueryHandlerAdaptor::arc(fe_instance_ref.clone()),
+        <span class="prelude-val">Some</span>(fe_instance_ref.clone()),
         <span class="prelude-val">None</span>,
         runtime,
     ));

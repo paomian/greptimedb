@@ -141,6 +141,10 @@
 <a href="#141" id="141">141</a>
 <a href="#142" id="142">142</a>
 <a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -236,6 +240,9 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid InsertRequest, reason: {}&quot;</span>, reason))]
     </span>InvalidInsertRequest { reason: String, location: Location },
 
+    <span class="attr">#[snafu(display(<span class="string">&quot;Invalid DeleteRequest, reason: {}&quot;</span>, reason))]
+    </span>InvalidDeleteRequest { reason: String, location: Location },
+
     <span class="attr">#[snafu(display(
         <span class="string">&quot;Invalid table route data in meta, table name: {}, msg: {}&quot;</span>,
         table_name,
@@ -270,6 +277,7 @@
             | Error::FindRegions { .. }
             | Error::RegionKeysSize { .. }
             | Error::InvalidInsertRequest { .. }
+            | Error::InvalidDeleteRequest { .. }
             | Error::FindPartitionColumn { .. } =&gt; StatusCode::InvalidArguments,
             Error::SerializeJson { .. } | Error::DeserializeJson { .. } =&gt; StatusCode::Internal,
             Error::InvalidTableRouteData { .. } =&gt; StatusCode::Internal,

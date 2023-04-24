@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["immutable"]};
+window.SIDEBAR_ITEMS = {"mod":["format","immutable"]};

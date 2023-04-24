@@ -1470,6 +1470,27 @@
 <a href="#1470" id="1470">1470</a>
 <a href="#1471" id="1471">1471</a>
 <a href="#1472" id="1472">1472</a>
+<a href="#1473" id="1473">1473</a>
+<a href="#1474" id="1474">1474</a>
+<a href="#1475" id="1475">1475</a>
+<a href="#1476" id="1476">1476</a>
+<a href="#1477" id="1477">1477</a>
+<a href="#1478" id="1478">1478</a>
+<a href="#1479" id="1479">1479</a>
+<a href="#1480" id="1480">1480</a>
+<a href="#1481" id="1481">1481</a>
+<a href="#1482" id="1482">1482</a>
+<a href="#1483" id="1483">1483</a>
+<a href="#1484" id="1484">1484</a>
+<a href="#1485" id="1485">1485</a>
+<a href="#1486" id="1486">1486</a>
+<a href="#1487" id="1487">1487</a>
+<a href="#1488" id="1488">1488</a>
+<a href="#1489" id="1489">1489</a>
+<a href="#1490" id="1490">1490</a>
+<a href="#1491" id="1491">1491</a>
+<a href="#1492" id="1492">1492</a>
+<a href="#1493" id="1493">1493</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1487,7 +1508,6 @@
 </span><span class="kw">use </span>std::cmp::Ordering;
 
 <span class="kw">use </span>itertools::Itertools;
-<span class="kw">use </span>mito::engine;
 <span class="kw">use </span>once_cell::sync::Lazy;
 <span class="kw">use </span>snafu::{ensure, OptionExt, ResultExt};
 <span class="kw">use </span>sqlparser::ast::{ColumnOption, ColumnOptionDef, DataType, Value};
@@ -1538,7 +1558,9 @@
         <span class="self">self</span>.parser
             .expect_keyword(Keyword::TABLE)
             .context(error::SyntaxSnafu { sql: <span class="self">self</span>.sql })<span class="question-mark">?</span>;
-
+        <span class="kw">let </span>if_not_exists =
+            <span class="self">self</span>.parser
+                .parse_keywords(<span class="kw-2">&amp;</span>[Keyword::IF, Keyword::NOT, Keyword::EXISTS]);
         <span class="kw">let </span>table_name = <span class="self">self
             </span>.parser
             .parse_object_name()
@@ -1547,9 +1569,8 @@
                 expected: <span class="string">&quot;a table name&quot;</span>,
                 actual: <span class="self">self</span>.peek_token_as_string(),
             })<span class="question-mark">?</span>;
-
         <span class="kw">let </span>(columns, constraints) = <span class="self">self</span>.parse_columns()<span class="question-mark">?</span>;
-
+        <span class="kw">let </span>engine = <span class="self">self</span>.parse_table_engine(common_catalog::consts::IMMUTABLE_FILE_ENGINE)<span class="question-mark">?</span>;
         <span class="kw">let </span>options = <span class="self">self
             </span>.parser
             .parse_options(Keyword::WITH)
@@ -1569,6 +1590,8 @@
             columns,
             constraints,
             options,
+            if_not_exists,
+            engine,
         }))
     }
 
@@ -1613,7 +1636,7 @@
 
         <span class="kw">let </span>partitions = <span class="self">self</span>.parse_partitions()<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>engine = <span class="self">self</span>.parse_table_engine()<span class="question-mark">?</span>;
+        <span class="kw">let </span>engine = <span class="self">self</span>.parse_table_engine(common_catalog::consts::MITO_ENGINE)<span class="question-mark">?</span>;
         <span class="kw">let </span>options = <span class="self">self
             </span>.parser
             .parse_options(Keyword::WITH)
@@ -2024,9 +2047,9 @@
     }
 
     <span class="doccomment">/// Parses the set of valid formats
-    </span><span class="kw">fn </span>parse_table_engine(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;String&gt; {
+    </span><span class="kw">fn </span>parse_table_engine(<span class="kw-2">&amp;mut </span><span class="self">self</span>, default: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;String&gt; {
         <span class="kw">if </span>!<span class="self">self</span>.consume_token(ENGINE) {
-            <span class="kw">return </span><span class="prelude-val">Ok</span>(engine::MITO_ENGINE.to_string());
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(default.to_string());
         }
 
         <span class="self">self</span>.parser
@@ -2252,6 +2275,7 @@
     <span class="kw">use </span>std::assert_matches::assert_matches;
     <span class="kw">use </span>std::collections::HashMap;
 
+    <span class="kw">use </span>common_catalog::consts::IMMUTABLE_FILE_ENGINE;
     <span class="kw">use </span>sqlparser::ast::ColumnOption::NotNull;
     <span class="kw">use </span>sqlparser::dialect::GenericDialect;
 
@@ -2263,16 +2287,32 @@
             sql: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str,
             expected_table_name: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str,
             expected_options: HashMap&lt;String, String&gt;,
+            expected_engine: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str,
+            expected_if_not_exist: bool,
         }
 
-        <span class="kw">let </span>tests = [Test {
-            sql: <span class="string">&quot;CREATE EXTERNAL TABLE city with(location=&#39;/var/data/city.csv&#39;,format=&#39;csv&#39;);&quot;</span>,
-            expected_table_name: <span class="string">&quot;city&quot;</span>,
-            expected_options: HashMap::from([
-                (<span class="string">&quot;LOCATION&quot;</span>.to_string(), <span class="string">&quot;/var/data/city.csv&quot;</span>.to_string()),
-                (<span class="string">&quot;FORMAT&quot;</span>.to_string(), <span class="string">&quot;csv&quot;</span>.to_string()),
-            ]),
-        }];
+        <span class="kw">let </span>tests = [
+            Test {
+                sql: <span class="string">&quot;CREATE EXTERNAL TABLE city with(location=&#39;/var/data/city.csv&#39;,format=&#39;csv&#39;);&quot;</span>,
+                expected_table_name: <span class="string">&quot;city&quot;</span>,
+                expected_options: HashMap::from([
+                    (<span class="string">&quot;LOCATION&quot;</span>.to_string(), <span class="string">&quot;/var/data/city.csv&quot;</span>.to_string()),
+                    (<span class="string">&quot;FORMAT&quot;</span>.to_string(), <span class="string">&quot;csv&quot;</span>.to_string()),
+                ]),
+                expected_engine: IMMUTABLE_FILE_ENGINE,
+                expected_if_not_exist: <span class="bool-val">false</span>,
+            },
+            Test {
+                sql: <span class="string">&quot;CREATE EXTERNAL TABLE IF NOT EXISTS city ENGINE=foo with(location=&#39;/var/data/city.csv&#39;,format=&#39;csv&#39;);&quot;</span>,
+                expected_table_name: <span class="string">&quot;city&quot;</span>,
+                expected_options: HashMap::from([
+                    (<span class="string">&quot;LOCATION&quot;</span>.to_string(), <span class="string">&quot;/var/data/city.csv&quot;</span>.to_string()),
+                    (<span class="string">&quot;FORMAT&quot;</span>.to_string(), <span class="string">&quot;csv&quot;</span>.to_string()),
+                ]),
+                expected_engine: <span class="string">&quot;foo&quot;</span>,
+                expected_if_not_exist: <span class="bool-val">true</span>,
+            },
+        ];
 
         <span class="kw">for </span>test <span class="kw">in </span>tests {
             <span class="kw">let </span>stmts = ParserContext::create_with_dialect(test.sql, <span class="kw-2">&amp;</span>GenericDialect {}).unwrap();
@@ -2281,6 +2321,8 @@
                 Statement::CreateExternalTable(c) =&gt; {
                     <span class="macro">assert_eq!</span>(c.name.to_string(), test.expected_table_name.to_string());
                     <span class="macro">assert_eq!</span>(c.options, test.expected_options);
+                    <span class="macro">assert_eq!</span>(c.if_not_exists, test.expected_if_not_exist);
+                    <span class="macro">assert_eq!</span>(c.engine, test.expected_engine);
                 }
                 <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
             }

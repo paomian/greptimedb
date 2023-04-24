@@ -292,6 +292,35 @@
 <a href="#292" id="292">292</a>
 <a href="#293" id="293">293</a>
 <a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -377,6 +406,27 @@
                     .execute(SqlRequest::CreateTable(request), query_ctx)
                     .<span class="kw">await
             </span>}
+            Statement::CreateExternalTable(create_external_table) =&gt; {
+                <span class="kw">let </span>table_id = <span class="self">self
+                    </span>.table_id_provider
+                    .as_ref()
+                    .context(TableIdProviderNotFoundSnafu)<span class="question-mark">?
+                    </span>.next_table_id()
+                    .<span class="kw">await
+                    </span>.context(BumpTableIdSnafu)<span class="question-mark">?</span>;
+                <span class="kw">let </span>name = create_external_table.name.clone();
+                <span class="kw">let </span>(catalog, schema, table) = table_idents_to_full_name(<span class="kw-2">&amp;</span>name, query_ctx.clone())<span class="question-mark">?</span>;
+                <span class="kw">let </span>table_ref = TableReference::full(<span class="kw-2">&amp;</span>catalog, <span class="kw-2">&amp;</span>schema, <span class="kw-2">&amp;</span>table);
+                <span class="kw">let </span>request = <span class="self">self
+                    </span>.sql_handler
+                    .create_external_to_request(table_id, create_external_table, <span class="kw-2">&amp;</span>table_ref)
+                    .<span class="kw">await</span><span class="question-mark">?</span>;
+                <span class="kw">let </span>table_id = request.id;
+                <span class="macro">info!</span>(<span class="string">&quot;Creating external table: {table_ref}, table id = {table_id}&quot;</span>,);
+                <span class="self">self</span>.sql_handler
+                    .execute(SqlRequest::CreateTable(request), query_ctx)
+                    .<span class="kw">await
+            </span>}
             Statement::Alter(alter_table) =&gt; {
                 <span class="kw">let </span>name = alter_table.table_name().clone();
                 <span class="kw">let </span>(catalog, schema, table) = table_idents_to_full_name(<span class="kw-2">&amp;</span>name, query_ctx.clone())<span class="question-mark">?</span>;
@@ -398,6 +448,14 @@
                     .execute(SqlRequest::DropTable(req), query_ctx)
                     .<span class="kw">await
             </span>}
+            Statement::ShowCreateTable(show) =&gt; {
+                <span class="kw">let </span>(catalog, schema, table) =
+                    table_idents_to_full_name(<span class="kw-2">&amp;</span>show.table_name, query_ctx.clone())<span class="question-mark">?</span>;
+                <span class="kw">let </span>table_ref = TableReference::full(<span class="kw-2">&amp;</span>catalog, <span class="kw-2">&amp;</span>schema, <span class="kw-2">&amp;</span>table);
+                <span class="kw">let </span>table = <span class="self">self</span>.sql_handler.get_table(<span class="kw-2">&amp;</span>table_ref).<span class="kw">await</span><span class="question-mark">?</span>;
+
+                query::sql::show_create_table(table, <span class="prelude-val">None</span>).context(ExecuteStatementSnafu)
+            }
             <span class="kw">_ </span>=&gt; NotSupportSqlSnafu {
                 msg: <span class="macro">format!</span>(<span class="string">&quot;not supported to execute {stmt:?}&quot;</span>),
             }

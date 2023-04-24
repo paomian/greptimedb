@@ -257,6 +257,12 @@
 <a href="#257" id="257">257</a>
 <a href="#258" id="258">258</a>
 <a href="#259" id="259">259</a>
+<a href="#260" id="260">260</a>
+<a href="#261" id="261">261</a>
+<a href="#262" id="262">262</a>
+<a href="#263" id="263">263</a>
+<a href="#264" id="264">264</a>
+<a href="#265" id="265">265</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -343,11 +349,17 @@
         req: AlterTableRequest,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
         <span class="kw">let </span>table_name = req.table_name.clone();
-        <span class="kw">let </span>procedure = AlterTableProcedure::new(
-            req,
-            <span class="self">self</span>.catalog_manager.clone(),
-            <span class="self">self</span>.engine_procedure.clone(),
-        );
+        <span class="kw">let </span>table_ref = TableReference {
+            catalog: <span class="kw-2">&amp;</span>req.catalog_name,
+            schema: <span class="kw-2">&amp;</span>req.schema_name,
+            table: <span class="kw-2">&amp;</span>table_name,
+        };
+
+        <span class="kw">let </span>table = <span class="self">self</span>.get_table(<span class="kw-2">&amp;</span>table_ref).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>engine_procedure = <span class="self">self</span>.engine_procedure(table)<span class="question-mark">?</span>;
+
+        <span class="kw">let </span>procedure =
+            AlterTableProcedure::new(req, <span class="self">self</span>.catalog_manager.clone(), engine_procedure);
         <span class="kw">let </span>procedure_with_id = ProcedureWithId::with_random_id(Box::new(procedure));
         <span class="kw">let </span>procedure_id = procedure_with_id.id;
 
@@ -480,7 +492,7 @@
     }
 
     <span class="attr">#[tokio::test(flavor = <span class="string">&quot;multi_thread&quot;</span>)]
-    </span><span class="kw">async fn </span>alter_table_by_procedure() {
+    </span><span class="kw">async fn </span>test_alter_table_by_procedure() {
         <span class="kw">let </span>instance = MockInstance::with_procedure_enabled(<span class="string">&quot;alter_table_by_procedure&quot;</span>).<span class="kw">await</span>;
 
         <span class="comment">// Create table first.

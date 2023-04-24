@@ -128,6 +128,59 @@
 <a href="#128" id="128">128</a>
 <a href="#129" id="129">129</a>
 <a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
+<a href="#163" id="163">163</a>
+<a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -146,26 +199,40 @@
 <span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>async_trait::async_trait;
+<span class="kw">use </span>common_datasource::file_format::Format;
+<span class="kw">use </span>common_datasource::object_store::build_backend;
+<span class="kw">use </span>common_error::prelude::BoxedError;
 <span class="kw">use </span>common_query::physical_plan::PhysicalPlanRef;
 <span class="kw">use </span>common_query::prelude::Expr;
 <span class="kw">use </span>datatypes::schema::SchemaRef;
 <span class="kw">use </span>object_store::ObjectStore;
-<span class="kw">use </span>snafu::ResultExt;
+<span class="kw">use </span>serde::{Deserialize, Serialize};
+<span class="kw">use </span>snafu::{OptionExt, ResultExt};
 <span class="kw">use </span>store_api::storage::RegionNumber;
-<span class="kw">use </span>table::error::Result <span class="kw">as </span>TableResult;
+<span class="kw">use </span>table::error::{<span class="self">self </span><span class="kw">as </span>table_error, <span class="prelude-ty">Result </span><span class="kw">as </span>TableResult};
 <span class="kw">use </span>table::metadata::{RawTableInfo, TableInfo, TableInfoRef, TableType};
-<span class="kw">use </span>table::Table;
+<span class="kw">use </span>table::{requests, Table};
 
-<span class="kw">use </span><span class="kw">crate</span>::error::{ConvertRawSnafu, <span class="prelude-ty">Result</span>};
+<span class="kw">use </span><span class="kw">crate</span>::error::{<span class="self">self</span>, ConvertRawSnafu, <span class="prelude-ty">Result</span>};
 <span class="kw">use </span><span class="kw">crate</span>::manifest::immutable::{
     read_table_manifest, write_table_manifest, ImmutableMetadata, INIT_META_VERSION,
 };
 <span class="kw">use </span><span class="kw">crate</span>::manifest::table_manifest_dir;
+<span class="kw">use </span><span class="kw">crate</span>::table::format::{create_physical_plan, CreateScanPlanContext, ScanPlanConfig};
+
+<span class="attr">#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+</span><span class="kw">pub struct </span>ImmutableFileTableOptions {
+    <span class="kw">pub </span>files: Vec&lt;String&gt;,
+}
 
 <span class="kw">pub struct </span>ImmutableFileTable {
     metadata: ImmutableMetadata,
     <span class="comment">// currently, it&#39;s immutable
     </span>table_info: Arc&lt;TableInfo&gt;,
+    object_store: ObjectStore,
+    files: Vec&lt;String&gt;,
+    format: Format,
 }
 
 <span class="kw">pub type </span>ImmutableFileTableRef = Arc&lt;ImmutableFileTable&gt;;
@@ -176,25 +243,40 @@
         <span class="self">self
     </span>}
 
-    <span class="kw">fn </span>schema(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; SchemaRef {
+    <span class="doccomment">/// The [`SchemaRef`] before the projection.
+    /// It contains all the columns that may appear in the files (All missing columns should be filled NULLs).
+    </span><span class="kw">fn </span>schema(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; SchemaRef {
         <span class="self">self</span>.table_info().meta.schema.clone()
-    }
-
-    <span class="kw">fn </span>table_type(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; TableType {
-        <span class="self">self</span>.table_info().table_type
     }
 
     <span class="kw">fn </span>table_info(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; TableInfoRef {
         <span class="self">self</span>.table_info.clone()
     }
 
+    <span class="kw">fn </span>table_type(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; TableType {
+        <span class="self">self</span>.table_info().table_type
+    }
+
     <span class="kw">async fn </span>scan(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        _projection: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Vec&lt;usize&gt;&gt;,
-        _filters: <span class="kw-2">&amp;</span>[Expr],
-        _limit: <span class="prelude-ty">Option</span>&lt;usize&gt;,
+        projection: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Vec&lt;usize&gt;&gt;,
+        filters: <span class="kw-2">&amp;</span>[Expr],
+        limit: <span class="prelude-ty">Option</span>&lt;usize&gt;,
     ) -&gt; TableResult&lt;PhysicalPlanRef&gt; {
-        <span class="macro">todo!</span>()
+        create_physical_plan(
+            <span class="kw-2">&amp;</span><span class="self">self</span>.format,
+            <span class="kw-2">&amp;</span>CreateScanPlanContext::default(),
+            <span class="kw-2">&amp;</span>ScanPlanConfig {
+                file_schema: <span class="self">self</span>.schema(),
+                files: <span class="kw-2">&amp;</span><span class="self">self</span>.files,
+                projection,
+                filters,
+                limit,
+                store: <span class="self">self</span>.object_store.clone(),
+            },
+        )
+        .map_err(BoxedError::new)
+        .context(table_error::TableOperationSnafu)
     }
 
     <span class="kw">async fn </span>flush(
@@ -217,11 +299,35 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>.metadata
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(table_info: TableInfo, metadata: ImmutableMetadata) -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(table_info: TableInfo, metadata: ImmutableMetadata) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
+        <span class="kw">let </span>table_info = Arc::new(table_info);
+        <span class="kw">let </span>options = <span class="kw-2">&amp;</span>table_info.meta.options.extra_options;
+
+        <span class="kw">let </span>url = options
+            .get(requests::IMMUTABLE_TABLE_LOCATION_KEY)
+            .context(error::MissingRequiredFieldSnafu {
+                name: requests::IMMUTABLE_TABLE_LOCATION_KEY,
+            })<span class="question-mark">?</span>;
+
+        <span class="kw">let </span>meta = options.get(requests::IMMUTABLE_TABLE_META_KEY).context(
+            error::MissingRequiredFieldSnafu {
+                name: requests::IMMUTABLE_TABLE_META_KEY,
+            },
+        )<span class="question-mark">?</span>;
+
+        <span class="kw">let </span>meta: ImmutableFileTableOptions =
+            serde_json::from_str(meta).context(error::DecodeJsonSnafu)<span class="question-mark">?</span>;
+        <span class="kw">let </span>format = Format::try_from(options).context(error::ParseFileFormatSnafu)<span class="question-mark">?</span>;
+
+        <span class="kw">let </span>object_store = build_backend(url, options).context(error::BuildBackendSnafu)<span class="question-mark">?</span>;
+
+        <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             metadata,
-            table_info: Arc::new(table_info),
-        }
+            table_info,
+            object_store,
+            files: meta.files,
+            format,
+        })
     }
 
     <span class="kw">pub async fn </span>create(
@@ -243,7 +349,7 @@
         )
         .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(ImmutableFileTable::new(table_info, metadata))
+        ImmutableFileTable::new(table_info, metadata)
     }
 
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>recover_table_info(
