@@ -1,3 +1,3 @@
 (function() {var implementors = {
-"frontend":[["impl <a class=\"trait\" href=\"servers/prom/trait.PromHandler.html\" title=\"trait servers::prom::PromHandler\">PromHandler</a> for <a class=\"struct\" href=\"frontend/instance/struct.Instance.html\" title=\"struct frontend::instance::Instance\">Instance</a>"]]
+"frontend":[["impl PromHandler for <a class=\"struct\" href=\"frontend/instance/struct.Instance.html\" title=\"struct frontend::instance::Instance\">Instance</a>"]]
 };if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

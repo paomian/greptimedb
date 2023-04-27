@@ -241,7 +241,7 @@
 
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>common_runtime::Runtime;
-<span class="kw">use </span>common_telemetry::logging::{error, info};
+<span class="kw">use </span>common_telemetry::logging::{info, warn};
 <span class="kw">use </span>futures::StreamExt;
 <span class="kw">use </span>opensrv_mysql::{
     plain_run_with_options, secure_run_with_options, AsyncMysqlIntermediary, IntermediaryOptions,
@@ -357,12 +357,12 @@
 
             <span class="kw">async move </span>{
                 <span class="kw">match </span>tcp_stream {
-                    <span class="prelude-val">Err</span>(error) =&gt; <span class="macro">error!</span>(<span class="string">&quot;Broken pipe: {}&quot;</span>, error), <span class="comment">// IoError doesn&#39;t impl ErrorExt.
+                    <span class="prelude-val">Err</span>(error) =&gt; <span class="macro">warn!</span>(<span class="string">&quot;Broken pipe: {}&quot;</span>, error), <span class="comment">// IoError doesn&#39;t impl ErrorExt.
                     </span><span class="prelude-val">Ok</span>(io_stream) =&gt; {
                         <span class="kw">if let </span><span class="prelude-val">Err</span>(error) =
                             <span class="self">Self</span>::handle(io_stream, io_runtime, spawn_ref, spawn_config).<span class="kw">await
                         </span>{
-                            <span class="macro">error!</span>(error; <span class="string">&quot;Unexpected error when handling TcpStream&quot;</span>);
+                            <span class="macro">warn!</span>(<span class="string">&quot;Unexpected error when handling TcpStream {}&quot;</span>, error);
                         };
                     }
                 };
@@ -382,7 +382,7 @@
             </span><span class="kw">if let </span><span class="prelude-val">Err</span>(e)  = <span class="self">Self</span>::do_handle(stream, spawn_ref, spawn_config).<span class="kw">await </span>{
                 <span class="comment">// TODO(LFC): Write this error to client as well, in MySQL text protocol.
                 // Looks like we have to expose opensrv-mysql&#39;s `PacketWriter`?
-                </span><span class="macro">error!</span>(e; <span class="string">&quot;Internal error occurred during query exec, server actively close the channel to let client try next time.&quot;</span>)
+                </span><span class="macro">warn!</span>(<span class="string">&quot;Internal error occurred during query exec, server actively close the channel to let client try next time: {}.&quot;</span>, e)
             }
         });
 

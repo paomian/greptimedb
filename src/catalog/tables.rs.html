@@ -141,6 +141,7 @@
 <a href="#141" id="141">141</a>
 <a href="#142" id="142">142</a>
 <a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -183,7 +184,7 @@
         <span class="self">self
     </span>}
 
-    <span class="kw">fn </span>table_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;String&gt;, Error&gt; {
+    <span class="kw">async fn </span>table_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;String&gt;, Error&gt; {
         <span class="prelude-val">Ok</span>(<span class="macro">vec!</span>[SYSTEM_CATALOG_TABLE_NAME.to_string()])
     }
 
@@ -195,7 +196,7 @@
         }
     }
 
-    <span class="kw">fn </span>table_exist(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
+    <span class="kw">async fn </span>table_exist(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
         <span class="prelude-val">Ok</span>(name.eq_ignore_ascii_case(SYSTEM_CATALOG_TABLE_NAME))
     }
 }
@@ -259,16 +260,17 @@
     }
 }
 
-<span class="kw">impl </span>CatalogProvider <span class="kw">for </span>SystemCatalog {
+<span class="attr">#[async_trait::async_trait]
+</span><span class="kw">impl </span>CatalogProvider <span class="kw">for </span>SystemCatalog {
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {
         <span class="self">self
     </span>}
 
-    <span class="kw">fn </span>schema_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;String&gt;, Error&gt; {
+    <span class="kw">async fn </span>schema_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;String&gt;, Error&gt; {
         <span class="prelude-val">Ok</span>(<span class="macro">vec!</span>[INFORMATION_SCHEMA_NAME.to_string()])
     }
 
-    <span class="kw">fn </span>register_schema(
+    <span class="kw">async fn </span>register_schema(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         _name: String,
         _schema: SchemaProviderRef,
@@ -276,7 +278,7 @@
         <span class="macro">panic!</span>(<span class="string">&quot;System catalog does not support registering schema!&quot;</span>)
     }
 
-    <span class="kw">fn </span>schema(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Arc&lt;<span class="kw">dyn </span>SchemaProvider&gt;&gt;, Error&gt; {
+    <span class="kw">async fn </span>schema(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Arc&lt;<span class="kw">dyn </span>SchemaProvider&gt;&gt;, Error&gt; {
         <span class="kw">if </span>name.eq_ignore_ascii_case(INFORMATION_SCHEMA_NAME) {
             <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="self">self</span>.information_schema.clone()))
         } <span class="kw">else </span>{

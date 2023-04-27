@@ -59,17 +59,6 @@
 <a href="#59" id="59">59</a>
 <a href="#60" id="60">60</a>
 <a href="#61" id="61">61</a>
-<a href="#62" id="62">62</a>
-<a href="#63" id="63">63</a>
-<a href="#64" id="64">64</a>
-<a href="#65" id="65">65</a>
-<a href="#66" id="66">66</a>
-<a href="#67" id="67">67</a>
-<a href="#68" id="68">68</a>
-<a href="#69" id="69">69</a>
-<a href="#70" id="70">70</a>
-<a href="#71" id="71">71</a>
-<a href="#72" id="72">72</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -88,9 +77,7 @@
 
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>bytes::{Buf, Bytes, BytesMut};
-<span class="kw">use </span>catalog::datafusion::catalog_adapter::DfCatalogProviderAdapter;
-<span class="kw">use </span>catalog::CatalogManagerRef;
-<span class="kw">use </span>common_catalog::consts::DEFAULT_CATALOG_NAME;
+<span class="kw">use </span>datafusion::catalog::catalog::CatalogList;
 <span class="kw">use </span>datafusion::prelude::SessionContext;
 <span class="kw">use </span>datafusion_expr::LogicalPlan;
 <span class="kw">use </span>datafusion_substrait::logical_plan::consumer::from_substrait_plan;
@@ -113,20 +100,11 @@
     <span class="kw">async fn </span>decode&lt;B: Buf + Send&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         message: B,
-        catalog_manager: CatalogManagerRef,
+        catalog_list: Arc&lt;<span class="kw">dyn </span>CatalogList&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::Plan, <span class="self">Self</span>::Error&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>context = SessionContext::new();
-        context.register_catalog(
-            DEFAULT_CATALOG_NAME,
-            Arc::new(DfCatalogProviderAdapter::new(
-                catalog_manager
-                    .catalog(DEFAULT_CATALOG_NAME)
-                    .unwrap()
-                    .unwrap(),
-            )),
-        );
-
         <span class="kw">let </span>plan = Plan::decode(message).context(DecodeRelSnafu)<span class="question-mark">?</span>;
+        context.register_catalog_list(catalog_list);
         <span class="kw">let </span>df_plan = from_substrait_plan(<span class="kw-2">&amp;mut </span>context, <span class="kw-2">&amp;</span>plan)
             .<span class="kw">await
             </span>.context(DecodeDfPlanSnafu)<span class="question-mark">?</span>;

@@ -856,14 +856,14 @@
 
 <span class="doccomment">/// create query context from database name information, catalog and schema are
 /// resolved from the name
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>query_context_from_db(
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>query_context_from_db(
     query_handler: ServerSqlQueryHandlerRef,
     db: <span class="prelude-ty">Option</span>&lt;String&gt;,
 ) -&gt; std::result::Result&lt;Arc&lt;QueryContext&gt;, JsonResponse&gt; {
     <span class="kw">if let </span><span class="prelude-val">Some</span>(db) = <span class="kw-2">&amp;</span>db {
         <span class="kw">let </span>(catalog, schema) = <span class="kw">super</span>::parse_catalog_and_schema_from_client_database_name(db);
 
-        <span class="kw">match </span>query_handler.is_valid_schema(catalog, schema) {
+        <span class="kw">match </span>query_handler.is_valid_schema(catalog, schema).<span class="kw">await </span>{
             <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>) =&gt; <span class="prelude-val">Ok</span>(Arc::new(QueryContext::with(catalog, schema))),
             <span class="prelude-val">Ok</span>(<span class="bool-val">false</span>) =&gt; <span class="prelude-val">Err</span>(JsonResponse::with_error(
                 <span class="macro">format!</span>(<span class="string">&quot;Database not found: {db}&quot;</span>),
@@ -1483,7 +1483,7 @@
             <span class="macro">unimplemented!</span>()
         }
 
-        <span class="kw">fn </span>is_valid_schema(<span class="kw-2">&amp;</span><span class="self">self</span>, _catalog: <span class="kw-2">&amp;</span>str, _schema: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
+        <span class="kw">async fn </span>is_valid_schema(<span class="kw-2">&amp;</span><span class="self">self</span>, _catalog: <span class="kw-2">&amp;</span>str, _schema: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
             <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
         }
     }

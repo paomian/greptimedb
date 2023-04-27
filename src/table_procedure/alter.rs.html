@@ -341,6 +341,17 @@
 <a href="#341" id="341">341</a>
 <a href="#342" id="342">342</a>
 <a href="#343" id="343">343</a>
+<a href="#344" id="344">344</a>
+<a href="#345" id="345">345</a>
+<a href="#346" id="346">346</a>
+<a href="#347" id="347">347</a>
+<a href="#348" id="348">348</a>
+<a href="#349" id="349">349</a>
+<a href="#350" id="350">350</a>
+<a href="#351" id="351">351</a>
+<a href="#352" id="352">352</a>
+<a href="#353" id="353">353</a>
+<a href="#354" id="354">354</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -477,34 +488,44 @@
 
     <span class="kw">async fn </span>on_prepare(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Status&gt; {
         <span class="comment">// Check whether catalog and schema exist.
-        </span><span class="kw">let </span>catalog = <span class="self">self
+        </span><span class="kw">let </span>request = <span class="kw-2">&amp;</span><span class="self">self</span>.data.request;
+        <span class="kw">let </span>catalog = <span class="self">self
             </span>.catalog_manager
-            .catalog(<span class="kw-2">&amp;</span><span class="self">self</span>.data.request.catalog_name)
-            .context(AccessCatalogSnafu)<span class="question-mark">?
+            .catalog(<span class="kw-2">&amp;</span>request.catalog_name)
+            .<span class="kw">await
+            </span>.context(AccessCatalogSnafu)<span class="question-mark">?
             </span>.context(CatalogNotFoundSnafu {
-                name: <span class="kw-2">&amp;</span><span class="self">self</span>.data.request.catalog_name,
+                name: <span class="kw-2">&amp;</span>request.catalog_name,
             })<span class="question-mark">?</span>;
         <span class="kw">let </span>schema = catalog
-            .schema(<span class="kw-2">&amp;</span><span class="self">self</span>.data.request.schema_name)
-            .context(AccessCatalogSnafu)<span class="question-mark">?
+            .schema(<span class="kw-2">&amp;</span>request.schema_name)
+            .<span class="kw">await
+            </span>.context(AccessCatalogSnafu)<span class="question-mark">?
             </span>.context(SchemaNotFoundSnafu {
-                name: <span class="kw-2">&amp;</span><span class="self">self</span>.data.request.schema_name,
+                name: <span class="kw-2">&amp;</span>request.schema_name,
             })<span class="question-mark">?</span>;
 
         <span class="kw">let </span>table = schema
-            .table(<span class="kw-2">&amp;</span><span class="self">self</span>.data.request.table_name)
+            .table(<span class="kw-2">&amp;</span>request.table_name)
             .<span class="kw">await
             </span>.context(AccessCatalogSnafu)<span class="question-mark">?
-            </span>.context(TableNotFoundSnafu {
-                name: <span class="kw-2">&amp;</span><span class="self">self</span>.data.request.table_name,
+            </span>.with_context(|| TableNotFoundSnafu {
+                name: <span class="macro">format!</span>(
+                    <span class="string">&quot;{}.{}.{}&quot;</span>,
+                    request.catalog_name, request.schema_name, request.table_name
+                ),
             })<span class="question-mark">?</span>;
         <span class="kw">if let </span>AlterKind::RenameTable { new_table_name } = <span class="kw-2">&amp;</span><span class="self">self</span>.data.request.alter_kind {
             <span class="macro">ensure!</span>(
                 !schema
                     .table_exist(new_table_name)
-                    .context(AccessCatalogSnafu)<span class="question-mark">?</span>,
+                    .<span class="kw">await
+                    </span>.context(AccessCatalogSnafu)<span class="question-mark">?</span>,
                 TableExistsSnafu {
-                    name: new_table_name,
+                    name: <span class="macro">format!</span>(
+                        <span class="string">&quot;{}.{}.{}&quot;</span>,
+                        request.catalog_name, request.schema_name, new_table_name
+                    ),
                 }
             );
         }
@@ -674,9 +695,10 @@
 
         <span class="kw">let </span>catalog = catalog_manager
             .catalog(DEFAULT_CATALOG_NAME)
-            .unwrap()
+            .<span class="kw">await
+            </span>.unwrap()
             .unwrap();
-        <span class="kw">let </span>schema = catalog.schema(DEFAULT_SCHEMA_NAME).unwrap().unwrap();
+        <span class="kw">let </span>schema = catalog.schema(DEFAULT_SCHEMA_NAME).<span class="kw">await</span>.unwrap().unwrap();
         <span class="kw">let </span>table = schema.table(new_table_name).<span class="kw">await</span>.unwrap().unwrap();
         <span class="kw">let </span>table_info = table.table_info();
         <span class="macro">assert_eq!</span>(new_table_name, table_info.name);

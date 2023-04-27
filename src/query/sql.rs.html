@@ -439,17 +439,6 @@
 <a href="#439" id="439">439</a>
 <a href="#440" id="440">440</a>
 <a href="#441" id="441">441</a>
-<a href="#442" id="442">442</a>
-<a href="#443" id="443">443</a>
-<a href="#444" id="444">444</a>
-<a href="#445" id="445">445</a>
-<a href="#446" id="446">446</a>
-<a href="#447" id="447">447</a>
-<a href="#448" id="448">448</a>
-<a href="#449" id="449">449</a>
-<a href="#450" id="450">450</a>
-<a href="#451" id="451">451</a>
-<a href="#452" id="452">452</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -471,10 +460,7 @@
 
 <span class="kw">use </span>catalog::CatalogManagerRef;
 <span class="kw">use </span>common_catalog::consts::DEFAULT_CATALOG_NAME;
-<span class="kw">use </span>common_datasource::file_format::csv::CsvFormat;
-<span class="kw">use </span>common_datasource::file_format::json::JsonFormat;
-<span class="kw">use </span>common_datasource::file_format::parquet::ParquetFormat;
-<span class="kw">use </span>common_datasource::file_format::{infer_schemas, FileFormat};
+<span class="kw">use </span>common_datasource::file_format::{infer_schemas, FileFormat, Format};
 <span class="kw">use </span>common_datasource::lister::{Lister, Source};
 <span class="kw">use </span>common_datasource::object_store::build_backend;
 <span class="kw">use </span>common_datasource::util::find_dir_and_filename;
@@ -492,9 +478,7 @@
 <span class="kw">use </span>sql::statements::column_def_to_schema;
 <span class="kw">use </span>sql::statements::create::Partitions;
 <span class="kw">use </span>sql::statements::show::{ShowDatabases, ShowKind, ShowTables};
-<span class="kw">use </span>table::requests::{
-    IMMUTABLE_TABLE_FORMAT_KEY, IMMUTABLE_TABLE_LOCATION_KEY, IMMUTABLE_TABLE_PATTERN_KEY,
-};
+<span class="kw">use </span>table::requests::{IMMUTABLE_TABLE_LOCATION_KEY, IMMUTABLE_TABLE_PATTERN_KEY};
 <span class="kw">use </span>table::TableRef;
 
 <span class="kw">use </span><span class="kw">crate</span>::error::{<span class="self">self</span>, <span class="prelude-ty">Result</span>};
@@ -551,7 +535,10 @@
     ]))
 });
 
-<span class="kw">pub fn </span>show_databases(stmt: ShowDatabases, catalog_manager: CatalogManagerRef) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
+<span class="kw">pub async fn </span>show_databases(
+    stmt: ShowDatabases,
+    catalog_manager: CatalogManagerRef,
+) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
     <span class="comment">// TODO(LFC): supports WHERE
     </span><span class="macro">ensure!</span>(
         <span class="macro">matches!</span>(stmt.kind, ShowKind::All | ShowKind::Like(<span class="kw">_</span>)),
@@ -562,11 +549,12 @@
 
     <span class="kw">let </span>catalog = catalog_manager
         .catalog(DEFAULT_CATALOG_NAME)
-        .context(error::CatalogSnafu)<span class="question-mark">?
+        .<span class="kw">await
+        </span>.context(error::CatalogSnafu)<span class="question-mark">?
         </span>.context(error::CatalogNotFoundSnafu {
             catalog: DEFAULT_CATALOG_NAME,
         })<span class="question-mark">?</span>;
-    <span class="kw">let </span><span class="kw-2">mut </span>databases = catalog.schema_names().context(error::CatalogSnafu)<span class="question-mark">?</span>;
+    <span class="kw">let </span><span class="kw-2">mut </span>databases = catalog.schema_names().<span class="kw">await</span>.context(error::CatalogSnafu)<span class="question-mark">?</span>;
     <span class="comment">// TODO(dennis): Specify the order of the results in catalog manager API
     </span>databases.sort();
 
@@ -586,7 +574,7 @@
     <span class="prelude-val">Ok</span>(Output::RecordBatches(records))
 }
 
-<span class="kw">pub fn </span>show_tables(
+<span class="kw">pub async fn </span>show_tables(
     stmt: ShowTables,
     catalog_manager: CatalogManagerRef,
     query_ctx: QueryContextRef,
@@ -607,9 +595,10 @@
     <span class="comment">// TODO(sunng87): move this function into query_ctx
     </span><span class="kw">let </span>schema = catalog_manager
         .schema(<span class="kw-2">&amp;</span>query_ctx.current_catalog(), <span class="kw-2">&amp;</span>schema)
-        .context(error::CatalogSnafu)<span class="question-mark">?
+        .<span class="kw">await
+        </span>.context(error::CatalogSnafu)<span class="question-mark">?
         </span>.context(error::SchemaNotFoundSnafu { schema })<span class="question-mark">?</span>;
-    <span class="kw">let </span><span class="kw-2">mut </span>tables = schema.table_names().context(error::CatalogSnafu)<span class="question-mark">?</span>;
+    <span class="kw">let </span><span class="kw-2">mut </span>tables = schema.table_names().<span class="kw">await</span>.context(error::CatalogSnafu)<span class="question-mark">?</span>;
     <span class="comment">// TODO(dennis): Specify the order of the results in schema provider API
     </span>tables.sort();
 
@@ -783,24 +772,13 @@
 <span class="kw">fn </span>parse_immutable_file_table_format(
     options: <span class="kw-2">&amp;</span>HashMap&lt;String, String&gt;,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>FileFormat&gt;&gt; {
-    <span class="kw">let </span>format = options
-        .get(IMMUTABLE_TABLE_FORMAT_KEY)
-        .cloned()
-        .unwrap_or_default()
-        .to_uppercase();
-
-    <span class="kw">match </span>format.as_str() {
-        <span class="string">&quot;CSV&quot; </span>=&gt; {
-            <span class="kw">let </span>file_format = CsvFormat::try_from(options).context(error::ParseFileFormatSnafu)<span class="question-mark">?</span>;
-            <span class="prelude-val">Ok</span>(Box::new(file_format))
-        }
-        <span class="string">&quot;JSON&quot; </span>=&gt; {
-            <span class="kw">let </span>file_format = JsonFormat::try_from(options).context(error::ParseFileFormatSnafu)<span class="question-mark">?</span>;
-            <span class="prelude-val">Ok</span>(Box::new(file_format))
-        }
-        <span class="string">&quot;PARQUET&quot; </span>=&gt; <span class="prelude-val">Ok</span>(Box::new(ParquetFormat {})),
-        format =&gt; error::UnsupportedFileFormatSnafu { format }.fail(),
-    }
+    <span class="prelude-val">Ok</span>(
+        <span class="kw">match </span>Format::try_from(options).context(error::ParseFileFormatSnafu)<span class="question-mark">? </span>{
+            Format::Csv(format) =&gt; Box::new(format),
+            Format::Json(format) =&gt; Box::new(format),
+            Format::Parquet(format) =&gt; Box::new(format),
+        },
+    )
 }
 
 <span class="kw">async fn </span>infer_immutable_file_table_schema(

@@ -574,7 +574,7 @@
     <span class="kw">pub </span>meta_client_options: <span class="prelude-ty">Option</span>&lt;MetaClientOptions&gt;,
     <span class="kw">pub </span>wal: WalConfig,
     <span class="kw">pub </span>storage: StorageConfig,
-    <span class="kw">pub </span>procedure: <span class="prelude-ty">Option</span>&lt;ProcedureConfig&gt;,
+    <span class="kw">pub </span>procedure: ProcedureConfig,
 }
 
 <span class="kw">impl </span>Default <span class="kw">for </span>DatanodeOptions {
@@ -592,7 +592,7 @@
             meta_client_options: <span class="prelude-val">None</span>,
             wal: WalConfig::default(),
             storage: StorageConfig::default(),
-            procedure: <span class="prelude-val">None</span>,
+            procedure: ProcedureConfig::default(),
         }
     }
 }

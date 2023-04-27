@@ -460,7 +460,7 @@
 // limitations under the License.
 
 </span><span class="doccomment">//! prom supply the prometheus HTTP API Server compliance
-</span><span class="kw">use </span>std::collections::HashMap;
+</span><span class="kw">use </span>std::collections::{BTreeMap, HashMap};
 <span class="kw">use </span>std::net::SocketAddr;
 <span class="kw">use </span>std::sync::Arc;
 
@@ -603,30 +603,30 @@
     }
 }
 
-<span class="attr">#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
+<span class="attr">#[derive(Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq)]
 </span><span class="kw">pub struct </span>PromSeries {
-    metric: HashMap&lt;String, String&gt;,
-    values: Vec&lt;(f64, String)&gt;,
+    <span class="kw">pub </span>metric: HashMap&lt;String, String&gt;,
+    <span class="kw">pub </span>values: Vec&lt;(f64, String)&gt;,
 }
 
-<span class="attr">#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
+<span class="attr">#[derive(Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq)]
 </span><span class="kw">pub struct </span>PromData {
     <span class="attr">#[serde(rename = <span class="string">&quot;resultType&quot;</span>)]
-    </span>result_type: String,
-    result: Vec&lt;PromSeries&gt;,
+    </span><span class="kw">pub </span>result_type: String,
+    <span class="kw">pub </span>result: Vec&lt;PromSeries&gt;,
 }
 
-<span class="attr">#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
+<span class="attr">#[derive(Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq)]
 </span><span class="kw">pub struct </span>PromJsonResponse {
-    status: String,
-    data: PromData,
+    <span class="kw">pub </span>status: String,
+    <span class="kw">pub </span>data: PromData,
     <span class="attr">#[serde(skip_serializing_if = <span class="string">&quot;Option::is_none&quot;</span>)]
-    </span>error: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    </span><span class="kw">pub </span>error: <span class="prelude-ty">Option</span>&lt;String&gt;,
     <span class="attr">#[serde(skip_serializing_if = <span class="string">&quot;Option::is_none&quot;</span>)]
     #[serde(rename = <span class="string">&quot;errorType&quot;</span>)]
-    </span>error_type: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    </span><span class="kw">pub </span>error_type: <span class="prelude-ty">Option</span>&lt;String&gt;,
     <span class="attr">#[serde(skip_serializing_if = <span class="string">&quot;Option::is_none&quot;</span>)]
-    </span>warnings: <span class="prelude-ty">Option</span>&lt;Vec&lt;String&gt;&gt;,
+    </span><span class="kw">pub </span>warnings: <span class="prelude-ty">Option</span>&lt;Vec&lt;String&gt;&gt;,
 }
 
 <span class="kw">impl </span>PromJsonResponse {
@@ -728,7 +728,7 @@
         })<span class="question-mark">?</span>;
 
         <span class="kw">let </span>metric_name = (METRIC_NAME.to_string(), metric_name);
-        <span class="kw">let </span><span class="kw-2">mut </span>buffer = HashMap::&lt;Vec&lt;(String, String)&gt;, Vec&lt;(f64, String)&gt;&gt;::new();
+        <span class="kw">let </span><span class="kw-2">mut </span>buffer = BTreeMap::&lt;Vec&lt;(String, String)&gt;, Vec&lt;(f64, String)&gt;&gt;::new();
 
         <span class="kw">for </span>batch <span class="kw">in </span>batches.iter() {
             <span class="comment">// prepare things...
@@ -785,7 +785,7 @@
                 metric: tags.into_iter().collect(),
                 values,
             })
-            .collect();
+            .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
 
         <span class="kw">let </span>data = PromData {
             result_type: <span class="string">&quot;matrix&quot;</span>.to_string(),

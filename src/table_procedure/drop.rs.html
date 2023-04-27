@@ -306,6 +306,7 @@
 <a href="#306" id="306">306</a>
 <a href="#307" id="307">307</a>
 <a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -599,9 +600,10 @@
 
         <span class="kw">let </span>catalog = catalog_manager
             .catalog(DEFAULT_CATALOG_NAME)
-            .unwrap()
+            .<span class="kw">await
+            </span>.unwrap()
             .unwrap();
-        <span class="kw">let </span>schema = catalog.schema(DEFAULT_SCHEMA_NAME).unwrap().unwrap();
+        <span class="kw">let </span>schema = catalog.schema(DEFAULT_SCHEMA_NAME).<span class="kw">await</span>.unwrap().unwrap();
         <span class="macro">assert!</span>(schema.table(table_name).<span class="kw">await</span>.unwrap().is_none());
         <span class="kw">let </span>ctx = EngineContext::default();
         <span class="macro">assert!</span>(!table_engine.table_exists(

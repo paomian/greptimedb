@@ -862,14 +862,6 @@
 <a href="#862" id="862">862</a>
 <a href="#863" id="863">863</a>
 <a href="#864" id="864">864</a>
-<a href="#865" id="865">865</a>
-<a href="#866" id="866">866</a>
-<a href="#867" id="867">867</a>
-<a href="#868" id="868">868</a>
-<a href="#869" id="869">869</a>
-<a href="#870" id="870">870</a>
-<a href="#871" id="871">871</a>
-<a href="#872" id="872">872</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -889,19 +881,17 @@
 <span class="kw">use </span>std::pin::Pin;
 <span class="kw">use </span>std::sync::Arc;
 
-<span class="kw">use </span>arc_swap::ArcSwap;
 <span class="kw">use </span>async_stream::stream;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>common_catalog::consts::{MIN_USER_TABLE_ID, MITO_ENGINE};
-<span class="kw">use </span>common_telemetry::{debug, error, info};
+<span class="kw">use </span>common_telemetry::{debug, error, info, warn};
 <span class="kw">use </span>dashmap::DashMap;
 <span class="kw">use </span>futures::Stream;
 <span class="kw">use </span>futures_util::{StreamExt, TryStreamExt};
-<span class="kw">use </span>key_lock::KeyLock;
 <span class="kw">use </span>parking_lot::RwLock;
 <span class="kw">use </span>snafu::{OptionExt, ResultExt};
 <span class="kw">use </span>table::engine::manager::TableEngineManagerRef;
-<span class="kw">use </span>table::engine::EngineContext;
+<span class="kw">use </span>table::engine::{EngineContext, TableReference};
 <span class="kw">use </span>table::metadata::TableId;
 <span class="kw">use </span>table::requests::{CreateTableRequest, OpenTableRequest};
 <span class="kw">use </span>table::TableRef;
@@ -913,13 +903,13 @@
     TableExistsSnafu, UnimplementedSnafu,
 };
 <span class="kw">use </span><span class="kw">crate</span>::helper::{
-    build_catalog_prefix, build_schema_prefix, build_table_global_prefix, CatalogKey, CatalogValue,
-    SchemaKey, SchemaValue, TableGlobalKey, TableGlobalValue, TableRegionalKey, TableRegionalValue,
-    CATALOG_KEY_PREFIX,
+    build_catalog_prefix, build_schema_prefix, build_table_global_prefix,
+    build_table_regional_prefix, CatalogKey, CatalogValue, SchemaKey, SchemaValue, TableGlobalKey,
+    TableGlobalValue, TableRegionalKey, TableRegionalValue, CATALOG_KEY_PREFIX,
 };
 <span class="kw">use </span><span class="kw">crate</span>::remote::{Kv, KvBackendRef};
 <span class="kw">use crate</span>::{
-    handle_system_table_request, CatalogList, CatalogManager, CatalogProvider, CatalogProviderRef,
+    handle_system_table_request, CatalogManager, CatalogProvider, CatalogProviderRef,
     DeregisterTableRequest, RegisterSchemaRequest, RegisterSystemTableRequest,
     RegisterTableRequest, RenameTableRequest, SchemaProvider, SchemaProviderRef,
 };
@@ -944,19 +934,12 @@
         }
     }
 
-    <span class="kw">fn </span>build_catalog_key(<span class="kw-2">&amp;</span><span class="self">self</span>, catalog_name: <span class="kw">impl </span>AsRef&lt;str&gt;) -&gt; CatalogKey {
-        CatalogKey {
-            catalog_name: catalog_name.as_ref().to_string(),
-        }
-    }
-
     <span class="kw">fn </span>new_catalog_provider(<span class="kw-2">&amp;</span><span class="self">self</span>, catalog_name: <span class="kw-2">&amp;</span>str) -&gt; CatalogProviderRef {
         Arc::new(RemoteCatalogProvider {
             node_id: <span class="self">self</span>.node_id,
             catalog_name: catalog_name.to_string(),
             backend: <span class="self">self</span>.backend.clone(),
-            schemas: Default::default(),
-            mutex: Default::default(),
+            engine_manager: <span class="self">self</span>.engine_manager.clone(),
         }) <span class="kw">as _
     </span>}
 
@@ -964,10 +947,9 @@
         Arc::new(RemoteSchemaProvider {
             catalog_name: catalog_name.to_string(),
             schema_name: schema_name.to_string(),
-            tables: Default::default(),
             node_id: <span class="self">self</span>.node_id,
             backend: <span class="self">self</span>.backend.clone(),
-            mutex: Default::default(),
+            engine_manager: <span class="self">self</span>.engine_manager.clone(),
         }) <span class="kw">as _
     </span>}
 
@@ -1089,10 +1071,12 @@
                 ..
             } = r<span class="question-mark">?</span>;
             <span class="macro">info!</span>(<span class="string">&quot;Found schema: {}.{}&quot;</span>, catalog_name, schema_name);
-            <span class="kw">let </span>schema = <span class="kw">match </span>catalog.schema(<span class="kw-2">&amp;</span>schema_name)<span class="question-mark">? </span>{
+            <span class="kw">let </span>schema = <span class="kw">match </span>catalog.schema(<span class="kw-2">&amp;</span>schema_name).<span class="kw">await</span><span class="question-mark">? </span>{
                 <span class="prelude-val">None </span>=&gt; {
                     <span class="kw">let </span>schema = <span class="self">self</span>.new_schema_provider(<span class="kw-2">&amp;</span>catalog_name, <span class="kw-2">&amp;</span>schema_name);
-                    catalog.register_schema(schema_name.clone(), schema.clone())<span class="question-mark">?</span>;
+                    catalog
+                        .register_schema(schema_name.clone(), schema.clone())
+                        .<span class="kw">await</span><span class="question-mark">?</span>;
                     <span class="macro">info!</span>(<span class="string">&quot;Registered schema: {}&quot;</span>, <span class="kw-2">&amp;</span>schema_name);
                     schema
                 }
@@ -1138,7 +1122,7 @@
             <span class="kw">let </span>table_info = table_ref.table_info();
             <span class="kw">let </span>table_name = <span class="kw-2">&amp;</span>table_info.name;
             <span class="kw">let </span>table_id = table_info.ident.table_id;
-            schema.register_table(table_name.clone(), table_ref)<span class="question-mark">?</span>;
+            schema.register_table(table_name.clone(), table_ref).<span class="kw">await</span><span class="question-mark">?</span>;
             <span class="macro">info!</span>(<span class="string">&quot;Registered table {}&quot;</span>, table_name);
             max_table_id = max_table_id.max(table_id);
             table_num += <span class="number">1</span>;
@@ -1159,7 +1143,9 @@
         <span class="kw">let </span>schema_provider = <span class="self">self</span>.new_schema_provider(catalog_name, schema_name);
 
         <span class="kw">let </span>catalog_provider = <span class="self">self</span>.new_catalog_provider(catalog_name);
-        catalog_provider.register_schema(schema_name.to_string(), schema_provider.clone())<span class="question-mark">?</span>;
+        catalog_provider
+            .register_schema(schema_name.to_string(), schema_provider.clone())
+            .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let </span>schema_key = SchemaKey {
             catalog_name: catalog_name.to_string(),
@@ -1310,56 +1296,85 @@
     <span class="kw">async fn </span>register_table(<span class="kw-2">&amp;</span><span class="self">self</span>, request: RegisterTableRequest) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
         <span class="kw">let </span>catalog_name = request.catalog;
         <span class="kw">let </span>schema_name = request.schema;
-        <span class="kw">let </span>catalog_provider = <span class="self">self</span>.catalog(<span class="kw-2">&amp;</span>catalog_name)<span class="question-mark">?</span>.context(CatalogNotFoundSnafu {
-            catalog_name: <span class="kw-2">&amp;</span>catalog_name,
-        })<span class="question-mark">?</span>;
-        <span class="kw">let </span>schema_provider =
-            catalog_provider
-                .schema(<span class="kw-2">&amp;</span>schema_name)<span class="question-mark">?
-                </span>.with_context(|| SchemaNotFoundSnafu {
-                    catalog: <span class="kw-2">&amp;</span>catalog_name,
-                    schema: <span class="kw-2">&amp;</span>schema_name,
-                })<span class="question-mark">?</span>;
-        <span class="kw">if </span>schema_provider.table_exist(<span class="kw-2">&amp;</span>request.table_name)<span class="question-mark">? </span>{
+        <span class="kw">let </span>schema_provider = <span class="self">self
+            </span>.catalog(<span class="kw-2">&amp;</span>catalog_name)
+            .<span class="kw">await</span><span class="question-mark">?
+            </span>.context(CatalogNotFoundSnafu {
+                catalog_name: <span class="kw-2">&amp;</span>catalog_name,
+            })<span class="question-mark">?
+            </span>.schema(<span class="kw-2">&amp;</span>schema_name)
+            .<span class="kw">await</span><span class="question-mark">?
+            </span>.with_context(|| SchemaNotFoundSnafu {
+                catalog: <span class="kw-2">&amp;</span>catalog_name,
+                schema: <span class="kw-2">&amp;</span>schema_name,
+            })<span class="question-mark">?</span>;
+        <span class="kw">if </span>schema_provider.table_exist(<span class="kw-2">&amp;</span>request.table_name).<span class="kw">await</span><span class="question-mark">? </span>{
             <span class="kw">return </span>TableExistsSnafu {
                 table: <span class="macro">format!</span>(<span class="string">&quot;{}.{}.{}&quot;</span>, <span class="kw-2">&amp;</span>catalog_name, <span class="kw-2">&amp;</span>schema_name, <span class="kw-2">&amp;</span>request.table_name),
             }
             .fail();
         }
-        schema_provider.register_table(request.table_name, request.table)<span class="question-mark">?</span>;
+        schema_provider
+            .register_table(request.table_name, request.table)
+            .<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
     }
 
     <span class="kw">async fn </span>deregister_table(<span class="kw-2">&amp;</span><span class="self">self</span>, request: DeregisterTableRequest) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
         <span class="kw">let </span>catalog_name = <span class="kw-2">&amp;</span>request.catalog;
         <span class="kw">let </span>schema_name = <span class="kw-2">&amp;</span>request.schema;
-        <span class="kw">let </span>schema = <span class="self">self
-            </span>.schema(catalog_name, schema_name)<span class="question-mark">?
+        <span class="kw">let </span>result = <span class="self">self
+            </span>.schema(catalog_name, schema_name)
+            .<span class="kw">await</span><span class="question-mark">?
             </span>.context(SchemaNotFoundSnafu {
                 catalog: catalog_name,
                 schema: schema_name,
-            })<span class="question-mark">?</span>;
-
-        <span class="kw">let </span>result = schema.deregister_table(<span class="kw-2">&amp;</span>request.table_name)<span class="question-mark">?</span>;
+            })<span class="question-mark">?
+            </span>.deregister_table(<span class="kw-2">&amp;</span>request.table_name)
+            .<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(result.is_none())
     }
 
     <span class="kw">async fn </span>register_schema(<span class="kw-2">&amp;</span><span class="self">self</span>, request: RegisterSchemaRequest) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
         <span class="kw">let </span>catalog_name = request.catalog;
         <span class="kw">let </span>schema_name = request.schema;
-        <span class="kw">let </span>catalog_provider = <span class="self">self</span>.catalog(<span class="kw-2">&amp;</span>catalog_name)<span class="question-mark">?</span>.context(CatalogNotFoundSnafu {
-            catalog_name: <span class="kw-2">&amp;</span>catalog_name,
-        })<span class="question-mark">?</span>;
+        <span class="kw">let </span>catalog_provider =
+            <span class="self">self</span>.catalog(<span class="kw-2">&amp;</span>catalog_name)
+                .<span class="kw">await</span><span class="question-mark">?
+                </span>.context(CatalogNotFoundSnafu {
+                    catalog_name: <span class="kw-2">&amp;</span>catalog_name,
+                })<span class="question-mark">?</span>;
         <span class="kw">let </span>schema_provider = <span class="self">self</span>.new_schema_provider(<span class="kw-2">&amp;</span>catalog_name, <span class="kw-2">&amp;</span>schema_name);
-        catalog_provider.register_schema(schema_name, schema_provider)<span class="question-mark">?</span>;
+        catalog_provider
+            .register_schema(schema_name, schema_provider)
+            .<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
     }
 
-    <span class="kw">async fn </span>rename_table(<span class="kw-2">&amp;</span><span class="self">self</span>, _request: RenameTableRequest) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
-        UnimplementedSnafu {
-            operation: <span class="string">&quot;rename table&quot;</span>,
+    <span class="kw">async fn </span>rename_table(<span class="kw-2">&amp;</span><span class="self">self</span>, request: RenameTableRequest) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
+        <span class="kw">let </span>old_table_key = TableRegionalKey {
+            catalog_name: request.catalog.clone(),
+            schema_name: request.schema.clone(),
+            table_name: request.table_name.clone(),
+            node_id: <span class="self">self</span>.node_id,
         }
-        .fail()
+        .to_string();
+        <span class="kw">let </span><span class="prelude-val">Some</span>(Kv(<span class="kw">_</span>, value_bytes)) = <span class="self">self</span>.backend.get(old_table_key.as_bytes()).<span class="kw">await</span><span class="question-mark">? </span><span class="kw">else </span>{
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>)
+        };
+        <span class="kw">let </span>new_table_key = TableRegionalKey {
+            catalog_name: request.catalog.clone(),
+            schema_name: request.schema.clone(),
+            table_name: request.new_table_name,
+            node_id: <span class="self">self</span>.node_id,
+        };
+        <span class="self">self</span>.backend
+            .set(new_table_key.to_string().as_bytes(), <span class="kw-2">&amp;</span>value_bytes)
+            .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="self">self</span>.backend
+            .delete(old_table_key.to_string().as_bytes())
+            .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
     }
 
     <span class="kw">async fn </span>register_system_table(<span class="kw-2">&amp;</span><span class="self">self</span>, request: RegisterSystemTableRequest) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
@@ -1368,13 +1383,15 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>schema(<span class="kw-2">&amp;</span><span class="self">self</span>, catalog: <span class="kw-2">&amp;</span>str, schema: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SchemaProviderRef&gt;&gt; {
-        <span class="self">self</span>.catalog(catalog)<span class="question-mark">?
+    <span class="kw">async fn </span>schema(<span class="kw-2">&amp;</span><span class="self">self</span>, catalog: <span class="kw-2">&amp;</span>str, schema: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SchemaProviderRef&gt;&gt; {
+        <span class="self">self</span>.catalog(catalog)
+            .<span class="kw">await</span><span class="question-mark">?
             </span>.context(CatalogNotFoundSnafu {
                 catalog_name: catalog,
             })<span class="question-mark">?
             </span>.schema(schema)
-    }
+            .<span class="kw">await
+    </span>}
 
     <span class="kw">async fn </span>table(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
@@ -1383,176 +1400,90 @@
         table_name: <span class="kw-2">&amp;</span>str,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;TableRef&gt;&gt; {
         <span class="kw">let </span>catalog = <span class="self">self
-            </span>.catalog(catalog_name)<span class="question-mark">?
+            </span>.catalog(catalog_name)
+            .<span class="kw">await</span><span class="question-mark">?
             </span>.with_context(|| CatalogNotFoundSnafu { catalog_name })<span class="question-mark">?</span>;
         <span class="kw">let </span>schema = catalog
-            .schema(schema_name)<span class="question-mark">?
+            .schema(schema_name)
+            .<span class="kw">await</span><span class="question-mark">?
             </span>.with_context(|| SchemaNotFoundSnafu {
                 catalog: catalog_name,
                 schema: schema_name,
             })<span class="question-mark">?</span>;
         schema.table(table_name).<span class="kw">await
     </span>}
-}
 
-<span class="kw">impl </span>CatalogList <span class="kw">for </span>RemoteCatalogManager {
-    <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {
-        <span class="self">self
-    </span>}
-
-    <span class="kw">fn </span>register_catalog(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        name: String,
-        catalog: CatalogProviderRef,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;CatalogProviderRef&gt;&gt; {
-        <span class="kw">let </span>key = <span class="self">self</span>.build_catalog_key(<span class="kw-2">&amp;</span>name).to_string();
-        <span class="kw">let </span>backend = <span class="self">self</span>.backend.clone();
-        <span class="kw">let </span>catalogs = <span class="self">self</span>.catalogs.clone();
-
-        std::thread::spawn(|| {
-            common_runtime::block_on_write(<span class="kw">async move </span>{
-                backend
-                    .set(
-                        key.as_bytes(),
-                        <span class="kw-2">&amp;</span>CatalogValue {}
-                            .as_bytes()
-                            .context(InvalidCatalogValueSnafu)<span class="question-mark">?</span>,
-                    )
-                    .<span class="kw">await</span><span class="question-mark">?</span>;
-
-                <span class="kw">let </span>catalogs = catalogs.read();
-                <span class="kw">let </span>prev = catalogs.insert(name, catalog.clone());
-
-                <span class="prelude-val">Ok</span>(prev)
-            })
-        })
-        .join()
-        .unwrap()
+    <span class="kw">async fn </span>catalog(<span class="kw-2">&amp;</span><span class="self">self</span>, catalog: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;CatalogProviderRef&gt;&gt; {
+        <span class="kw">let </span>key = CatalogKey {
+            catalog_name: catalog.to_string(),
+        };
+        <span class="prelude-val">Ok</span>(<span class="self">self
+            </span>.backend
+            .get(key.to_string().as_bytes())
+            .<span class="kw">await</span><span class="question-mark">?
+            </span>.map(|<span class="kw">_</span>| <span class="self">self</span>.new_catalog_provider(catalog)))
     }
 
-    <span class="doccomment">/// List all catalogs from metasrv
-    </span><span class="kw">fn </span>catalog_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;String&gt;&gt; {
-        <span class="kw">let </span>catalogs = <span class="self">self</span>.catalogs.read();
-        <span class="prelude-val">Ok</span>(catalogs.iter().map(|k| k.key().to_string()).collect())
-    }
+    <span class="kw">async fn </span>catalog_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;String&gt;&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>stream = <span class="self">self</span>.backend.range(CATALOG_KEY_PREFIX.as_bytes());
+        <span class="kw">let </span><span class="kw-2">mut </span>catalogs = HashSet::new();
 
-    <span class="doccomment">/// Read catalog info of given name from metasrv.
-    </span><span class="kw">fn </span>catalog(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;CatalogProviderRef&gt;&gt; {
-        {
-            <span class="kw">let </span>catalogs = <span class="self">self</span>.catalogs.read();
-            <span class="kw">let </span>catalog = catalogs.get(name);
+        <span class="kw">while let </span><span class="prelude-val">Some</span>(catalog) = stream.next().<span class="kw">await </span>{
+            <span class="kw">if let </span><span class="prelude-val">Ok</span>(catalog) = catalog {
+                <span class="kw">let </span>catalog_key = String::from_utf8_lossy(<span class="kw-2">&amp;</span>catalog.<span class="number">0</span>);
 
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(catalog) = catalog {
-                <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(catalog.clone()));
+                <span class="kw">if let </span><span class="prelude-val">Ok</span>(key) = CatalogKey::parse(<span class="kw-2">&amp;</span>catalog_key) {
+                    catalogs.insert(key.catalog_name);
+                }
             }
         }
 
-        <span class="kw">let </span>catalogs = <span class="self">self</span>.catalogs.write();
-
-        <span class="kw">let </span>catalog = catalogs.get(name);
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(catalog) = catalog {
-            <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(catalog.clone()));
-        }
-
-        <span class="comment">// It&#39;s for lack of incremental catalog syncing between datanode and meta. Here we fetch catalog
-        // from meta on demand. This can be removed when incremental catalog syncing is done in datanode.
-
-        </span><span class="kw">let </span>backend = <span class="self">self</span>.backend.clone();
-
-        <span class="kw">let </span>catalogs_from_meta: HashSet&lt;String&gt; = std::thread::spawn(|| {
-            common_runtime::block_on_read(<span class="kw">async move </span>{
-                <span class="kw">let </span><span class="kw-2">mut </span>stream = backend.range(CATALOG_KEY_PREFIX.as_bytes());
-                <span class="kw">let </span><span class="kw-2">mut </span>catalogs = HashSet::new();
-
-                <span class="kw">while let </span><span class="prelude-val">Some</span>(catalog) = stream.next().<span class="kw">await </span>{
-                    <span class="kw">if let </span><span class="prelude-val">Ok</span>(catalog) = catalog {
-                        <span class="kw">let </span>catalog_key = String::from_utf8_lossy(<span class="kw-2">&amp;</span>catalog.<span class="number">0</span>);
-
-                        <span class="kw">if let </span><span class="prelude-val">Ok</span>(key) = CatalogKey::parse(<span class="kw-2">&amp;</span>catalog_key) {
-                            catalogs.insert(key.catalog_name);
-                        }
-                    }
-                }
-
-                catalogs
-            })
-        })
-        .join()
-        .unwrap();
-
-        catalogs.retain(|catalog_name, <span class="kw">_</span>| catalogs_from_meta.get(catalog_name).is_some());
-
-        <span class="kw">for </span>catalog <span class="kw">in </span>catalogs_from_meta {
-            catalogs
-                .entry(catalog.clone())
-                .or_insert(<span class="self">self</span>.new_catalog_provider(<span class="kw-2">&amp;</span>catalog));
-        }
-
-        <span class="kw">let </span>catalog = catalogs.get(name);
-
-        <span class="prelude-val">Ok</span>(catalog.as_deref().cloned())
+        <span class="prelude-val">Ok</span>(catalogs.into_iter().collect())
     }
+
+    <span class="kw">async fn </span>register_catalog(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        name: String,
+        _catalog: CatalogProviderRef,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;CatalogProviderRef&gt;&gt; {
+        <span class="kw">let </span>key = CatalogKey { catalog_name: name }.to_string();
+        <span class="comment">// TODO(hl): use compare_and_swap to prevent concurrent update
+        </span><span class="self">self</span>.backend
+            .set(
+                key.as_bytes(),
+                <span class="kw-2">&amp;</span>CatalogValue {}
+                    .as_bytes()
+                    .context(InvalidCatalogValueSnafu)<span class="question-mark">?</span>,
+            )
+            .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
+    }
+
+    <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {
+        <span class="self">self
+    </span>}
 }
 
 <span class="kw">pub struct </span>RemoteCatalogProvider {
     node_id: u64,
     catalog_name: String,
     backend: KvBackendRef,
-    schemas: Arc&lt;ArcSwap&lt;HashMap&lt;String, SchemaProviderRef&gt;&gt;&gt;,
-    mutex: Arc&lt;Mutex&lt;()&gt;&gt;,
+    engine_manager: TableEngineManagerRef,
 }
 
 <span class="kw">impl </span>RemoteCatalogProvider {
-    <span class="kw">pub fn </span>new(catalog_name: String, backend: KvBackendRef, node_id: u64) -&gt; <span class="self">Self </span>{
+    <span class="kw">pub fn </span>new(
+        catalog_name: String,
+        backend: KvBackendRef,
+        engine_manager: TableEngineManagerRef,
+        node_id: u64,
+    ) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             node_id,
             catalog_name,
             backend,
-            schemas: Default::default(),
-            mutex: Default::default(),
+            engine_manager,
         }
-    }
-
-    <span class="kw">pub fn </span>refresh_schemas(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="kw">let </span>schemas = <span class="self">self</span>.schemas.clone();
-        <span class="kw">let </span>schema_prefix = build_schema_prefix(<span class="kw-2">&amp;</span><span class="self">self</span>.catalog_name);
-        <span class="kw">let </span>catalog_name = <span class="self">self</span>.catalog_name.clone();
-        <span class="kw">let </span>mutex = <span class="self">self</span>.mutex.clone();
-        <span class="kw">let </span>backend = <span class="self">self</span>.backend.clone();
-        <span class="kw">let </span>node_id = <span class="self">self</span>.node_id;
-
-        std::thread::spawn(<span class="kw">move </span>|| {
-            common_runtime::block_on_write(<span class="kw">async move </span>{
-                <span class="kw">let </span>_guard = mutex.lock().<span class="kw">await</span>;
-                <span class="kw">let </span>prev_schemas = schemas.load();
-                <span class="kw">let </span><span class="kw-2">mut </span>new_schemas = HashMap::with_capacity(prev_schemas.len() + <span class="number">1</span>);
-                new_schemas.clone_from(<span class="kw-2">&amp;</span>prev_schemas);
-
-                <span class="kw">let </span><span class="kw-2">mut </span>remote_schemas = backend.range(schema_prefix.as_bytes());
-                <span class="kw">while let </span><span class="prelude-val">Some</span>(r) = remote_schemas.next().<span class="kw">await </span>{
-                    <span class="kw">let </span>Kv(k, <span class="kw">_</span>) = r<span class="question-mark">?</span>;
-                    <span class="kw">let </span>schema_key = SchemaKey::parse(<span class="kw-2">&amp;</span>String::from_utf8_lossy(<span class="kw-2">&amp;</span>k))
-                        .context(InvalidCatalogValueSnafu)<span class="question-mark">?</span>;
-                    <span class="kw">if </span>!new_schemas.contains_key(<span class="kw-2">&amp;</span>schema_key.schema_name) {
-                        new_schemas.insert(
-                            schema_key.schema_name.clone(),
-                            Arc::new(RemoteSchemaProvider::new(
-                                catalog_name.clone(),
-                                schema_key.schema_name,
-                                node_id,
-                                backend.clone(),
-                            )),
-                        );
-                    }
-                }
-                schemas.store(Arc::new(new_schemas));
-                <span class="prelude-val">Ok</span>(())
-            })
-        })
-        .join()
-        .unwrap()<span class="question-mark">?</span>;
-
-        <span class="prelude-val">Ok</span>(())
     }
 
     <span class="kw">fn </span>build_schema_key(<span class="kw-2">&amp;</span><span class="self">self</span>, schema_name: <span class="kw">impl </span>AsRef&lt;str&gt;) -&gt; SchemaKey {
@@ -1561,56 +1492,67 @@
             schema_name: schema_name.as_ref().to_string(),
         }
     }
+
+    <span class="kw">fn </span>build_schema_provider(<span class="kw-2">&amp;</span><span class="self">self</span>, schema_name: <span class="kw-2">&amp;</span>str) -&gt; SchemaProviderRef {
+        <span class="kw">let </span>provider = RemoteSchemaProvider {
+            catalog_name: <span class="self">self</span>.catalog_name.clone(),
+            schema_name: schema_name.to_string(),
+            node_id: <span class="self">self</span>.node_id,
+            backend: <span class="self">self</span>.backend.clone(),
+            engine_manager: <span class="self">self</span>.engine_manager.clone(),
+        };
+        Arc::new(provider) <span class="kw">as </span>Arc&lt;<span class="kw">_</span>&gt;
+    }
 }
 
-<span class="kw">impl </span>CatalogProvider <span class="kw">for </span>RemoteCatalogProvider {
+<span class="attr">#[async_trait::async_trait]
+</span><span class="kw">impl </span>CatalogProvider <span class="kw">for </span>RemoteCatalogProvider {
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {
         <span class="self">self
     </span>}
 
-    <span class="kw">fn </span>schema_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;String&gt;&gt; {
-        <span class="self">self</span>.refresh_schemas()<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.schemas.load().keys().cloned().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;())
+    <span class="kw">async fn </span>schema_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;String&gt;&gt; {
+        <span class="kw">let </span>schema_prefix = build_schema_prefix(<span class="kw-2">&amp;</span><span class="self">self</span>.catalog_name);
+
+        <span class="kw">let </span>remote_schemas = <span class="self">self</span>.backend.range(schema_prefix.as_bytes());
+        <span class="kw">let </span>res = remote_schemas
+            .map(|kv| {
+                <span class="kw">let </span>Kv(k, <span class="kw">_</span>) = kv<span class="question-mark">?</span>;
+                <span class="kw">let </span>schema_key = SchemaKey::parse(String::from_utf8_lossy(<span class="kw-2">&amp;</span>k))
+                    .context(InvalidCatalogValueSnafu)<span class="question-mark">?</span>;
+                <span class="prelude-val">Ok</span>(schema_key.schema_name)
+            })
+            .try_collect()
+            .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(res)
     }
 
-    <span class="kw">fn </span>register_schema(
+    <span class="kw">async fn </span>register_schema(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         name: String,
         schema: SchemaProviderRef,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SchemaProviderRef&gt;&gt; {
-        <span class="kw">let </span>key = <span class="self">self</span>.build_schema_key(<span class="kw-2">&amp;</span>name).to_string();
-        <span class="kw">let </span>backend = <span class="self">self</span>.backend.clone();
-        <span class="kw">let </span>mutex = <span class="self">self</span>.mutex.clone();
-        <span class="kw">let </span>schemas = <span class="self">self</span>.schemas.clone();
-
-        std::thread::spawn(|| {
-            common_runtime::block_on_write(<span class="kw">async move </span>{
-                <span class="kw">let </span>_guard = mutex.lock().<span class="kw">await</span>;
-                backend
-                    .set(
-                        key.as_bytes(),
-                        <span class="kw-2">&amp;</span>SchemaValue {}
-                            .as_bytes()
-                            .context(InvalidCatalogValueSnafu)<span class="question-mark">?</span>,
-                    )
-                    .<span class="kw">await</span><span class="question-mark">?</span>;
-
-                <span class="kw">let </span>prev_schemas = schemas.load();
-                <span class="kw">let </span><span class="kw-2">mut </span>new_schemas = HashMap::with_capacity(prev_schemas.len() + <span class="number">1</span>);
-                new_schemas.clone_from(<span class="kw-2">&amp;</span>prev_schemas);
-                <span class="kw">let </span>prev_schema = new_schemas.insert(name, schema);
-                schemas.store(Arc::new(new_schemas));
-                <span class="prelude-val">Ok</span>(prev_schema)
-            })
-        })
-        .join()
-        .unwrap()
+        <span class="kw">let _ </span>= schema; <span class="comment">// we don&#39;t care about schema provider
+        </span><span class="kw">let </span>key = <span class="self">self</span>.build_schema_key(<span class="kw-2">&amp;</span>name).to_string();
+        <span class="self">self</span>.backend
+            .set(
+                key.as_bytes(),
+                <span class="kw-2">&amp;</span>SchemaValue {}
+                    .as_bytes()
+                    .context(InvalidCatalogValueSnafu)<span class="question-mark">?</span>,
+            )
+            .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="comment">// TODO(hl): maybe return preview schema by cas
+        </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
     }
 
-    <span class="kw">fn </span>schema(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Arc&lt;<span class="kw">dyn </span>SchemaProvider&gt;&gt;&gt; {
-        <span class="comment">// TODO(hl): We should refresh whole catalog before calling datafusion&#39;s query engine.
-        </span><span class="self">self</span>.refresh_schemas()<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.schemas.load().get(name).cloned())
+    <span class="kw">async fn </span>schema(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SchemaProviderRef&gt;&gt; {
+        <span class="kw">let </span>key = <span class="self">self</span>.build_schema_key(name).to_string();
+        <span class="prelude-val">Ok</span>(<span class="self">self
+            </span>.backend
+            .get(key.as_bytes())
+            .<span class="kw">await</span><span class="question-mark">?
+            </span>.map(|<span class="kw">_</span>| <span class="self">self</span>.build_schema_provider(name)))
     }
 }
 
@@ -1619,8 +1561,7 @@
     schema_name: String,
     node_id: u64,
     backend: KvBackendRef,
-    tables: Arc&lt;ArcSwap&lt;DashMap&lt;String, TableRef&gt;&gt;&gt;,
-    mutex: Arc&lt;KeyLock&lt;String&gt;&gt;,
+    engine_manager: TableEngineManagerRef,
 }
 
 <span class="kw">impl </span>RemoteSchemaProvider {
@@ -1628,6 +1569,7 @@
         catalog_name: String,
         schema_name: String,
         node_id: u64,
+        engine_manager: TableEngineManagerRef,
         backend: KvBackendRef,
     ) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
@@ -1635,8 +1577,7 @@
             schema_name,
             node_id,
             backend,
-            tables: Default::default(),
-            mutex: Default::default(),
+            engine_manager,
         }
     }
 
@@ -1656,90 +1597,133 @@
         <span class="self">self
     </span>}
 
-    <span class="kw">fn </span>table_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;String&gt;&gt; {
-        <span class="prelude-val">Ok</span>(<span class="self">self
-            </span>.tables
-            .load()
-            .iter()
-            .map(|en| en.key().clone())
-            .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;())
+    <span class="kw">async fn </span>table_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;String&gt;&gt; {
+        <span class="kw">let </span>key_prefix = build_table_regional_prefix(<span class="kw-2">&amp;</span><span class="self">self</span>.catalog_name, <span class="kw-2">&amp;</span><span class="self">self</span>.schema_name);
+        <span class="kw">let </span>iter = <span class="self">self</span>.backend.range(key_prefix.as_bytes());
+        <span class="kw">let </span>table_names = iter
+            .map(|kv| {
+                <span class="kw">let </span>Kv(key, <span class="kw">_</span>) = kv<span class="question-mark">?</span>;
+                <span class="kw">let </span>regional_key = TableRegionalKey::parse(String::from_utf8_lossy(<span class="kw-2">&amp;</span>key))
+                    .context(InvalidCatalogValueSnafu)<span class="question-mark">?</span>;
+                <span class="prelude-val">Ok</span>(regional_key.table_name)
+            })
+            .try_collect()
+            .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(table_names)
     }
 
     <span class="kw">async fn </span>table(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;TableRef&gt;&gt; {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.tables.load().get(name).map(|en| en.value().clone()))
+        <span class="kw">let </span>key = <span class="self">self</span>.build_regional_table_key(name).to_string();
+        <span class="kw">let </span>table_opt = <span class="self">self
+            </span>.backend
+            .get(key.as_bytes())
+            .<span class="kw">await</span><span class="question-mark">?
+            </span>.map(|Kv(<span class="kw">_</span>, v)| {
+                <span class="kw">let </span>TableRegionalValue { engine_name, .. } =
+                    TableRegionalValue::parse(String::from_utf8_lossy(<span class="kw-2">&amp;</span>v))
+                        .context(InvalidCatalogValueSnafu)<span class="question-mark">?</span>;
+                <span class="kw">let </span>reference = TableReference {
+                    catalog: <span class="kw-2">&amp;</span><span class="self">self</span>.catalog_name,
+                    schema: <span class="kw-2">&amp;</span><span class="self">self</span>.schema_name,
+                    table: name,
+                };
+                <span class="kw">let </span>engine_name = engine_name.as_deref().unwrap_or(MITO_ENGINE);
+                <span class="kw">let </span>engine = <span class="self">self
+                    </span>.engine_manager
+                    .engine(engine_name)
+                    .context(TableEngineNotFoundSnafu { engine_name })<span class="question-mark">?</span>;
+                <span class="kw">let </span>table = engine
+                    .get_table(<span class="kw-2">&amp;</span>EngineContext {}, <span class="kw-2">&amp;</span>reference)
+                    .with_context(|<span class="kw">_</span>| OpenTableSnafu {
+                        table_info: reference.to_string(),
+                    })<span class="question-mark">?</span>;
+                <span class="prelude-val">Ok</span>(table)
+            })
+            .transpose()<span class="question-mark">?
+            </span>.flatten();
+
+        <span class="prelude-val">Ok</span>(table_opt)
     }
 
-    <span class="kw">fn </span>register_table(<span class="kw-2">&amp;</span><span class="self">self</span>, name: String, table: TableRef) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;TableRef&gt;&gt; {
+    <span class="kw">async fn </span>register_table(<span class="kw-2">&amp;</span><span class="self">self</span>, name: String, table: TableRef) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;TableRef&gt;&gt; {
         <span class="kw">let </span>table_info = table.table_info();
         <span class="kw">let </span>table_version = table_info.ident.version;
         <span class="kw">let </span>table_value = TableRegionalValue {
             version: table_version,
             regions_ids: table.table_info().meta.region_numbers.clone(),
+            engine_name: <span class="prelude-val">Some</span>(table_info.meta.engine.clone()),
         };
-        <span class="kw">let </span>backend = <span class="self">self</span>.backend.clone();
-        <span class="kw">let </span>mutex = <span class="self">self</span>.mutex.clone();
-        <span class="kw">let </span>tables = <span class="self">self</span>.tables.clone();
         <span class="kw">let </span>table_key = <span class="self">self</span>.build_regional_table_key(<span class="kw-2">&amp;</span>name).to_string();
+        <span class="self">self</span>.backend
+            .set(
+                table_key.as_bytes(),
+                <span class="kw-2">&amp;</span>table_value.as_bytes().context(InvalidCatalogValueSnafu)<span class="question-mark">?</span>,
+            )
+            .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="macro">debug!</span>(
+            <span class="string">&quot;Successfully set catalog table entry, key: {}, table value: {:?}&quot;</span>,
+            table_key, table_value
+        );
 
-        <span class="kw">let </span>prev = std::thread::spawn(<span class="kw">move </span>|| {
-            common_runtime::block_on_read(<span class="kw">async move </span>{
-                <span class="kw">let </span>_guard = mutex.lock(table_key.clone()).<span class="kw">await</span>;
-                backend
-                    .set(
-                        table_key.as_bytes(),
-                        <span class="kw-2">&amp;</span>table_value.as_bytes().context(InvalidCatalogValueSnafu)<span class="question-mark">?</span>,
-                    )
-                    .<span class="kw">await</span><span class="question-mark">?</span>;
-                <span class="macro">debug!</span>(
-                    <span class="string">&quot;Successfully set catalog table entry, key: {}, table value: {:?}&quot;</span>,
-                    table_key, table_value
-                );
-
-                <span class="kw">let </span>tables = tables.load();
-                <span class="kw">let </span>prev = tables.insert(name, table);
-                <span class="prelude-val">Ok</span>(prev)
-            })
-        })
-        .join()
-        .unwrap();
-        prev
+        <span class="comment">// TODO(hl): retrieve prev table info using cas
+        </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
     }
 
-    <span class="kw">fn </span>rename_table(<span class="kw-2">&amp;</span><span class="self">self</span>, _name: <span class="kw-2">&amp;</span>str, _new_name: String) -&gt; <span class="prelude-ty">Result</span>&lt;TableRef&gt; {
+    <span class="kw">async fn </span>rename_table(<span class="kw-2">&amp;</span><span class="self">self</span>, _name: <span class="kw-2">&amp;</span>str, _new_name: String) -&gt; <span class="prelude-ty">Result</span>&lt;TableRef&gt; {
         UnimplementedSnafu {
             operation: <span class="string">&quot;rename table&quot;</span>,
         }
         .fail()
     }
 
-    <span class="kw">fn </span>deregister_table(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;TableRef&gt;&gt; {
-        <span class="kw">let </span>table_name = name.to_string();
-        <span class="kw">let </span>table_key = <span class="self">self</span>.build_regional_table_key(<span class="kw-2">&amp;</span>table_name).to_string();
-        <span class="kw">let </span>backend = <span class="self">self</span>.backend.clone();
-        <span class="kw">let </span>mutex = <span class="self">self</span>.mutex.clone();
-        <span class="kw">let </span>tables = <span class="self">self</span>.tables.clone();
-        <span class="kw">let </span>prev = std::thread::spawn(<span class="kw">move </span>|| {
-            common_runtime::block_on_read(<span class="kw">async move </span>{
-                <span class="kw">let </span>_guard = mutex.lock(table_key.clone()).<span class="kw">await</span>;
-                backend.delete(table_key.as_bytes()).<span class="kw">await</span><span class="question-mark">?</span>;
-                <span class="macro">debug!</span>(
-                    <span class="string">&quot;Successfully deleted catalog table entry, key: {}&quot;</span>,
-                    table_key
-                );
+    <span class="kw">async fn </span>deregister_table(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;TableRef&gt;&gt; {
+        <span class="kw">let </span>table_key = <span class="self">self</span>.build_regional_table_key(name).to_string();
 
-                <span class="kw">let </span>tables = tables.load();
-                <span class="kw">let </span>prev = tables.remove(<span class="kw-2">&amp;</span>table_name).map(|en| en.<span class="number">1</span>);
-                <span class="prelude-val">Ok</span>(prev)
+        <span class="kw">let </span>engine_opt = <span class="self">self
+            </span>.backend
+            .get(table_key.as_bytes())
+            .<span class="kw">await</span><span class="question-mark">?
+            </span>.map(|Kv(<span class="kw">_</span>, v)| {
+                <span class="kw">let </span>TableRegionalValue { engine_name, .. } =
+                    TableRegionalValue::parse(String::from_utf8_lossy(<span class="kw-2">&amp;</span>v))
+                        .context(InvalidCatalogValueSnafu)<span class="question-mark">?</span>;
+                <span class="prelude-val">Ok</span>(engine_name)
             })
-        })
-        .join()
-        .unwrap();
-        prev
+            .transpose()<span class="question-mark">?
+            </span>.flatten();
+
+        <span class="kw">let </span>engine_name = engine_opt.as_deref().unwrap_or_else(|| {
+            <span class="macro">warn!</span>(<span class="string">&quot;Cannot find table engine name for {table_key}&quot;</span>);
+            MITO_ENGINE
+        });
+
+        <span class="self">self</span>.backend.delete(table_key.as_bytes()).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="macro">debug!</span>(
+            <span class="string">&quot;Successfully deleted catalog table entry, key: {}&quot;</span>,
+            table_key
+        );
+
+        <span class="kw">let </span>reference = TableReference {
+            catalog: <span class="kw-2">&amp;</span><span class="self">self</span>.catalog_name,
+            schema: <span class="kw-2">&amp;</span><span class="self">self</span>.schema_name,
+            table: name,
+        };
+        <span class="comment">// deregistering table does not necessarily mean dropping the table
+        </span><span class="kw">let </span>table = <span class="self">self
+            </span>.engine_manager
+            .engine(engine_name)
+            .context(TableEngineNotFoundSnafu { engine_name })<span class="question-mark">?
+            </span>.get_table(<span class="kw-2">&amp;</span>EngineContext {}, <span class="kw-2">&amp;</span>reference)
+            .with_context(|<span class="kw">_</span>| OpenTableSnafu {
+                table_info: reference.to_string(),
+            })<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(table)
     }
 
     <span class="doccomment">/// Checks if table exists in schema provider based on locally opened table map.
-    </span><span class="kw">fn </span>table_exist(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.tables.load().contains_key(name))
+    </span><span class="kw">async fn </span>table_exist(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
+        <span class="kw">let </span>key = <span class="self">self</span>.build_regional_table_key(name).to_string();
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.backend.get(key.as_bytes()).<span class="kw">await</span><span class="question-mark">?</span>.is_some())
     }
 }
 </code></pre></div>

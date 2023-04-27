@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["PY_ENGINE"],"struct":["CoprStream","PyEngine","PyScript","PyUDF"]};
+window.SIDEBAR_ITEMS = {"constant":["PY_ENGINE"],"opaque":[""],"struct":["CoprStream","PyEngine","PyScript","PyUDF"]};

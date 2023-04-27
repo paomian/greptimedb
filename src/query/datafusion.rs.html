@@ -493,6 +493,8 @@
 <a href="#493" id="493">493</a>
 <a href="#494" id="494">494</a>
 <a href="#495" id="495">495</a>
+<a href="#496" id="496">496</a>
+<a href="#497" id="497">497</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -516,7 +518,6 @@
 <span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>async_trait::async_trait;
-<span class="kw">pub use </span>catalog::datafusion::catalog_adapter::DfCatalogListAdapter;
 <span class="kw">use </span>common_error::prelude::BoxedError;
 <span class="kw">use </span>common_function::scalars::aggregate::AggregateFunctionMetaRef;
 <span class="kw">use </span>common_function::scalars::udf::create_udf;
@@ -678,19 +679,20 @@
 
         <span class="kw">let </span>catalog = <span class="self">self
             </span>.state
-            .catalog_list()
+            .catalog_manager()
             .catalog(catalog_name)
-            .context(CatalogSnafu)<span class="question-mark">?
+            .<span class="kw">await
+            </span>.context(CatalogSnafu)<span class="question-mark">?
             </span>.context(CatalogNotFoundSnafu {
                 catalog: catalog_name,
             })<span class="question-mark">?</span>;
-        <span class="kw">let </span>schema =
-            catalog
-                .schema(schema_name)
-                .context(CatalogSnafu)<span class="question-mark">?
-                </span>.context(SchemaNotFoundSnafu {
-                    schema: schema_name,
-                })<span class="question-mark">?</span>;
+        <span class="kw">let </span>schema = catalog
+            .schema(schema_name)
+            .<span class="kw">await
+            </span>.context(CatalogSnafu)<span class="question-mark">?
+            </span>.context(SchemaNotFoundSnafu {
+                schema: schema_name,
+            })<span class="question-mark">?</span>;
         <span class="kw">let </span>table = schema
             .table(table_name)
             .<span class="kw">await
@@ -872,7 +874,7 @@
     <span class="kw">use </span>std::sync::Arc;
 
     <span class="kw">use </span>catalog::local::{MemoryCatalogProvider, MemorySchemaProvider};
-    <span class="kw">use </span>catalog::{CatalogList, CatalogProvider, SchemaProvider};
+    <span class="kw">use </span>catalog::{CatalogProvider, SchemaProvider};
     <span class="kw">use </span>common_catalog::consts::{DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME};
     <span class="kw">use </span>common_query::Output;
     <span class="kw">use </span>common_recordbatch::util;
@@ -885,19 +887,21 @@
     <span class="kw">use </span><span class="kw">crate</span>::parser::QueryLanguageParser;
     <span class="kw">use </span><span class="kw">crate</span>::query_engine::{QueryEngineFactory, QueryEngineRef};
 
-    <span class="kw">fn </span>create_test_engine() -&gt; QueryEngineRef {
+    <span class="kw">async fn </span>create_test_engine() -&gt; QueryEngineRef {
         <span class="kw">let </span>catalog_list = catalog::local::new_memory_catalog_list().unwrap();
 
         <span class="kw">let </span>default_schema = Arc::new(MemorySchemaProvider::new());
         default_schema
             .register_table(<span class="string">&quot;numbers&quot;</span>.to_string(), Arc::new(NumbersTable::default()))
-            .unwrap();
+            .<span class="kw">await
+            </span>.unwrap();
         <span class="kw">let </span>default_catalog = Arc::new(MemoryCatalogProvider::new());
         default_catalog
             .register_schema(DEFAULT_SCHEMA_NAME.to_string(), default_schema)
-            .unwrap();
+            .<span class="kw">await
+            </span>.unwrap();
         catalog_list
-            .register_catalog(DEFAULT_CATALOG_NAME.to_string(), default_catalog)
+            .register_catalog_sync(DEFAULT_CATALOG_NAME.to_string(), default_catalog)
             .unwrap();
 
         QueryEngineFactory::new(catalog_list).query_engine()
@@ -905,7 +909,7 @@
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_sql_to_plan() {
-        <span class="kw">let </span>engine = create_test_engine();
+        <span class="kw">let </span>engine = create_test_engine().<span class="kw">await</span>;
         <span class="kw">let </span>sql = <span class="string">&quot;select sum(number) from numbers limit 20&quot;</span>;
 
         <span class="kw">let </span>stmt = QueryLanguageParser::parse_sql(sql).unwrap();
@@ -927,7 +931,7 @@
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_execute() {
-        <span class="kw">let </span>engine = create_test_engine();
+        <span class="kw">let </span>engine = create_test_engine().<span class="kw">await</span>;
         <span class="kw">let </span>sql = <span class="string">&quot;select sum(number) from numbers limit 20&quot;</span>;
 
         <span class="kw">let </span>stmt = QueryLanguageParser::parse_sql(sql).unwrap();
@@ -965,7 +969,7 @@
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_describe() {
-        <span class="kw">let </span>engine = create_test_engine();
+        <span class="kw">let </span>engine = create_test_engine().<span class="kw">await</span>;
         <span class="kw">let </span>sql = <span class="string">&quot;select sum(number) from numbers limit 20&quot;</span>;
 
         <span class="kw">let </span>stmt = QueryLanguageParser::parse_sql(sql).unwrap();

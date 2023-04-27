@@ -290,7 +290,7 @@
         <span class="kw">let </span>cache_path = <span class="self">self</span>.cache_path(<span class="kw-2">&amp;</span>path, <span class="kw-2">&amp;</span>args);
         <span class="kw">let </span>lru_cache = <span class="self">self</span>.lru_cache.clone();
 
-        <span class="kw">match </span><span class="self">self</span>.cache.read(<span class="kw-2">&amp;</span>cache_path, OpRead::default()).<span class="kw">await </span>{
+        <span class="kw">match </span><span class="self">self</span>.cache.read(<span class="kw-2">&amp;</span>cache_path, args.clone()).<span class="kw">await </span>{
             <span class="prelude-val">Ok</span>((rp, r)) =&gt; {
                 <span class="macro">increment_counter!</span>(OBJECT_STORE_LRU_CACHE_HIT);
 
@@ -313,7 +313,7 @@
                 writer.write(Bytes::from(buf)).<span class="kw">await</span><span class="question-mark">?</span>;
                 writer.close().<span class="kw">await</span><span class="question-mark">?</span>;
 
-                <span class="kw">match </span><span class="self">self</span>.cache.read(<span class="kw-2">&amp;</span>cache_path, OpRead::default()).<span class="kw">await </span>{
+                <span class="kw">match </span><span class="self">self</span>.cache.read(<span class="kw-2">&amp;</span>cache_path, args.clone()).<span class="kw">await </span>{
                     <span class="prelude-val">Ok</span>((rp, reader)) =&gt; {
                         <span class="kw">let </span>r = {
                             <span class="comment">// push new cache file name to lru

@@ -187,7 +187,7 @@
 
     <span class="kw">async fn </span>plan_pql(<span class="kw-2">&amp;</span><span class="self">self</span>, stmt: EvalStmt, query_ctx: QueryContextRef) -&gt; <span class="prelude-ty">Result</span>&lt;LogicalPlan&gt; {
         <span class="kw">let </span>table_provider = DfTableSourceProvider::new(
-            <span class="self">self</span>.engine_state.catalog_list().clone(),
+            <span class="self">self</span>.engine_state.catalog_manager().clone(),
             <span class="self">self</span>.engine_state.disallow_cross_schema_query(),
             query_ctx.as_ref(),
         );

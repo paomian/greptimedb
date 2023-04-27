@@ -211,6 +211,21 @@
 <a href="#211" id="211">211</a>
 <a href="#212" id="212">212</a>
 <a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a>
+<a href="#227" id="227">227</a>
+<a href="#228" id="228">228</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -229,6 +244,7 @@
 
 <span class="kw">use </span>common_error::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>datafusion::arrow::error::ArrowError;
+<span class="kw">use </span>datafusion::error::DataFusionError;
 <span class="kw">use </span>serde_json::error::Error <span class="kw">as </span>JsonError;
 <span class="kw">use </span>snafu::Location;
 <span class="kw">use </span>table::metadata::{TableInfoBuilderError, TableMetaBuilderError};
@@ -378,6 +394,18 @@
         <span class="attr">#[snafu(backtrace)]
         </span>source: common_datasource::error::Error,
     },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to generate parquet scan plan: {}&quot;</span>, source))]
+    </span>ParquetScanPlan {
+        source: DataFusionError,
+        location: Location,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to convert schema: {}&quot;</span>, source))]
+    </span>ConvertSchema {
+        source: datatypes::error::Error,
+        location: Location,
+    },
 }
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
@@ -394,7 +422,8 @@
             | UnsupportedFileFormat { .. }
             | BuildCsvConfig { .. }
             | ProjectSchema { .. }
-            | MissingRequiredField { .. } =&gt; StatusCode::InvalidArguments,
+            | MissingRequiredField { .. }
+            | ConvertSchema { .. } =&gt; StatusCode::InvalidArguments,
 
             BuildBackend { source, .. } =&gt; source.status_code(),
             BuildStreamAdapter { source, .. } =&gt; source.status_code(),
@@ -410,7 +439,8 @@
             | ConvertRaw { .. }
             | DropTable { .. }
             | WriteImmutableManifest { .. }
-            | BuildStream { .. } =&gt; StatusCode::Unexpected,
+            | BuildStream { .. }
+            | ParquetScanPlan { .. } =&gt; StatusCode::Unexpected,
         }
     }
 

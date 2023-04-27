@@ -185,14 +185,14 @@
 </span><span class="kw">pub struct </span>SqlHandler {
     table_engine_manager: TableEngineManagerRef,
     catalog_manager: CatalogManagerRef,
-    procedure_manager: <span class="prelude-ty">Option</span>&lt;ProcedureManagerRef&gt;,
+    procedure_manager: ProcedureManagerRef,
 }
 
 <span class="kw">impl </span>SqlHandler {
     <span class="kw">pub fn </span>new(
         table_engine_manager: TableEngineManagerRef,
         catalog_manager: CatalogManagerRef,
-        procedure_manager: <span class="prelude-ty">Option</span>&lt;ProcedureManagerRef&gt;,
+        procedure_manager: ProcedureManagerRef,
     ) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             table_engine_manager,
@@ -209,7 +209,7 @@
         <span class="kw">let </span>result = <span class="kw">match </span>request {
             SqlRequest::CreateTable(req) =&gt; <span class="self">self</span>.create_table(req).<span class="kw">await</span>,
             SqlRequest::CreateDatabase(req) =&gt; <span class="self">self</span>.create_database(req, query_ctx.clone()).<span class="kw">await</span>,
-            SqlRequest::Alter(req) =&gt; <span class="self">self</span>.alter(req).<span class="kw">await</span>,
+            SqlRequest::Alter(req) =&gt; <span class="self">self</span>.alter_table(req).<span class="kw">await</span>,
             SqlRequest::DropTable(req) =&gt; <span class="self">self</span>.drop_table(req).<span class="kw">await</span>,
             SqlRequest::FlushTable(req) =&gt; <span class="self">self</span>.flush_table(req).<span class="kw">await</span>,
         };

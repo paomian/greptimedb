@@ -536,6 +536,13 @@
 <a href="#536" id="536">536</a>
 <a href="#537" id="537">537</a>
 <a href="#538" id="538">538</a>
+<a href="#539" id="539">539</a>
+<a href="#540" id="540">540</a>
+<a href="#541" id="541">541</a>
+<a href="#542" id="542">542</a>
+<a href="#543" id="543">543</a>
+<a href="#544" id="544">544</a>
+<a href="#545" id="545">545</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -585,6 +592,12 @@
     </span>WriteParquet {
         source: parquet::errors::ParquetError,
         location: Location,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to write to buffer, source: {}&quot;</span>, source))]
+    </span>WriteBuffer {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: common_datasource::error::Error,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to create RecordBatch from vectors, source: {}&quot;</span>, source))]
@@ -1052,6 +1065,7 @@
             InvalidAlterRequest { source, .. } | InvalidRegionDesc { source, .. } =&gt; {
                 source.status_code()
             }
+            WriteBuffer { source, .. } =&gt; source.status_code(),
             PushBatch { source, .. } =&gt; source.status_code(),
             CreateDefault { source, .. } =&gt; source.status_code(),
             ConvertChunk { source, .. } =&gt; source.status_code(),

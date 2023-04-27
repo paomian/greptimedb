@@ -382,6 +382,7 @@
 <a href="#382" id="382">382</a>
 <a href="#383" id="383">383</a>
 <a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -674,6 +675,7 @@
             .engine(engine::MITO_ENGINE)
             .next_column_id(next_column_id)
             .primary_key_indices(<span class="self">self</span>.data.request.primary_key_indices.clone())
+            .options(<span class="self">self</span>.data.request.table_options.clone())
             .region_numbers(<span class="self">self</span>.data.request.region_numbers.clone())
             .build()
             .context(BuildTableMetaSnafu {

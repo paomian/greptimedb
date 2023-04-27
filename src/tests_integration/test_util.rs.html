@@ -377,6 +377,26 @@
 <a href="#377" id="377">377</a>
 <a href="#378" id="378">378</a>
 <a href="#379" id="379">379</a>
+<a href="#380" id="380">380</a>
+<a href="#381" id="381">381</a>
+<a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
+<a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
+<a href="#390" id="390">390</a>
+<a href="#391" id="391">391</a>
+<a href="#392" id="392">392</a>
+<a href="#393" id="393">393</a>
+<a href="#394" id="394">394</a>
+<a href="#395" id="395">395</a>
+<a href="#396" id="396">396</a>
+<a href="#397" id="397">397</a>
+<a href="#398" id="398">398</a>
+<a href="#399" id="399">399</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -405,7 +425,8 @@
 <span class="kw">use </span>common_runtime::Builder <span class="kw">as </span>RuntimeBuilder;
 <span class="kw">use </span>common_test_util::temp_dir::{create_temp_dir, TempDir};
 <span class="kw">use </span>datanode::datanode::{
-    DatanodeOptions, FileConfig, ObjectStoreConfig, OssConfig, S3Config, StorageConfig, WalConfig,
+    DatanodeOptions, FileConfig, ObjectStoreConfig, OssConfig, ProcedureConfig, S3Config,
+    StorageConfig, WalConfig,
 };
 <span class="kw">use </span>datanode::error::{CreateTableSnafu, <span class="prelude-ty">Result</span>};
 <span class="kw">use </span>datanode::instance::Instance;
@@ -438,8 +459,10 @@
         .fetch_add(<span class="number">1</span>, Ordering::Relaxed)
 }
 
-<span class="kw">pub enum </span>StorageType {
+<span class="attr">#[derive(Debug, Eq, PartialEq)]
+</span><span class="kw">pub enum </span>StorageType {
     S3,
+    S3WithCache,
     File,
     Oss,
 }
@@ -450,7 +473,7 @@
 
         <span class="kw">match </span><span class="self">self </span>{
             StorageType::File =&gt; <span class="bool-val">true</span>, <span class="comment">// always test file
-            </span>StorageType::S3 =&gt; {
+            </span>StorageType::S3 | StorageType::S3WithCache =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Ok</span>(b) = env::var(<span class="string">&quot;GT_S3_BUCKET&quot;</span>) {
                     !b.is_empty()
                 } <span class="kw">else </span>{
@@ -465,6 +488,16 @@
                 </span>}
             }
         }
+    }
+}
+
+<span class="kw">fn </span>s3_test_config() -&gt; S3Config {
+    S3Config {
+        root: uuid::Uuid::new_v4().to_string(),
+        access_key_id: env::var(<span class="string">&quot;GT_S3_ACCESS_KEY_ID&quot;</span>).unwrap(),
+        secret_access_key: env::var(<span class="string">&quot;GT_S3_ACCESS_KEY&quot;</span>).unwrap(),
+        bucket: env::var(<span class="string">&quot;GT_S3_BUCKET&quot;</span>).unwrap(),
+        ..Default::default()
     }
 }
 
@@ -502,14 +535,12 @@
                 <span class="prelude-val">Some</span>(TempDirGuard::Oss(TempFolder::new(<span class="kw-2">&amp;</span>store, <span class="string">&quot;/&quot;</span>))),
             )
         }
-        StorageType::S3 =&gt; {
-            <span class="kw">let </span>s3_config = S3Config {
-                root: uuid::Uuid::new_v4().to_string(),
-                access_key_id: env::var(<span class="string">&quot;GT_S3_ACCESS_KEY_ID&quot;</span>).unwrap(),
-                secret_access_key: env::var(<span class="string">&quot;GT_S3_ACCESS_KEY&quot;</span>).unwrap(),
-                bucket: env::var(<span class="string">&quot;GT_S3_BUCKET&quot;</span>).unwrap(),
-                ..Default::default()
-            };
+        StorageType::S3 | StorageType::S3WithCache =&gt; {
+            <span class="kw">let </span><span class="kw-2">mut </span>s3_config = s3_test_config();
+
+            <span class="kw">if </span><span class="kw-2">*</span>store_type == StorageType::S3WithCache {
+                s3_config.cache_path = <span class="prelude-val">Some</span>(<span class="string">&quot;/tmp/greptimedb_cache&quot;</span>.to_string());
+            }
 
             <span class="kw">let </span><span class="kw-2">mut </span>builder = S3::default();
             builder
@@ -548,6 +579,7 @@
 </span><span class="kw">pub struct </span>TestGuard {
     _wal_tmp_dir: TempDir,
     data_tmp_dir: <span class="prelude-ty">Option</span>&lt;TempDirGuard&gt;,
+    _procedure_tmp_dir: TempDir,
 }
 
 <span class="kw">impl </span>TestGuard {
@@ -566,6 +598,7 @@
     name: <span class="kw-2">&amp;</span>str,
 ) -&gt; (DatanodeOptions, TestGuard) {
     <span class="kw">let </span>wal_tmp_dir = create_temp_dir(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;gt_wal_{name}&quot;</span>));
+    <span class="kw">let </span>procedure_tmp_dir = create_temp_dir(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;gt_procedure_{name}&quot;</span>));
 
     <span class="kw">let </span>(store, data_tmp_dir) = get_test_store_config(<span class="kw-2">&amp;</span>store_type, name);
 
@@ -579,6 +612,9 @@
             ..Default::default()
         },
         mode: Mode::Standalone,
+        procedure: ProcedureConfig::from_file_path(
+            procedure_tmp_dir.path().to_str().unwrap().to_string(),
+        ),
         ..Default::default()
     };
     (
@@ -586,6 +622,7 @@
         TestGuard {
             _wal_tmp_dir: wal_tmp_dir,
             data_tmp_dir,
+            _procedure_tmp_dir: procedure_tmp_dir,
         },
     )
 }
@@ -629,14 +666,17 @@
 
     <span class="kw">let </span>schema_provider = catalog_manager
         .catalog(DEFAULT_CATALOG_NAME)
-        .unwrap()
+        .<span class="kw">await
+        </span>.unwrap()
         .unwrap()
         .schema(DEFAULT_SCHEMA_NAME)
-        .unwrap()
+        .<span class="kw">await
+        </span>.unwrap()
         .unwrap();
     schema_provider
         .register_table(table_name.to_string(), table)
-        .unwrap();
+        .<span class="kw">await
+        </span>.unwrap();
     <span class="prelude-val">Ok</span>(())
 }
 

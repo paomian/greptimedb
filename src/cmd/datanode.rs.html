@@ -478,7 +478,7 @@
             opts.wal.dir = wal_dir;
         }
         <span class="kw">if let </span><span class="prelude-val">Some</span>(procedure_dir) = cmd.procedure_dir {
-            opts.procedure = <span class="prelude-val">Some</span>(ProcedureConfig::from_file_path(procedure_dir));
+            opts.procedure = ProcedureConfig::from_file_path(procedure_dir);
         }
         <span class="kw">if let </span><span class="prelude-val">Some</span>(http_addr) = cmd.http_addr {
             opts.http_opts.addr = http_addr

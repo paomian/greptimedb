@@ -267,16 +267,6 @@
 <a href="#267" id="267">267</a>
 <a href="#268" id="268">268</a>
 <a href="#269" id="269">269</a>
-<a href="#270" id="270">270</a>
-<a href="#271" id="271">271</a>
-<a href="#272" id="272">272</a>
-<a href="#273" id="273">273</a>
-<a href="#274" id="274">274</a>
-<a href="#275" id="275">275</a>
-<a href="#276" id="276">276</a>
-<a href="#277" id="277">277</a>
-<a href="#278" id="278">278</a>
-<a href="#279" id="279">279</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -308,7 +298,6 @@
 <span class="kw">use </span><span class="kw">crate</span>::error::{CreateTableSnafu, <span class="prelude-ty">Result</span>};
 <span class="kw">pub use </span><span class="kw">crate</span>::schema::{SchemaProvider, SchemaProviderRef};
 
-<span class="kw">pub mod </span>datafusion;
 <span class="kw">pub mod </span>error;
 <span class="kw">pub mod </span>helper;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>information_schema;
@@ -319,54 +308,39 @@
 <span class="kw">pub mod </span>table_source;
 <span class="kw">pub mod </span>tables;
 
-<span class="doccomment">/// Represent a list of named catalogs
-</span><span class="kw">pub trait </span>CatalogList: Sync + Send {
-    <span class="doccomment">/// Returns the catalog list as [`Any`](std::any::Any)
-    /// so that it can be downcast to a specific implementation.
-    </span><span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any;
-
-    <span class="doccomment">/// Adds a new catalog to this catalog list
-    /// If a catalog of the same name existed before, it is replaced in the list and returned.
-    </span><span class="kw">fn </span>register_catalog(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        name: String,
-        catalog: CatalogProviderRef,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;CatalogProviderRef&gt;&gt;;
-
-    <span class="doccomment">/// Retrieves the list of available catalog names
-    </span><span class="kw">fn </span>catalog_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;String&gt;&gt;;
-
-    <span class="doccomment">/// Retrieves a specific catalog by name, provided it exists.
-    </span><span class="kw">fn </span>catalog(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;CatalogProviderRef&gt;&gt;;
-}
-
 <span class="doccomment">/// Represents a catalog, comprising a number of named schemas.
+</span><span class="attr">#[async_trait::async_trait]
 </span><span class="kw">pub trait </span>CatalogProvider: Sync + Send {
     <span class="doccomment">/// Returns the catalog provider as [`Any`](std::any::Any)
     /// so that it can be downcast to a specific implementation.
     </span><span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any;
 
     <span class="doccomment">/// Retrieves the list of available schema names in this catalog.
-    </span><span class="kw">fn </span>schema_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;String&gt;&gt;;
+    </span><span class="kw">async fn </span>schema_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;String&gt;&gt;;
 
     <span class="doccomment">/// Registers schema to this catalog.
-    </span><span class="kw">fn </span>register_schema(
+    </span><span class="kw">async fn </span>register_schema(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         name: String,
         schema: SchemaProviderRef,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SchemaProviderRef&gt;&gt;;
 
     <span class="doccomment">/// Retrieves a specific schema from the catalog by name, provided it exists.
-    </span><span class="kw">fn </span>schema(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SchemaProviderRef&gt;&gt;;
+    </span><span class="kw">async fn </span>schema(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SchemaProviderRef&gt;&gt;;
 }
 
-<span class="kw">pub type </span>CatalogListRef = Arc&lt;<span class="kw">dyn </span>CatalogList&gt;;
 <span class="kw">pub type </span>CatalogProviderRef = Arc&lt;<span class="kw">dyn </span>CatalogProvider&gt;;
 
 <span class="attr">#[async_trait::async_trait]
-</span><span class="kw">pub trait </span>CatalogManager: CatalogList {
+</span><span class="kw">pub trait </span>CatalogManager: Send + Sync {
     <span class="doccomment">/// Starts a catalog manager.
     </span><span class="kw">async fn </span>start(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt;;
+
+    <span class="kw">async fn </span>register_catalog(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        name: String,
+        catalog: CatalogProviderRef,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;CatalogProviderRef&gt;&gt;;
 
     <span class="doccomment">/// Registers a table within given catalog/schema to catalog manager,
     /// returns whether the table registered.
@@ -387,7 +361,11 @@
     </span><span class="kw">async fn </span>register_system_table(<span class="kw-2">&amp;</span><span class="self">self</span>, request: RegisterSystemTableRequest)
         -&gt; error::Result&lt;()&gt;;
 
-    <span class="kw">fn </span>schema(<span class="kw-2">&amp;</span><span class="self">self</span>, catalog: <span class="kw-2">&amp;</span>str, schema: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SchemaProviderRef&gt;&gt;;
+    <span class="kw">async fn </span>catalog_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;String&gt;&gt;;
+
+    <span class="kw">async fn </span>catalog(<span class="kw-2">&amp;</span><span class="self">self</span>, catalog: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;CatalogProviderRef&gt;&gt;;
+
+    <span class="kw">async fn </span>schema(<span class="kw-2">&amp;</span><span class="self">self</span>, catalog: <span class="kw-2">&amp;</span>str, schema: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SchemaProviderRef&gt;&gt;;
 
     <span class="doccomment">/// Returns the table by catalog, schema and table name.
     </span><span class="kw">async fn </span>table(
@@ -396,6 +374,8 @@
         schema: <span class="kw-2">&amp;</span>str,
         table_name: <span class="kw-2">&amp;</span>str,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;TableRef&gt;&gt;;
+
+    <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any;
 }
 
 <span class="kw">pub type </span>CatalogManagerRef = Arc&lt;<span class="kw">dyn </span>CatalogManager&gt;;
@@ -517,15 +497,15 @@
     <span class="kw">let </span><span class="kw-2">mut </span>region_number: u64 = <span class="number">0</span>;
     <span class="kw">let </span><span class="kw-2">mut </span>region_stats = Vec::new();
 
-    <span class="kw">let </span><span class="prelude-val">Ok</span>(catalog_names) = catalog_manager.catalog_names() <span class="kw">else </span>{ <span class="kw">return </span>(region_number, region_stats) };
+    <span class="kw">let </span><span class="prelude-val">Ok</span>(catalog_names) = catalog_manager.catalog_names().<span class="kw">await else </span>{ <span class="kw">return </span>(region_number, region_stats) };
     <span class="kw">for </span>catalog_name <span class="kw">in </span>catalog_names {
-        <span class="kw">let </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(catalog)) = catalog_manager.catalog(<span class="kw-2">&amp;</span>catalog_name) <span class="kw">else </span>{ <span class="kw">continue </span>};
+        <span class="kw">let </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(catalog)) = catalog_manager.catalog(<span class="kw-2">&amp;</span>catalog_name).<span class="kw">await else </span>{ <span class="kw">continue </span>};
 
-        <span class="kw">let </span><span class="prelude-val">Ok</span>(schema_names) = catalog.schema_names() <span class="kw">else </span>{ <span class="kw">continue </span>};
+        <span class="kw">let </span><span class="prelude-val">Ok</span>(schema_names) = catalog.schema_names().<span class="kw">await else </span>{ <span class="kw">continue </span>};
         <span class="kw">for </span>schema_name <span class="kw">in </span>schema_names {
-            <span class="kw">let </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(schema)) = catalog.schema(<span class="kw-2">&amp;</span>schema_name) <span class="kw">else </span>{ <span class="kw">continue </span>};
+            <span class="kw">let </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(schema)) = catalog.schema(<span class="kw-2">&amp;</span>schema_name).<span class="kw">await else </span>{ <span class="kw">continue </span>};
 
-            <span class="kw">let </span><span class="prelude-val">Ok</span>(table_names) = schema.table_names() <span class="kw">else </span>{ <span class="kw">continue </span>};
+            <span class="kw">let </span><span class="prelude-val">Ok</span>(table_names) = schema.table_names().<span class="kw">await else </span>{ <span class="kw">continue </span>};
             <span class="kw">for </span>table_name <span class="kw">in </span>table_names {
                 <span class="kw">let </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(table)) = schema.table(<span class="kw-2">&amp;</span>table_name).<span class="kw">await else </span>{ <span class="kw">continue </span>};
 

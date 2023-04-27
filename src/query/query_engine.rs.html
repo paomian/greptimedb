@@ -128,7 +128,7 @@
 <span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>async_trait::async_trait;
-<span class="kw">use </span>catalog::CatalogListRef;
+<span class="kw">use </span>catalog::CatalogManagerRef;
 <span class="kw">use </span>common_base::Plugins;
 <span class="kw">use </span>common_function::scalars::aggregate::AggregateFunctionMetaRef;
 <span class="kw">use </span>common_function::scalars::{FunctionRef, FUNCTION_REGISTRY};
@@ -174,12 +174,12 @@
 }
 
 <span class="kw">impl </span>QueryEngineFactory {
-    <span class="kw">pub fn </span>new(catalog_list: CatalogListRef) -&gt; <span class="self">Self </span>{
-        <span class="self">Self</span>::new_with_plugins(catalog_list, Default::default())
+    <span class="kw">pub fn </span>new(catalog_manager: CatalogManagerRef) -&gt; <span class="self">Self </span>{
+        <span class="self">Self</span>::new_with_plugins(catalog_manager, Default::default())
     }
 
-    <span class="kw">pub fn </span>new_with_plugins(catalog_list: CatalogListRef, plugins: Arc&lt;Plugins&gt;) -&gt; <span class="self">Self </span>{
-        <span class="kw">let </span>state = Arc::new(QueryEngineState::new(catalog_list, plugins));
+    <span class="kw">pub fn </span>new_with_plugins(catalog_manager: CatalogManagerRef, plugins: Arc&lt;Plugins&gt;) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span>state = Arc::new(QueryEngineState::new(catalog_manager, plugins));
         <span class="kw">let </span>query_engine = Arc::new(DatafusionQueryEngine::new(state));
         register_functions(<span class="kw-2">&amp;</span>query_engine);
         <span class="self">Self </span>{ query_engine }

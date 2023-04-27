@@ -73,7 +73,7 @@
         .follow_links(<span class="bool-val">true</span>)
         .build()
         .unwrap();
-    <span class="kw">let </span>runner = Runner::new_with_config(config, Env {}).<span class="kw">await</span>.unwrap();
+    <span class="kw">let </span>runner = Runner::new(config, Env {});
     runner.run().<span class="kw">await</span>.unwrap();
 }
 </code></pre></div>

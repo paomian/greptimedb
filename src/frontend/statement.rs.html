@@ -190,6 +190,7 @@
 <a href="#190" id="190">190</a>
 <a href="#191" id="191">191</a>
 <a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -278,11 +279,11 @@
 
             Statement::DescribeTable(stmt) =&gt; <span class="self">self</span>.describe_table(stmt, query_ctx).<span class="kw">await</span>,
 
-            Statement::Use(db) =&gt; <span class="self">self</span>.handle_use(db, query_ctx),
+            Statement::Use(db) =&gt; <span class="self">self</span>.handle_use(db, query_ctx).<span class="kw">await</span>,
 
-            Statement::ShowDatabases(stmt) =&gt; <span class="self">self</span>.show_databases(stmt),
+            Statement::ShowDatabases(stmt) =&gt; <span class="self">self</span>.show_databases(stmt).<span class="kw">await</span>,
 
-            Statement::ShowTables(stmt) =&gt; <span class="self">self</span>.show_tables(stmt, query_ctx),
+            Statement::ShowTables(stmt) =&gt; <span class="self">self</span>.show_tables(stmt, query_ctx).<span class="kw">await</span>,
 
             Statement::Copy(stmt) =&gt; {
                 <span class="kw">let </span>req = to_copy_table_request(stmt, query_ctx)<span class="question-mark">?</span>;
@@ -318,12 +319,13 @@
             </span>.context(ExecLogicalPlanSnafu)
     }
 
-    <span class="kw">fn </span>handle_use(<span class="kw-2">&amp;</span><span class="self">self</span>, db: String, query_ctx: QueryContextRef) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
+    <span class="kw">async fn </span>handle_use(<span class="kw-2">&amp;</span><span class="self">self</span>, db: String, query_ctx: QueryContextRef) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
         <span class="kw">let </span>catalog = <span class="kw-2">&amp;</span>query_ctx.current_catalog();
         <span class="macro">ensure!</span>(
             <span class="self">self</span>.catalog_manager
                 .schema(catalog, <span class="kw-2">&amp;</span>db)
-                .context(CatalogSnafu)<span class="question-mark">?
+                .<span class="kw">await
+                </span>.context(CatalogSnafu)<span class="question-mark">?
                 </span>.is_some(),
             SchemaNotFoundSnafu { schema_info: <span class="kw-2">&amp;</span>db }
         );

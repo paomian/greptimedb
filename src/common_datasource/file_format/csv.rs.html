@@ -297,6 +297,29 @@
 <a href="#297" id="297">297</a>
 <a href="#298" id="298">298</a>
 <a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -317,19 +340,24 @@
 
 <span class="kw">use </span>arrow::csv;
 <span class="kw">use </span>arrow::csv::reader::infer_reader_schema <span class="kw">as </span>infer_csv_schema;
+<span class="kw">use </span>arrow::record_batch::RecordBatch;
 <span class="kw">use </span>arrow_schema::{Schema, SchemaRef};
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>common_runtime;
 <span class="kw">use </span>datafusion::error::Result <span class="kw">as </span>DataFusionResult;
 <span class="kw">use </span>datafusion::physical_plan::file_format::{FileMeta, FileOpenFuture, FileOpener};
+<span class="kw">use </span>datafusion::physical_plan::SendableRecordBatchStream;
 <span class="kw">use </span>derive_builder::Builder;
 <span class="kw">use </span>object_store::ObjectStore;
 <span class="kw">use </span>snafu::ResultExt;
 <span class="kw">use </span>tokio_util::io::SyncIoBridge;
 
+<span class="kw">use </span><span class="kw">super</span>::stream_to_file;
+<span class="kw">use </span><span class="kw">crate</span>::buffered_writer::DfRecordBatchEncoder;
 <span class="kw">use </span><span class="kw">crate</span>::compression::CompressionType;
 <span class="kw">use </span><span class="kw">crate</span>::error::{<span class="self">self</span>, <span class="prelude-ty">Result</span>};
 <span class="kw">use </span><span class="kw">crate</span>::file_format::{<span class="self">self</span>, open_with_decoder, FileFormat};
+<span class="kw">use </span><span class="kw">crate</span>::share_buffer::SharedBuffer;
 
 <span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 </span><span class="kw">pub struct </span>CsvFormat {
@@ -479,6 +507,24 @@
         .<span class="kw">await
         </span>.context(error::JoinHandleSnafu)<span class="question-mark">?
     </span>}
+}
+
+<span class="kw">pub async fn </span>stream_to_csv(
+    stream: SendableRecordBatchStream,
+    store: ObjectStore,
+    path: String,
+    threshold: usize,
+) -&gt; <span class="prelude-ty">Result</span>&lt;usize&gt; {
+    stream_to_file(stream, store, path, threshold, |buffer| {
+        csv::Writer::new(buffer)
+    })
+    .<span class="kw">await
+</span>}
+
+<span class="kw">impl </span>DfRecordBatchEncoder <span class="kw">for </span>csv::Writer&lt;SharedBuffer&gt; {
+    <span class="kw">fn </span>write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, batch: <span class="kw-2">&amp;</span>RecordBatch) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        <span class="self">self</span>.write(batch).context(error::WriteRecordBatchSnafu)
+    }
 }
 
 <span class="attr">#[cfg(test)]

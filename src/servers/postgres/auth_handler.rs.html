@@ -235,6 +235,7 @@
 <a href="#235" id="235">235</a>
 <a href="#236" id="236">236</a>
 <a href="#237" id="237">237</a>
+<a href="#238" id="238">238</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -372,7 +373,7 @@
                 auth::save_startup_parameters_to_metadata(client, startup);
 
                 <span class="comment">// check if db is valid
-                </span><span class="kw">match </span>resolve_db_info(client, <span class="self">self</span>.query_handler.clone())<span class="question-mark">? </span>{
+                </span><span class="kw">match </span>resolve_db_info(client, <span class="self">self</span>.query_handler.clone()).<span class="kw">await</span><span class="question-mark">? </span>{
                     DbResolution::Resolved(catalog, schema) =&gt; {
                         client
                             .metadata_mut()
@@ -447,7 +448,7 @@
 }
 
 <span class="doccomment">/// A function extracted to resolve lifetime and readability issues:
-</span><span class="kw">fn </span>resolve_db_info&lt;C&gt;(
+</span><span class="kw">async fn </span>resolve_db_info&lt;C&gt;(
     client: <span class="kw-2">&amp;mut </span>C,
     query_handler: ServerSqlQueryHandlerRef,
 ) -&gt; PgWireResult&lt;DbResolution&gt;
@@ -459,7 +460,8 @@
         <span class="kw">let </span>(catalog, schema) = <span class="kw">crate</span>::parse_catalog_and_schema_from_client_database_name(db);
         <span class="kw">if </span>query_handler
             .is_valid_schema(catalog, schema)
-            .map_err(|e| PgWireError::ApiError(Box::new(e)))<span class="question-mark">?
+            .<span class="kw">await
+            </span>.map_err(|e| PgWireError::ApiError(Box::new(e)))<span class="question-mark">?
         </span>{
             <span class="prelude-val">Ok</span>(DbResolution::Resolved(
                 catalog.to_owned(),

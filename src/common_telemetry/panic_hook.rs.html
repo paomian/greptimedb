@@ -61,6 +61,8 @@
 <a href="#61" id="61">61</a>
 <a href="#62" id="62">62</a>
 <a href="#63" id="63">63</a>
+<a href="#64" id="64">64</a>
+<a href="#65" id="65">65</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -80,6 +82,7 @@
 </span><span class="kw">use </span>std::time::Duration;
 
 <span class="kw">use </span>backtrace::Backtrace;
+<span class="kw">use </span>metrics::increment_counter;
 
 <span class="kw">pub fn </span>set_panic_hook() {
     <span class="comment">// Set a panic hook that records the panic as a `tracing` event at the
@@ -103,6 +106,7 @@
         } <span class="kw">else </span>{
             <span class="macro">tracing::error!</span>(message = %panic, backtrace = %backtrace);
         }
+        <span class="macro">increment_counter!</span>(<span class="string">&quot;panic_counter&quot;</span>);
         default_hook(panic);
     }));
 

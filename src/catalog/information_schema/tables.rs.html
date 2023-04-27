@@ -285,13 +285,13 @@
     </span><span class="kw">async fn </span>make_tables(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RecordBatch&gt; {
         <span class="kw">let </span>catalog_name = <span class="self">self</span>.catalog_name.clone();
 
-        <span class="kw">for </span>schema_name <span class="kw">in </span><span class="self">self</span>.catalog_provider.schema_names()<span class="question-mark">? </span>{
+        <span class="kw">for </span>schema_name <span class="kw">in </span><span class="self">self</span>.catalog_provider.schema_names().<span class="kw">await</span><span class="question-mark">? </span>{
             <span class="kw">if </span>schema_name == INFORMATION_SCHEMA_NAME {
                 <span class="kw">continue</span>;
             }
 
-            <span class="kw">let </span><span class="prelude-val">Some</span>(schema) = <span class="self">self</span>.catalog_provider.schema(<span class="kw-2">&amp;</span>schema_name)<span class="question-mark">? </span><span class="kw">else </span>{ <span class="kw">continue </span>};
-            <span class="kw">for </span>table_name <span class="kw">in </span>schema.table_names()<span class="question-mark">? </span>{
+            <span class="kw">let </span><span class="prelude-val">Some</span>(schema) = <span class="self">self</span>.catalog_provider.schema(<span class="kw-2">&amp;</span>schema_name).<span class="kw">await</span><span class="question-mark">? </span><span class="kw">else </span>{ <span class="kw">continue </span>};
+            <span class="kw">for </span>table_name <span class="kw">in </span>schema.table_names().<span class="kw">await</span><span class="question-mark">? </span>{
                 <span class="kw">let </span><span class="prelude-val">Some</span>(table) = schema.table(<span class="kw-2">&amp;</span>table_name).<span class="kw">await</span><span class="question-mark">? </span><span class="kw">else </span>{ <span class="kw">continue </span>};
                 <span class="kw">let </span>table_info = table.table_info();
                 <span class="self">self</span>.add_table(

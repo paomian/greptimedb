@@ -35,6 +35,8 @@
 <a href="#35" id="35">35</a>
 <a href="#36" id="36">36</a>
 <a href="#37" id="37">37</a>
+<a href="#38" id="38">38</a>
+<a href="#39" id="39">39</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -58,18 +60,20 @@
 <span class="kw">use </span><span class="kw">crate</span>::statement::StatementExecutor;
 
 <span class="kw">impl </span>StatementExecutor {
-    <span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>show_databases(<span class="kw-2">&amp;</span><span class="self">self</span>, stmt: ShowDatabases) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
+    <span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">async fn </span>show_databases(<span class="kw-2">&amp;</span><span class="self">self</span>, stmt: ShowDatabases) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
         query::sql::show_databases(stmt, <span class="self">self</span>.catalog_manager.clone())
-            .context(ExecuteStatementSnafu)
+            .<span class="kw">await
+            </span>.context(ExecuteStatementSnafu)
     }
 
-    <span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>show_tables(
+    <span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">async fn </span>show_tables(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         stmt: ShowTables,
         query_ctx: QueryContextRef,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
         query::sql::show_tables(stmt, <span class="self">self</span>.catalog_manager.clone(), query_ctx)
-            .context(ExecuteStatementSnafu)
+            .<span class="kw">await
+            </span>.context(ExecuteStatementSnafu)
     }
 }
 </code></pre></div>

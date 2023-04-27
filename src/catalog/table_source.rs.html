@@ -188,6 +188,11 @@
 <a href="#188" id="188">188</a>
 <a href="#189" id="189">189</a>
 <a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -218,10 +223,10 @@
     CatalogNotFoundSnafu, QueryAccessDeniedSnafu, <span class="prelude-ty">Result</span>, SchemaNotFoundSnafu, TableNotExistSnafu,
 };
 <span class="kw">use </span><span class="kw">crate</span>::information_schema::InformationSchemaProvider;
-<span class="kw">use </span><span class="kw">crate</span>::CatalogListRef;
+<span class="kw">use </span><span class="kw">crate</span>::CatalogManagerRef;
 
 <span class="kw">pub struct </span>DfTableSourceProvider {
-    catalog_list: CatalogListRef,
+    catalog_manager: CatalogManagerRef,
     resolved_tables: HashMap&lt;String, Arc&lt;<span class="kw">dyn </span>TableSource&gt;&gt;,
     disallow_cross_schema_query: bool,
     default_catalog: String,
@@ -230,12 +235,12 @@
 
 <span class="kw">impl </span>DfTableSourceProvider {
     <span class="kw">pub fn </span>new(
-        catalog_list: CatalogListRef,
+        catalog_manager: CatalogManagerRef,
         disallow_cross_schema_query: bool,
         query_ctx: <span class="kw-2">&amp;</span>QueryContext,
     ) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
-            catalog_list,
+            catalog_manager,
             disallow_cross_schema_query,
             resolved_tables: HashMap::new(),
             default_catalog: query_ctx.current_catalog(),
@@ -294,17 +299,22 @@
 
         <span class="kw">let </span>schema = <span class="kw">if </span>schema_name != INFORMATION_SCHEMA_NAME {
             <span class="kw">let </span>catalog = <span class="self">self
-                </span>.catalog_list
-                .catalog(catalog_name)<span class="question-mark">?
+                </span>.catalog_manager
+                .catalog(catalog_name)
+                .<span class="kw">await</span><span class="question-mark">?
                 </span>.context(CatalogNotFoundSnafu { catalog_name })<span class="question-mark">?</span>;
-            catalog.schema(schema_name)<span class="question-mark">?</span>.context(SchemaNotFoundSnafu {
-                catalog: catalog_name,
-                schema: schema_name,
-            })<span class="question-mark">?
+            catalog
+                .schema(schema_name)
+                .<span class="kw">await</span><span class="question-mark">?
+                </span>.context(SchemaNotFoundSnafu {
+                    catalog: catalog_name,
+                    schema: schema_name,
+                })<span class="question-mark">?
         </span>} <span class="kw">else </span>{
             <span class="kw">let </span>catalog_provider = <span class="self">self
-                </span>.catalog_list
-                .catalog(catalog_name)<span class="question-mark">?
+                </span>.catalog_manager
+                .catalog(catalog_name)
+                .<span class="kw">await</span><span class="question-mark">?
                 </span>.context(CatalogNotFoundSnafu { catalog_name })<span class="question-mark">?</span>;
             Arc::new(InformationSchemaProvider::new(
                 catalog_name.to_string(),

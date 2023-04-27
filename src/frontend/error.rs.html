@@ -739,7 +739,7 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid InsertRequest, reason: {}&quot;</span>, reason))]
     </span>InvalidInsertRequest { reason: String, location: Location },
 
-    <span class="attr">#[snafu(display(<span class="string">&quot;Table `{}` not exist&quot;</span>, table_name))]
+    <span class="attr">#[snafu(display(<span class="string">&quot;Table not found: {}&quot;</span>, table_name))]
     </span>TableNotFound {
         table_name: String,
         location: Location,

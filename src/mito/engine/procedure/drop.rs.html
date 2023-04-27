@@ -216,14 +216,6 @@
 <a href="#216" id="216">216</a>
 <a href="#217" id="217">217</a>
 <a href="#218" id="218">218</a>
-<a href="#219" id="219">219</a>
-<a href="#220" id="220">220</a>
-<a href="#221" id="221">221</a>
-<a href="#222" id="222">222</a>
-<a href="#223" id="223">223</a>
-<a href="#224" id="224">224</a>
-<a href="#225" id="225">225</a>
-<a href="#226" id="226">226</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -244,21 +236,20 @@
 <span class="kw">use </span>common_procedure::error::{Error, FromJsonSnafu, ToJsonSnafu};
 <span class="kw">use </span>common_procedure::{Context, LockKey, Procedure, ProcedureManager, <span class="prelude-ty">Result</span>, Status};
 <span class="kw">use </span>serde::{Deserialize, Serialize};
-<span class="kw">use </span>snafu::{OptionExt, ResultExt};
+<span class="kw">use </span>snafu::ResultExt;
 <span class="kw">use </span>store_api::storage::StorageEngine;
 <span class="kw">use </span>table::engine::TableReference;
 <span class="kw">use </span>table::requests::DropTableRequest;
 <span class="kw">use </span>table::Table;
 
 <span class="kw">use </span><span class="kw">crate</span>::engine::MitoEngineInner;
-<span class="kw">use </span><span class="kw">crate</span>::error::TableNotFoundSnafu;
 <span class="kw">use </span><span class="kw">crate</span>::table::MitoTable;
 
 <span class="doccomment">/// Procedure to drop a [MitoTable].
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>DropMitoTable&lt;S: StorageEngine&gt; {
     data: DropTableData,
     engine_inner: Arc&lt;MitoEngineInner&lt;S&gt;&gt;,
-    table: Arc&lt;MitoTable&lt;S::Region&gt;&gt;,
+    table: <span class="prelude-ty">Option</span>&lt;Arc&lt;MitoTable&lt;S::Region&gt;&gt;&gt;,
 }
 
 <span class="attr">#[async_trait]
@@ -281,7 +272,8 @@
 
     <span class="kw">fn </span>lock_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; LockKey {
         <span class="kw">let </span>table_ref = <span class="self">self</span>.data.table_ref();
-        <span class="kw">let </span>info = <span class="self">self</span>.table.table_info();
+        <span class="kw">let </span><span class="prelude-val">Some</span>(table) = <span class="kw-2">&amp;</span><span class="self">self</span>.table <span class="kw">else </span>{ <span class="kw">return </span>LockKey::default() };
+        <span class="kw">let </span>info = table.table_info();
         <span class="kw">let </span>keys = info
             .meta
             .region_numbers
@@ -304,12 +296,7 @@
             request,
         };
         <span class="kw">let </span>table_ref = data.table_ref();
-        <span class="kw">let </span>table =
-            engine_inner
-                .get_mito_table(<span class="kw-2">&amp;</span>table_ref)
-                .with_context(|| TableNotFoundSnafu {
-                    table_name: table_ref.to_string(),
-                })<span class="question-mark">?</span>;
+        <span class="kw">let </span>table = engine_inner.get_mito_table(<span class="kw-2">&amp;</span>table_ref);
 
         <span class="prelude-val">Ok</span>(DropMitoTable {
             data,
@@ -340,12 +327,7 @@
     </span><span class="kw">fn </span>from_json(json: <span class="kw-2">&amp;</span>str, engine_inner: Arc&lt;MitoEngineInner&lt;S&gt;&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
         <span class="kw">let </span>data: DropTableData = serde_json::from_str(json).context(FromJsonSnafu)<span class="question-mark">?</span>;
         <span class="kw">let </span>table_ref = data.table_ref();
-        <span class="kw">let </span>table =
-            engine_inner
-                .get_mito_table(<span class="kw-2">&amp;</span>table_ref)
-                .with_context(|| TableNotFoundSnafu {
-                    table_name: table_ref.to_string(),
-                })<span class="question-mark">?</span>;
+        <span class="kw">let </span>table = engine_inner.get_mito_table(<span class="kw-2">&amp;</span>table_ref);
 
         <span class="prelude-val">Ok</span>(DropMitoTable {
             data,
@@ -374,7 +356,9 @@
         <span class="self">self</span>.engine_inner.tables.remove(<span class="kw-2">&amp;</span>table_ref.to_string());
 
         <span class="comment">// Close the table to close all regions. Closing a region is idempotent.
-        </span><span class="self">self</span>.table.close().<span class="kw">await</span>.map_err(Error::from_error_ext)<span class="question-mark">?</span>;
+        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(table) = <span class="kw-2">&amp;</span><span class="self">self</span>.table {
+            table.close().<span class="kw">await</span>.map_err(Error::from_error_ext)<span class="question-mark">?</span>;
+        }
 
         <span class="comment">// TODO(yingwen): Currently, DROP TABLE doesn&#39;t remove data. We can
         // write a drop meta update to the table and remove all files in the

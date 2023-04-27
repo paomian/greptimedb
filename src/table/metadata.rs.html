@@ -791,6 +791,14 @@
 <a href="#791" id="791">791</a>
 <a href="#792" id="792">792</a>
 <a href="#793" id="793">793</a>
+<a href="#794" id="794">794</a>
+<a href="#795" id="795">795</a>
+<a href="#796" id="796">796</a>
+<a href="#797" id="797">797</a>
+<a href="#798" id="798">798</a>
+<a href="#799" id="799">799</a>
+<a href="#800" id="800">800</a>
+<a href="#801" id="801">801</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -882,7 +890,7 @@
     </span><span class="kw">pub </span>version: TableVersion,
 }
 
-<span class="doccomment">/// The table medatadata
+<span class="doccomment">/// The table metadata
 /// Note: if you add new fields to this struct, please ensure &#39;new_meta_builder&#39; function works.
 /// TODO(dennis): find a better way to ensure &#39;new_meta_builder&#39; works when adding new fields.
 </span><span class="attr">#[derive(Clone, Debug, Builder, PartialEq, Eq)]
@@ -965,7 +973,15 @@
             AlterKind::AddColumns { columns } =&gt; <span class="self">self</span>.add_columns(table_name, columns),
             AlterKind::DropColumns { names } =&gt; <span class="self">self</span>.remove_columns(table_name, names),
             <span class="comment">// No need to rebuild table meta when renaming tables.
-            </span>AlterKind::RenameTable { .. } =&gt; <span class="prelude-val">Ok</span>(TableMetaBuilder::default()),
+            </span>AlterKind::RenameTable { .. } =&gt; {
+                <span class="kw">let </span><span class="kw-2">mut </span>meta_builder = TableMetaBuilder::default();
+                meta_builder
+                    .schema(<span class="self">self</span>.schema.clone())
+                    .primary_key_indices(<span class="self">self</span>.primary_key_indices.clone())
+                    .engine(<span class="self">self</span>.engine.clone())
+                    .next_column_id(<span class="self">self</span>.next_column_id);
+                <span class="prelude-val">Ok</span>(meta_builder)
+            }
         }
     }
 

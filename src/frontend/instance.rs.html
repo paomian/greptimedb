@@ -1202,6 +1202,7 @@
 <a href="#1202" id="1202">1202</a>
 <a href="#1203" id="1203">1203</a>
 <a href="#1204" id="1204">1204</a>
+<a href="#1205" id="1205">1205</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1731,10 +1732,11 @@
         }
     }
 
-    <span class="kw">fn </span>is_valid_schema(<span class="kw-2">&amp;</span><span class="self">self</span>, catalog: <span class="kw-2">&amp;</span>str, schema: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
+    <span class="kw">async fn </span>is_valid_schema(<span class="kw-2">&amp;</span><span class="self">self</span>, catalog: <span class="kw-2">&amp;</span>str, schema: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
         <span class="self">self</span>.catalog_manager
             .schema(catalog, schema)
-            .map(|s| s.is_some())
+            .<span class="kw">await
+            </span>.map(|s| s.is_some())
             .context(error::CatalogSnafu)
     }
 }

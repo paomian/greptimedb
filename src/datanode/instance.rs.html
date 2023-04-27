@@ -561,16 +561,6 @@
 <a href="#561" id="561">561</a>
 <a href="#562" id="562">562</a>
 <a href="#563" id="563">563</a>
-<a href="#564" id="564">564</a>
-<a href="#565" id="565">565</a>
-<a href="#566" id="566">566</a>
-<a href="#567" id="567">567</a>
-<a href="#568" id="568">568</a>
-<a href="#569" id="569">569</a>
-<a href="#570" id="570">570</a>
-<a href="#571" id="571">571</a>
-<a href="#572" id="572">572</a>
-<a href="#573" id="573">573</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -649,7 +639,7 @@
     <span class="kw">pub</span>(<span class="kw">crate</span>) catalog_manager: CatalogManagerRef,
     <span class="kw">pub</span>(<span class="kw">crate</span>) table_id_provider: <span class="prelude-ty">Option</span>&lt;TableIdProviderRef&gt;,
     <span class="kw">pub</span>(<span class="kw">crate</span>) heartbeat_task: <span class="prelude-ty">Option</span>&lt;HeartbeatTask&gt;,
-    procedure_manager: <span class="prelude-ty">Option</span>&lt;ProcedureManagerRef&gt;,
+    procedure_manager: ProcedureManagerRef,
 }
 
 <span class="kw">pub type </span>InstanceRef = Arc&lt;Instance&gt;;
@@ -781,20 +771,17 @@
 
         <span class="kw">let </span>procedure_manager = create_procedure_manager(<span class="kw-2">&amp;</span>opts.procedure).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="comment">// Register all procedures.
-        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(procedure_manager) = <span class="kw-2">&amp;</span>procedure_manager {
-            <span class="comment">// Register procedures of the mito engine.
-            </span>mito_engine.register_procedure_loaders(<span class="kw-2">&amp;**</span>procedure_manager);
-            immutable_file_engine.register_procedure_loaders(<span class="kw-2">&amp;**</span>procedure_manager);
-            <span class="comment">// Register procedures in table-procedure crate.
-            </span>table_procedure::register_procedure_loaders(
-                catalog_manager.clone(),
-                mito_engine.clone(),
-                mito_engine.clone(),
-                <span class="kw-2">&amp;**</span>procedure_manager,
-            );
-            <span class="comment">// TODO(yingwen): Register procedures of the file table engine once #1372
-            // is ready.
-        </span>}
+        // Register procedures of the mito engine.
+        </span>mito_engine.register_procedure_loaders(<span class="kw-2">&amp;*</span>procedure_manager);
+        <span class="comment">// Register procedures of the file table engine.
+        </span>immutable_file_engine.register_procedure_loaders(<span class="kw-2">&amp;*</span>procedure_manager);
+        <span class="comment">// Register procedures in table-procedure crate.
+        </span>table_procedure::register_procedure_loaders(
+            catalog_manager.clone(),
+            mito_engine.clone(),
+            mito_engine.clone(),
+            <span class="kw-2">&amp;*</span>procedure_manager,
+        );
 
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             query_engine: query_engine.clone(),
@@ -821,12 +808,10 @@
 
         <span class="comment">// Recover procedures after the catalog manager is started, so we can
         // ensure we can access all tables from the catalog manager.
-        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(procedure_manager) = <span class="kw-2">&amp;</span><span class="self">self</span>.procedure_manager {
-            procedure_manager
-                .recover()
-                .<span class="kw">await
-                </span>.context(RecoverProcedureSnafu)<span class="question-mark">?</span>;
-        }
+        </span><span class="self">self</span>.procedure_manager
+            .recover()
+            .<span class="kw">await
+            </span>.context(RecoverProcedureSnafu)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -853,11 +838,13 @@
         <span class="kw">let </span>schema_list = <span class="self">self
             </span>.catalog_manager
             .catalog(DEFAULT_CATALOG_NAME)
-            .map_err(BoxedError::new)
+            .<span class="kw">await
+            </span>.map_err(BoxedError::new)
             .context(ShutdownInstanceSnafu)<span class="question-mark">?
             </span>.expect(<span class="string">&quot;Default schema not found&quot;</span>)
             .schema_names()
-            .map_err(BoxedError::new)
+            .<span class="kw">await
+            </span>.map_err(BoxedError::new)
             .context(ShutdownInstanceSnafu)<span class="question-mark">?</span>;
         <span class="kw">let </span>flush_requests = schema_list
             .into_iter()
@@ -1120,12 +1107,8 @@
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>create_procedure_manager(
-    procedure_config: <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;ProcedureConfig&gt;,
-) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;ProcedureManagerRef&gt;&gt; {
-    <span class="kw">let </span><span class="prelude-val">Some</span>(procedure_config) = procedure_config <span class="kw">else </span>{
-        <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
-    };
-
+    procedure_config: <span class="kw-2">&amp;</span>ProcedureConfig,
+) -&gt; <span class="prelude-ty">Result</span>&lt;ProcedureManagerRef&gt; {
     <span class="macro">info!</span>(
         <span class="string">&quot;Creating procedure manager with config: {:?}&quot;</span>,
         procedure_config
@@ -1139,10 +1122,7 @@
         retry_delay: procedure_config.retry_delay,
     };
 
-    <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(Arc::new(LocalManager::new(
-        manager_config,
-        state_store,
-    ))))
+    <span class="prelude-val">Ok</span>(Arc::new(LocalManager::new(manager_config, state_store)))
 }
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="datanode" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (34e6673a0 2023-02-25)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>

@@ -123,6 +123,7 @@
 <a href="#123" id="123">123</a>
 <a href="#124" id="124">124</a>
 <a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -175,7 +176,7 @@
         query_ctx: QueryContextRef,
     ) -&gt; std::result::Result&lt;<span class="prelude-ty">Option</span>&lt;Schema&gt;, <span class="self">Self</span>::Error&gt;;
 
-    <span class="kw">fn </span>is_valid_schema(
+    <span class="kw">async fn </span>is_valid_schema(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         catalog: <span class="kw-2">&amp;</span>str,
         schema: <span class="kw-2">&amp;</span>str,
@@ -241,10 +242,11 @@
             .context(error::DescribeStatementSnafu)
     }
 
-    <span class="kw">fn </span>is_valid_schema(<span class="kw-2">&amp;</span><span class="self">self</span>, catalog: <span class="kw-2">&amp;</span>str, schema: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
+    <span class="kw">async fn </span>is_valid_schema(<span class="kw-2">&amp;</span><span class="self">self</span>, catalog: <span class="kw-2">&amp;</span>str, schema: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
         <span class="self">self</span>.<span class="number">0
             </span>.is_valid_schema(catalog, schema)
-            .map_err(BoxedError::new)
+            .<span class="kw">await
+            </span>.map_err(BoxedError::new)
             .context(error::CheckDatabaseValiditySnafu)
     }
 }

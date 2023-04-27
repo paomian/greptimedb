@@ -129,7 +129,7 @@
         <span class="self">self
     </span>}
 
-    <span class="kw">fn </span>table_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;String&gt;&gt; {
+    <span class="kw">async fn </span>table_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;String&gt;&gt; {
         <span class="prelude-val">Ok</span>(<span class="macro">vec!</span>[TABLES.to_string()])
     }
 
@@ -154,7 +154,7 @@
         <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(Arc::new(table)))
     }
 
-    <span class="kw">fn </span>table_exist(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
+    <span class="kw">async fn </span>table_exist(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
         <span class="prelude-val">Ok</span>(<span class="macro">matches!</span>(name.to_ascii_lowercase().as_str(), TABLES))
     }
 }

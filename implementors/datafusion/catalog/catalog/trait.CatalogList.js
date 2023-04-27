@@ -1,3 +1,0 @@
-(function() {var implementors = {
-"catalog":[["impl CatalogList for <a class=\"struct\" href=\"catalog/datafusion/catalog_adapter/struct.DfCatalogListAdapter.html\" title=\"struct catalog::datafusion::catalog_adapter::DfCatalogListAdapter\">DfCatalogListAdapter</a>"]]
-};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

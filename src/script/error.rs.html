@@ -102,6 +102,9 @@
 <a href="#102" id="102">102</a>
 <a href="#103" id="103">103</a>
 <a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -130,6 +133,9 @@
         <span class="attr">#[snafu(backtrace)]
         </span>source: catalog::error::Error,
     },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to find column in scripts table, name: {}&quot;</span>, name))]
+    </span>FindColumnInScriptsTable { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to register scripts table, source: {}&quot;</span>, source))]
     </span>RegisterScriptsTable {
@@ -191,7 +197,7 @@
     <span class="kw">fn </span>status_code(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StatusCode {
         <span class="kw">use </span>Error::<span class="kw-2">*</span>;
         <span class="kw">match </span><span class="self">self </span>{
-            CastType { .. } =&gt; StatusCode::Unexpected,
+            FindColumnInScriptsTable { .. } | CastType { .. } =&gt; StatusCode::Unexpected,
             ScriptsTableNotFound { .. } =&gt; StatusCode::TableNotFound,
             RegisterScriptsTable { source } | FindScriptsTable { source } =&gt; source.status_code(),
             InsertScript { source, .. } =&gt; source.status_code(),

@@ -377,6 +377,7 @@
 <a href="#377" id="377">377</a>
 <a href="#378" id="378">378</a>
 <a href="#379" id="379">379</a>
+<a href="#380" id="380">380</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -570,6 +571,7 @@
 </span><span class="kw">pub struct </span>TableRegionalValue {
     <span class="kw">pub </span>version: TableVersion,
     <span class="kw">pub </span>regions_ids: Vec&lt;u32&gt;,
+    <span class="kw">pub </span>engine_name: <span class="prelude-ty">Option</span>&lt;String&gt;,
 }
 
 <span class="kw">pub struct </span>CatalogKey {

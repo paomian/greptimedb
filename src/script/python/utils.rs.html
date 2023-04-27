@@ -49,6 +49,12 @@
 <a href="#49" id="49">49</a>
 <a href="#50" id="50">50</a>
 <a href="#51" id="51">51</a>
+<a href="#52" id="52">52</a>
+<a href="#53" id="53">53</a>
+<a href="#54" id="54">54</a>
+<a href="#55" id="55">55</a>
+<a href="#56" id="56">56</a>
+<a href="#57" id="57">57</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -63,11 +69,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="kw">use </span>futures::Future;
-<span class="kw">use </span>once_cell::sync::OnceCell;
+</span><span class="kw">use </span>common_runtime::JoinHandle;
+<span class="kw">use </span>futures::Future;
 <span class="kw">use </span>rustpython_vm::builtins::PyBaseExceptionRef;
 <span class="kw">use </span>rustpython_vm::VirtualMachine;
-<span class="kw">use </span>tokio::runtime::Runtime;
 
 <span class="kw">use </span><span class="kw">crate</span>::python::error;
 
@@ -81,24 +86,31 @@
     }
     error::PyRuntimeSnafu { msg }.build()
 }
-<span class="kw">static </span>LOCAL_RUNTIME: OnceCell&lt;tokio::runtime::Runtime&gt; = OnceCell::new();
-<span class="kw">fn </span>get_local_runtime() -&gt; std::thread::Result&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>Runtime&gt; {
-    <span class="kw">let </span>rt = LOCAL_RUNTIME
-        .get_or_try_init(|| tokio::runtime::Runtime::new().map_err(|e| Box::new(e) <span class="kw">as _</span>))<span class="question-mark">?</span>;
-    <span class="prelude-val">Ok</span>(rt)
+
+<span class="doccomment">/// just like [`tokio::task::spawn_blocking`] but using a dedicated runtime(runtime `bg`) using by `scripts` crate
+</span><span class="kw">pub fn </span>spawn_blocking_script&lt;F, R&gt;(f: F) -&gt; JoinHandle&lt;R&gt;
+<span class="kw">where
+    </span>F: FnOnce() -&gt; R + Send + <span class="lifetime">&#39;static</span>,
+    R: Send + <span class="lifetime">&#39;static</span>,
+{
+    common_runtime::spawn_blocking_bg(f)
 }
-<span class="doccomment">/// a terrible hack to call async from sync by:
+
+<span class="doccomment">/// Please only use this method because you are calling from (optionally first as async) to sync then to a async
+/// a terrible hack to call async from sync by:
+///
 /// TODO(discord9): find a better way
-/// 1. spawn a new thread
-/// 2. create a new runtime in new thread and call `block_on` on it
+/// 1. using a cached runtime
+/// 2. block on that runtime
 </span><span class="kw">pub fn </span>block_on_async&lt;T, F&gt;(f: F) -&gt; std::thread::Result&lt;T&gt;
 <span class="kw">where
     </span>F: Future&lt;Output = T&gt; + Send + <span class="lifetime">&#39;static</span>,
     T: Send + <span class="lifetime">&#39;static</span>,
 {
-    <span class="kw">let </span>rt = get_local_runtime()<span class="question-mark">?</span>;
-
-    std::thread::spawn(<span class="kw">move </span>|| rt.block_on(f)).join()
+    <span class="kw">let </span>rt = common_runtime::bg_runtime();
+    <span class="comment">// spawn a thread to block on the runtime, also should prevent `start a runtime inside of runtime` error
+    // it&#39;s ok to block here, assume calling from async to sync is using a `spawn_blocking_*` call
+    </span>std::thread::spawn(<span class="kw">move </span>|| rt.block_on(f)).join()
 }
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="script" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (34e6673a0 2023-02-25)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>
