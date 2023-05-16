@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["CreateTableState"],"opaque":[""],"struct":["CreateImmutableFileTable","CreateTableData"]};
+window.SIDEBAR_ITEMS = {"enum":["CreateTableState"],"struct":["CreateImmutableFileTable","CreateTableData"]};

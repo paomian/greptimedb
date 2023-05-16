@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"opaque":[""],"struct":["BufferedWriter"],"type":["InnerBufferedWriter"]};
+window.SIDEBAR_ITEMS = {"struct":["BufferedWriter"],"type":["InnerBufferedWriter"]};

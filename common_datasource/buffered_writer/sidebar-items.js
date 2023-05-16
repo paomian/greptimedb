@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"opaque":[""],"struct":["BufferedWriter"],"trait":["ArrowWriterCloser","DfRecordBatchEncoder"],"type":["DefaultBufferedWriter"]};
+window.SIDEBAR_ITEMS = {"struct":["BufferedWriter"],"trait":["ArrowWriterCloser","DfRecordBatchEncoder"],"type":["DefaultBufferedWriter"]};

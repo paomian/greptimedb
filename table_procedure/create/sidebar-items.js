@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["CreateTableState"],"opaque":[""],"static":["CALLSITE","META"],"struct":["CreateTableData","CreateTableProcedure"]};
+window.SIDEBAR_ITEMS = {"enum":["CreateTableState"],"static":["CALLSITE"],"struct":["CreateTableData","CreateTableProcedure"]};

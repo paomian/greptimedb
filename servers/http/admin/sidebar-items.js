@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["flush"],"opaque":[""]};
+window.SIDEBAR_ITEMS = {"fn":["flush"]};

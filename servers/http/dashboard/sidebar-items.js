@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"constant":["items"],"fn":["dashboard","static_handler"],"opaque":[""],"static":["CALLSITE","META"],"struct":["Assets"]};

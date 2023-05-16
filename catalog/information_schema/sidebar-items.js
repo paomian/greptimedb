@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["TABLES"],"mod":["tables"],"struct":["InformationSchemaProvider"]};
+window.SIDEBAR_ITEMS = {"constant":["COLUMNS","TABLES"],"mod":["columns","tables"],"struct":["InformationSchemaProvider"]};

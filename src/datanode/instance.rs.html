@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/datanode/src/instance.rs`."><title>instance.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-e5308b57e507db71.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../static.files/light-d59023bfa12059d2.css"><link rel="stylesheet" disabled href="../../static.files/dark-1ca41bb1e10af075.css"><link rel="stylesheet" disabled href="../../static.files/ayu-18b4181a2f3fb862.css"><script src="../../static.files/storage-3891ce972e3a2bf8.js"></script><script defer src="../../static.files/source-script-ea63cb6500f71309.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-98a684e84ae5b08b.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../datanode/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/datanode/src/instance.rs`."><title>instance.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ba5701c5741a7b69.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="datanode" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.0-nightly (a368898de 2023-05-02)" data-search-js="search-618e954b235f6acc.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-6f6ffb5395b17c6e.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../static.files/source-script-11255107d0a65077.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../datanode/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -561,7 +561,29 @@
 <a href="#561" id="561">561</a>
 <a href="#562" id="562">562</a>
 <a href="#563" id="563">563</a>
-</pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
+<a href="#564" id="564">564</a>
+<a href="#565" id="565">565</a>
+<a href="#566" id="566">566</a>
+<a href="#567" id="567">567</a>
+<a href="#568" id="568">568</a>
+<a href="#569" id="569">569</a>
+<a href="#570" id="570">570</a>
+<a href="#571" id="571">571</a>
+<a href="#572" id="572">572</a>
+<a href="#573" id="573">573</a>
+<a href="#574" id="574">574</a>
+<a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
+<a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
+<a href="#583" id="583">583</a>
+<a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+</pre></div><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
 // you may not use this file except in compliance with the License.
@@ -580,6 +602,7 @@
 <span class="kw">use </span>std::time::Duration;
 <span class="kw">use </span>std::{fs, path};
 
+<span class="kw">use </span>api::v1::meta::Role;
 <span class="kw">use </span>catalog::remote::MetaKvBackend;
 <span class="kw">use </span>catalog::{CatalogManager, CatalogManagerRef, RegisterTableRequest};
 <span class="kw">use </span>common_base::readable_size::ReadableSize;
@@ -602,6 +625,7 @@
 <span class="kw">use </span>object_store::services::{Fs <span class="kw">as </span>FsBuilder, Oss <span class="kw">as </span>OSSBuilder, S3 <span class="kw">as </span>S3Builder};
 <span class="kw">use </span>object_store::{util, ObjectStore, ObjectStoreBuilder};
 <span class="kw">use </span>query::query_engine::{QueryEngineFactory, QueryEngineRef};
+<span class="kw">use </span>secrecy::ExposeSecret;
 <span class="kw">use </span>servers::Mode;
 <span class="kw">use </span>session::context::QueryContext;
 <span class="kw">use </span>snafu::prelude::<span class="kw-2">*</span>;
@@ -623,7 +647,10 @@
 <span class="kw">use </span><span class="kw">crate</span>::error::{
     <span class="self">self</span>, CatalogSnafu, MetaClientInitSnafu, MissingMetasrvOptsSnafu, MissingNodeIdSnafu,
     NewCatalogSnafu, OpenLogStoreSnafu, RecoverProcedureSnafu, <span class="prelude-ty">Result</span>, ShutdownInstanceSnafu,
+    StartProcedureManagerSnafu, StopProcedureManagerSnafu,
 };
+<span class="kw">use </span><span class="kw">crate</span>::heartbeat::handler::parse_mailbox_message::ParseMailboxMessageHandler;
+<span class="kw">use </span><span class="kw">crate</span>::heartbeat::handler::HandlerGroupExecutor;
 <span class="kw">use </span><span class="kw">crate</span>::heartbeat::HeartbeatTask;
 <span class="kw">use </span><span class="kw">crate</span>::sql::{SqlHandler, SqlRequest};
 
@@ -674,13 +701,16 @@
         <span class="kw">let </span>log_store = Arc::new(create_log_store(<span class="kw-2">&amp;</span>opts.wal).<span class="kw">await</span><span class="question-mark">?</span>);
 
         <span class="kw">let </span>mito_engine = Arc::new(DefaultEngine::new(
-            TableEngineConfig::default(),
+            TableEngineConfig {
+                compress_manifest: opts.storage.manifest.compress,
+            },
             EngineImpl::new(
                 StorageEngineConfig::from(opts),
                 log_store.clone(),
                 object_store.clone(),
                 compaction_scheduler,
-            ),
+            )
+            .unwrap(),
             object_store.clone(),
         ));
 
@@ -758,6 +788,9 @@
         <span class="kw">let </span>factory = QueryEngineFactory::new(catalog_manager.clone());
         <span class="kw">let </span>query_engine = factory.query_engine();
 
+        <span class="kw">let </span>handlder_executor =
+            HandlerGroupExecutor::new(<span class="macro">vec!</span>[Arc::new(ParseMailboxMessageHandler::default())]);
+
         <span class="kw">let </span>heartbeat_task = <span class="kw">match </span>opts.mode {
             Mode::Standalone =&gt; <span class="prelude-val">None</span>,
             Mode::Distributed =&gt; <span class="prelude-val">Some</span>(HeartbeatTask::new(
@@ -766,10 +799,11 @@
                 opts.rpc_hostname.clone(),
                 meta_client.as_ref().unwrap().clone(),
                 catalog_manager.clone(),
+                Arc::new(handlder_executor),
             )),
         };
 
-        <span class="kw">let </span>procedure_manager = create_procedure_manager(<span class="kw-2">&amp;</span>opts.procedure).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>procedure_manager = create_procedure_manager(<span class="kw-2">&amp;</span>opts.procedure, object_store).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="comment">// Register all procedures.
         // Register procedures of the mito engine.
         </span>mito_engine.register_procedure_loaders(<span class="kw-2">&amp;*</span>procedure_manager);
@@ -812,10 +846,17 @@
             .recover()
             .<span class="kw">await
             </span>.context(RecoverProcedureSnafu)<span class="question-mark">?</span>;
+        <span class="self">self</span>.procedure_manager
+            .start()
+            .context(StartProcedureManagerSnafu)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
     <span class="kw">pub async fn </span>shutdown(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        <span class="self">self</span>.procedure_manager
+            .stop()
+            .<span class="kw">await
+            </span>.context(StopProcedureManagerSnafu)<span class="question-mark">?</span>;
         <span class="kw">if let </span><span class="prelude-val">Some</span>(heartbeat_task) = <span class="kw-2">&amp;</span><span class="self">self</span>.heartbeat_task {
             heartbeat_task
                 .close()
@@ -937,19 +978,17 @@
         .root(<span class="kw-2">&amp;</span>root)
         .bucket(<span class="kw-2">&amp;</span>oss_config.bucket)
         .endpoint(<span class="kw-2">&amp;</span>oss_config.endpoint)
-        .access_key_id(<span class="kw-2">&amp;</span>oss_config.access_key_id)
-        .access_key_secret(<span class="kw-2">&amp;</span>oss_config.access_key_secret);
+        .access_key_id(oss_config.access_key_id.expose_secret())
+        .access_key_secret(oss_config.access_key_secret.expose_secret());
 
     <span class="kw">let </span>object_store = ObjectStore::new(builder)
-        .with_context(|<span class="kw">_</span>| error::InitBackendSnafu {
-            config: store_config.clone(),
-        })<span class="question-mark">?
+        .context(error::InitBackendSnafu)<span class="question-mark">?
         </span>.finish();
 
-    create_object_store_with_cache(object_store, store_config)
-}
+    create_object_store_with_cache(object_store, store_config).<span class="kw">await
+</span>}
 
-<span class="kw">fn </span>create_object_store_with_cache(
+<span class="kw">async fn </span>create_object_store_with_cache(
     object_store: ObjectStore,
     store_config: <span class="kw-2">&amp;</span>ObjectStoreConfig,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;ObjectStore&gt; {
@@ -972,14 +1011,17 @@
     };
 
     <span class="kw">if let </span><span class="prelude-val">Some</span>(path) = cache_path {
-        <span class="kw">let </span>cache_store =
-            FsBuilder::default()
-                .root(path)
-                .build()
-                .with_context(|<span class="kw">_</span>| error::InitBackendSnafu {
-                    config: store_config.clone(),
-                })<span class="question-mark">?</span>;
-        <span class="kw">let </span>cache_layer = LruCacheLayer::new(Arc::new(cache_store), cache_capacity.<span class="number">0 </span><span class="kw">as </span>usize);
+        <span class="kw">let </span>atomic_temp_dir = <span class="macro">format!</span>(<span class="string">&quot;{path}/.tmp/&quot;</span>);
+        clean_temp_dir(<span class="kw-2">&amp;</span>atomic_temp_dir)<span class="question-mark">?</span>;
+        <span class="kw">let </span>cache_store = FsBuilder::default()
+            .root(path)
+            .atomic_write_dir(<span class="kw-2">&amp;</span>atomic_temp_dir)
+            .build()
+            .context(error::InitBackendSnafu)<span class="question-mark">?</span>;
+
+        <span class="kw">let </span>cache_layer = LruCacheLayer::new(Arc::new(cache_store), cache_capacity.<span class="number">0 </span><span class="kw">as </span>usize)
+            .<span class="kw">await
+            </span>.context(error::InitBackendSnafu)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(object_store.layer(cache_layer))
     } <span class="kw">else </span>{
         <span class="prelude-val">Ok</span>(object_store)
@@ -1002,8 +1044,8 @@
     builder
         .root(<span class="kw-2">&amp;</span>root)
         .bucket(<span class="kw-2">&amp;</span>s3_config.bucket)
-        .access_key_id(<span class="kw-2">&amp;</span>s3_config.access_key_id)
-        .secret_access_key(<span class="kw-2">&amp;</span>s3_config.secret_access_key);
+        .access_key_id(s3_config.access_key_id.expose_secret())
+        .secret_access_key(s3_config.secret_access_key.expose_secret());
 
     <span class="kw">if </span>s3_config.endpoint.is_some() {
         builder.endpoint(s3_config.endpoint.as_ref().unwrap());
@@ -1014,12 +1056,21 @@
 
     create_object_store_with_cache(
         ObjectStore::new(builder)
-            .with_context(|<span class="kw">_</span>| error::InitBackendSnafu {
-                config: store_config.clone(),
-            })<span class="question-mark">?
+            .context(error::InitBackendSnafu)<span class="question-mark">?
             </span>.finish(),
         store_config,
     )
+    .<span class="kw">await
+</span>}
+
+<span class="kw">fn </span>clean_temp_dir(dir: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+    <span class="kw">if </span>path::Path::new(<span class="kw-2">&amp;</span>dir).exists() {
+        <span class="macro">info!</span>(<span class="string">&quot;Begin to clean temp storage directory: {}&quot;</span>, dir);
+        fs::remove_dir_all(dir).context(error::RemoveDirSnafu { dir })<span class="question-mark">?</span>;
+        <span class="macro">info!</span>(<span class="string">&quot;Cleaned temp storage directory: {}&quot;</span>, dir);
+    }
+
+    <span class="prelude-val">Ok</span>(())
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>new_fs_object_store(store_config: <span class="kw-2">&amp;</span>ObjectStoreConfig) -&gt; <span class="prelude-ty">Result</span>&lt;ObjectStore&gt; {
@@ -1033,24 +1084,13 @@
     <span class="macro">info!</span>(<span class="string">&quot;The file storage directory is: {}&quot;</span>, <span class="kw-2">&amp;</span>data_dir);
 
     <span class="kw">let </span>atomic_write_dir = <span class="macro">format!</span>(<span class="string">&quot;{data_dir}/.tmp/&quot;</span>);
-    <span class="kw">if </span>path::Path::new(<span class="kw-2">&amp;</span>atomic_write_dir).exists() {
-        <span class="macro">info!</span>(
-            <span class="string">&quot;Begin to clean temp storage directory: {}&quot;</span>,
-            <span class="kw-2">&amp;</span>atomic_write_dir
-        );
-        fs::remove_dir_all(<span class="kw-2">&amp;</span>atomic_write_dir).context(error::RemoveDirSnafu {
-            dir: <span class="kw-2">&amp;</span>atomic_write_dir,
-        })<span class="question-mark">?</span>;
-        <span class="macro">info!</span>(<span class="string">&quot;Cleaned temp storage directory: {}&quot;</span>, <span class="kw-2">&amp;</span>atomic_write_dir);
-    }
+    clean_temp_dir(<span class="kw-2">&amp;</span>atomic_write_dir)<span class="question-mark">?</span>;
 
     <span class="kw">let </span><span class="kw-2">mut </span>builder = FsBuilder::default();
     builder.root(<span class="kw-2">&amp;</span>data_dir).atomic_write_dir(<span class="kw-2">&amp;</span>atomic_write_dir);
 
     <span class="kw">let </span>object_store = ObjectStore::new(builder)
-        .context(error::InitBackendSnafu {
-            config: store_config.clone(),
-        })<span class="question-mark">?
+        .context(error::InitBackendSnafu)<span class="question-mark">?
         </span>.finish();
 
     <span class="prelude-val">Ok</span>(object_store)
@@ -1065,8 +1105,11 @@
         .timeout(Duration::from_millis(meta_config.timeout_millis))
         .connect_timeout(Duration::from_millis(meta_config.connect_timeout_millis))
         .tcp_nodelay(meta_config.tcp_nodelay);
-    <span class="kw">let </span>channel_manager = ChannelManager::with_config(config);
-    <span class="kw">let </span><span class="kw-2">mut </span>meta_client = MetaClientBuilder::new(cluster_id, member_id)
+
+    <span class="kw">let </span><span class="kw-2">mut </span>channel_manager = ChannelManager::with_config(config);
+    channel_manager.start_channel_recycle();
+
+    <span class="kw">let </span><span class="kw-2">mut </span>meta_client = MetaClientBuilder::new(cluster_id, member_id, Role::Datanode)
         .enable_heartbeat()
         .enable_router()
         .enable_store()
@@ -1108,21 +1151,21 @@
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>create_procedure_manager(
     procedure_config: <span class="kw-2">&amp;</span>ProcedureConfig,
+    object_store: ObjectStore,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;ProcedureManagerRef&gt; {
     <span class="macro">info!</span>(
         <span class="string">&quot;Creating procedure manager with config: {:?}&quot;</span>,
         procedure_config
     );
 
-    <span class="kw">let </span>object_store = new_object_store(<span class="kw-2">&amp;</span>procedure_config.store).<span class="kw">await</span><span class="question-mark">?</span>;
     <span class="kw">let </span>state_store = Arc::new(ObjectStateStore::new(object_store));
 
     <span class="kw">let </span>manager_config = ManagerConfig {
         max_retry_times: procedure_config.max_retry_times,
         retry_delay: procedure_config.retry_delay,
+        ..Default::default()
     };
 
     <span class="prelude-val">Ok</span>(Arc::new(LocalManager::new(manager_config, state_store)))
 }
-</code></pre></div>
-</section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="datanode" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (34e6673a0 2023-02-25)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>
+</code></pre></div></section></main></body></html>

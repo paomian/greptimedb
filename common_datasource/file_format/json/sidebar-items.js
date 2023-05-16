@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["stream_to_json"],"opaque":[""],"struct":["JsonFormat","JsonOpener"]};
+window.SIDEBAR_ITEMS = {"fn":["stream_to_json"],"struct":["JsonFormat","JsonOpener"]};

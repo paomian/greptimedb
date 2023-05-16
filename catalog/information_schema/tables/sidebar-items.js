@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"opaque":[""],"struct":["InformationSchemaTables","InformationSchemaTablesBuilder"]};
+window.SIDEBAR_ITEMS = {"struct":["InformationSchemaTables","InformationSchemaTablesBuilder"]};

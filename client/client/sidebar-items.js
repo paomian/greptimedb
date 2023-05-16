@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"opaque":[""],"struct":["Client","DatabaseClient","FlightClient","Inner"]};
+window.SIDEBAR_ITEMS = {"struct":["Client","DatabaseClient","FlightClient","Inner"]};

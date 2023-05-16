@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"opaque":[""],"struct":["DefaultParquetFileReaderFactory","LazyParquetFileReader","ParquetFormat"]};
+window.SIDEBAR_ITEMS = {"struct":["DefaultParquetFileReaderFactory","LazyParquetFileReader","ParquetFormat"]};

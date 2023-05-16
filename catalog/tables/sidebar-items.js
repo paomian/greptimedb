@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"opaque":[""],"struct":["InformationSchema","SystemCatalog"]};
+window.SIDEBAR_ITEMS = {"struct":["InformationSchema","SystemCatalog"]};

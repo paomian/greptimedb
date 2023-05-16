@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["batch_insert","data_type_equals_ignore_timezone","ensure_schema_matches_ignore_timezone"],"opaque":[""]};
+window.SIDEBAR_ITEMS = {"constant":["DEFAULT_BATCH_SIZE"],"fn":["batch_insert","data_type_equals_ignore_timezone_with_options","ensure_schema_matches_ignore_timezone","generated_schema_projection_and_compatible_file_schema"]};
