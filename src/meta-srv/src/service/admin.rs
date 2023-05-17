@@ -38,26 +38,11 @@ pub fn make_admin_service(meta_srv: MetaSrv) -> Admin {
         },
     );
 
-    let router = router.route(
-        "/catalogs",
-        meta::CatalogsHandler {
-            kv_store: meta_srv.kv_store(),
-        },
-    );
+    let router = router.route("/catalogs", meta::CatalogsHandler::new(meta_srv.kv_store()));
 
-    let router = router.route(
-        "/schemas",
-        meta::SchemasHandler {
-            kv_store: meta_srv.kv_store(),
-        },
-    );
+    let router = router.route("/schemas", meta::SchemasHandler::new(meta_srv.kv_store()));
 
-    let router = router.route(
-        "/tables",
-        meta::TablesHandler {
-            kv_store: meta_srv.kv_store(),
-        },
-    );
+    let router = router.route("/tables", meta::TablesHandler::new(meta_srv.kv_store()));
 
     let router = router.route(
         "/table",
