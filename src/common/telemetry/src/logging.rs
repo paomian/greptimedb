@@ -127,6 +127,7 @@ pub fn init_global_logging(
     // Use env RUST_LOG to initialize log if present.
     // Otherwise use the specified level.
     let directives = env::var(EnvFilter::DEFAULT_ENV).unwrap_or_else(|_x| level.to_string());
+    println!("x = {}", directives);
     let filter = filter::Targets::new()
         // Only enable WARN and ERROR for 3rd-party crates
         // TODO(dennis): configure them?
@@ -136,6 +137,7 @@ pub fn init_global_logging(
         .with_target("reqwest", Level::WARN)
         .with_target("sqlparser", Level::WARN)
         .with_target("h2", Level::INFO)
+        .with_target("opendal", Level::DEBUG)
         .with_default(
             directives
                 .parse::<filter::LevelFilter>()
