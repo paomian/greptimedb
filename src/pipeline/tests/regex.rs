@@ -43,14 +43,14 @@ transform:
 
     let expected_schema = vec![
         common::make_column_schema(
-            "str_id".to_string(),
-            ColumnDataType::String,
-            SemanticType::Field,
-        ),
-        common::make_column_schema(
             "greptime_timestamp".to_string(),
             ColumnDataType::TimestampNanosecond,
             SemanticType::Timestamp,
+        ),
+        common::make_column_schema(
+            "str_id".to_string(),
+            ColumnDataType::String,
+            SemanticType::Field,
         ),
     ];
 
@@ -89,14 +89,14 @@ transform:
 
     let expected_schema = vec![
         common::make_column_schema(
-            "str_id".to_string(),
-            ColumnDataType::String,
-            SemanticType::Field,
-        ),
-        common::make_column_schema(
             "greptime_timestamp".to_string(),
             ColumnDataType::TimestampNanosecond,
             SemanticType::Timestamp,
+        ),
+        common::make_column_schema(
+            "str_id".to_string(),
+            ColumnDataType::String,
+            SemanticType::Field,
         ),
     ];
 
