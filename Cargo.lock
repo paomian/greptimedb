@@ -7768,6 +7768,7 @@ dependencies = [
  "datafusion-functions",
  "datafusion-physical-expr",
  "datatypes",
+ "enum_dispatch",
  "futures",
  "greptime-proto",
  "itertools 0.10.5",
