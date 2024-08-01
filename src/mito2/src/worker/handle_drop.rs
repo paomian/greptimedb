@@ -28,7 +28,6 @@ use store_api::storage::RegionId;
 use tokio::time::sleep;
 
 use crate::error::{OpenDalSnafu, Result};
-use crate::metrics::REGION_COUNT;
 use crate::region::{RegionMapRef, RegionState};
 use crate::worker::{RegionWorkerLoop, DROPPING_MARKER_FILE};
 
@@ -45,7 +44,7 @@ where
     ) -> Result<AffectedRows> {
         let region = self.regions.writable_region(region_id)?;
 
-        info!("Try to drop region: {}", region_id);
+        info!("Try to drop region: {}, worker: {}", region_id, self.id);
 
         // Marks the region as dropping.
         region.set_dropping()?;
@@ -93,14 +92,14 @@ where
             region_id
         );
 
-        REGION_COUNT.dec();
+        self.region_count.dec();
 
         // Detaches a background task to delete the region dir
         let region_dir = region.access_layer.region_dir().to_owned();
         let object_store = region.access_layer.object_store().clone();
         let dropping_regions = self.dropping_regions.clone();
         let listener = self.listener.clone();
-        common_runtime::spawn_bg(async move {
+        common_runtime::spawn_global(async move {
             let gc_duration = listener
                 .on_later_drop_begin(region_id)
                 .unwrap_or(Duration::from_secs(GC_TASK_INTERVAL_SEC));

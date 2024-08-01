@@ -12,17 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+mod pg_get_userbyid;
+mod table_is_visible;
+
 use std::sync::Arc;
 
-use datafusion::physical_plan::ExecutionPlan;
+use pg_get_userbyid::PGGetUserByIdFunction;
+use table_is_visible::PGTableIsVisibleFunction;
 
-use crate::error::Result;
-use crate::query_engine::QueryEngineContext;
+use crate::function_registry::FunctionRegistry;
 
-pub trait PhysicalOptimizer {
-    fn optimize_physical_plan(
-        &self,
-        ctx: &mut QueryEngineContext,
-        plan: Arc<dyn ExecutionPlan>,
-    ) -> Result<Arc<dyn ExecutionPlan>>;
+#[macro_export]
+macro_rules! pg_catalog_func_fullname {
+    ($name:literal) => {
+        concat!("pg_catalog.", $name)
+    };
+}
+
+pub(super) struct PGCatalogFunction;
+
+impl PGCatalogFunction {
+    pub fn register(registry: &FunctionRegistry) {
+        registry.register(Arc::new(PGTableIsVisibleFunction));
+        registry.register(Arc::new(PGGetUserByIdFunction));
+    }
 }
