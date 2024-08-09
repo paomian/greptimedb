@@ -214,7 +214,7 @@ checksum = "d301b3b94cb4b2f23d7917810addbbaff90738e0ca2be692bd027e70d7e0330c"
 
 [[package]]
 name = "api"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "common-base",
  "common-decimal",
@@ -226,7 +226,7 @@ dependencies = [
  "paste",
  "prost 0.12.6",
  "serde_json",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "tonic-build",
 ]
 
@@ -762,7 +762,7 @@ dependencies = [
 
 [[package]]
 name = "auth"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "async-trait",
@@ -774,7 +774,7 @@ dependencies = [
  "digest",
  "notify",
  "sha1",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "sql",
  "tokio",
 ]
@@ -1277,15 +1277,15 @@ dependencies = [
 
 [[package]]
 name = "cache"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "catalog",
  "common-error",
  "common-macro",
  "common-meta",
  "moka",
- "snafu 0.8.3",
- "substrait 0.9.0",
+ "snafu 0.8.4",
+ "substrait 0.9.1",
 ]
 
 [[package]]
@@ -1312,7 +1312,7 @@ checksum = "37b2a672a2cb129a2e41c10b1224bb368f9f37a2b16b612598138befd7b37eb5"
 
 [[package]]
 name = "catalog"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "arrow",
@@ -1351,7 +1351,7 @@ dependencies = [
  "prometheus",
  "serde_json",
  "session",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "sql",
  "store-api",
  "table",
@@ -1637,7 +1637,7 @@ checksum = "4b82cf0babdbd58558212896d1a4272303a57bdb245c2bf1147185fb45640e70"
 
 [[package]]
 name = "client"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "arc-swap",
@@ -1665,9 +1665,9 @@ dependencies = [
  "query",
  "rand",
  "serde_json",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "substrait 0.37.3",
- "substrait 0.9.0",
+ "substrait 0.9.1",
  "tokio",
  "tokio-stream",
  "tonic 0.11.0",
@@ -1697,7 +1697,7 @@ dependencies = [
 
 [[package]]
 name = "cmd"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "async-trait",
  "auth",
@@ -1751,9 +1751,9 @@ dependencies = [
  "serde_json",
  "servers",
  "session",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "store-api",
- "substrait 0.9.0",
+ "substrait 0.9.1",
  "table",
  "temp-env",
  "tempfile",
@@ -1799,7 +1799,7 @@ checksum = "55b672471b4e9f9e95499ea597ff64941a309b2cdbffcc46f2cc5e2d971fd335"
 
 [[package]]
 name = "common-base"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "anymap",
  "bitvec",
@@ -1808,25 +1808,25 @@ dependencies = [
  "common-macro",
  "paste",
  "serde",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "toml 0.8.14",
  "zeroize",
 ]
 
 [[package]]
 name = "common-catalog"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "chrono",
  "common-error",
  "common-macro",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "tokio",
 ]
 
 [[package]]
 name = "common-config"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "common-base",
  "common-error",
@@ -1840,7 +1840,7 @@ dependencies = [
  "num_cpus",
  "serde",
  "serde_json",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "sysinfo",
  "temp-env",
  "tempfile",
@@ -1849,7 +1849,7 @@ dependencies = [
 
 [[package]]
 name = "common-datasource"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "arrow",
  "arrow-schema",
@@ -1876,7 +1876,7 @@ dependencies = [
  "rand",
  "regex",
  "serde",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "strum 0.25.0",
  "tokio",
  "tokio-util",
@@ -1886,7 +1886,7 @@ dependencies = [
 
 [[package]]
 name = "common-decimal"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "bigdecimal",
  "common-error",
@@ -1894,21 +1894,21 @@ dependencies = [
  "rust_decimal",
  "serde",
  "serde_json",
- "snafu 0.8.3",
+ "snafu 0.8.4",
 ]
 
 [[package]]
 name = "common-error"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "strum 0.25.0",
  "tonic 0.11.0",
 ]
 
 [[package]]
 name = "common-frontend"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "async-trait",
@@ -1917,13 +1917,13 @@ dependencies = [
  "common-macro",
  "common-query",
  "session",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "sql",
 ]
 
 [[package]]
 name = "common-function"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "arc-swap",
@@ -1948,7 +1948,7 @@ dependencies = [
  "serde",
  "serde_json",
  "session",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "sql",
  "statrs",
  "store-api",
@@ -1957,7 +1957,7 @@ dependencies = [
 
 [[package]]
 name = "common-greptimedb-telemetry"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "async-trait",
  "common-runtime",
@@ -1974,7 +1974,7 @@ dependencies = [
 
 [[package]]
 name = "common-grpc"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "arrow-flight",
@@ -1992,7 +1992,7 @@ dependencies = [
  "lazy_static",
  "prost 0.12.6",
  "rand",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "tokio",
  "tonic 0.11.0",
  "tower",
@@ -2000,7 +2000,7 @@ dependencies = [
 
 [[package]]
 name = "common-grpc-expr"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "common-base",
@@ -2012,31 +2012,31 @@ dependencies = [
  "datatypes",
  "paste",
  "prost 0.12.6",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "table",
 ]
 
 [[package]]
 name = "common-macro"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "arc-swap",
  "common-query",
  "datatypes",
  "proc-macro2",
  "quote",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "static_assertions",
  "syn 2.0.66",
 ]
 
 [[package]]
 name = "common-mem-prof"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "common-error",
  "common-macro",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "tempfile",
  "tikv-jemalloc-ctl",
  "tikv-jemalloc-sys",
@@ -2045,7 +2045,7 @@ dependencies = [
 
 [[package]]
 name = "common-meta"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "anymap2",
  "api",
@@ -2088,7 +2088,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "session",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "store-api",
  "strum 0.25.0",
  "table",
@@ -2100,11 +2100,11 @@ dependencies = [
 
 [[package]]
 name = "common-plugins"
-version = "0.9.0"
+version = "0.9.1"
 
 [[package]]
 name = "common-procedure"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -2123,14 +2123,14 @@ dependencies = [
  "serde",
  "serde_json",
  "smallvec",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "tokio",
  "uuid",
 ]
 
 [[package]]
 name = "common-procedure-test"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "async-trait",
  "common-procedure",
@@ -2138,7 +2138,7 @@ dependencies = [
 
 [[package]]
 name = "common-query"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "async-trait",
@@ -2153,7 +2153,7 @@ dependencies = [
  "datafusion-expr",
  "datatypes",
  "serde",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "sqlparser 0.45.0 (git+https://github.com/GreptimeTeam/sqlparser-rs.git?rev=54a267ac89c09b11c0c88934690530807185d3e7)",
  "sqlparser_derive 0.1.1",
  "statrs",
@@ -2163,7 +2163,7 @@ dependencies = [
 
 [[package]]
 name = "common-recordbatch"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "arc-swap",
  "common-error",
@@ -2176,13 +2176,13 @@ dependencies = [
  "pin-project",
  "serde",
  "serde_json",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "tokio",
 ]
 
 [[package]]
 name = "common-runtime"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "async-trait",
  "common-error",
@@ -2194,7 +2194,7 @@ dependencies = [
  "paste",
  "prometheus",
  "serde",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "tokio",
  "tokio-metrics",
  "tokio-metrics-collector",
@@ -2204,7 +2204,7 @@ dependencies = [
 
 [[package]]
 name = "common-telemetry"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "atty",
  "backtrace",
@@ -2231,7 +2231,7 @@ dependencies = [
 
 [[package]]
 name = "common-test-util"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "client",
  "common-query",
@@ -2243,7 +2243,7 @@ dependencies = [
 
 [[package]]
 name = "common-time"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "arrow",
  "chrono",
@@ -2254,12 +2254,12 @@ dependencies = [
  "rand",
  "serde",
  "serde_json",
- "snafu 0.8.3",
+ "snafu 0.8.4",
 ]
 
 [[package]]
 name = "common-version"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "build-data",
  "const_format",
@@ -2270,7 +2270,7 @@ dependencies = [
 
 [[package]]
 name = "common-wal"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "common-base",
  "common-error",
@@ -2282,7 +2282,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "tokio",
  "toml 0.8.14",
 ]
@@ -2764,7 +2764,7 @@ checksum = "e8566979429cf69b49a5c740c60791108e86440e8be149bbea4fe54d2c32d6e2"
 [[package]]
 name = "datafusion"
 version = "38.0.0"
-source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=d7bda5c9b762426e81f144296deadc87e5f4a0b8#d7bda5c9b762426e81f144296deadc87e5f4a0b8"
+source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=7823ef2f63663907edab46af0d51359900f608d6#7823ef2f63663907edab46af0d51359900f608d6"
 dependencies = [
  "ahash 0.8.11",
  "arrow",
@@ -2816,7 +2816,7 @@ dependencies = [
 [[package]]
 name = "datafusion-common"
 version = "38.0.0"
-source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=d7bda5c9b762426e81f144296deadc87e5f4a0b8#d7bda5c9b762426e81f144296deadc87e5f4a0b8"
+source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=7823ef2f63663907edab46af0d51359900f608d6#7823ef2f63663907edab46af0d51359900f608d6"
 dependencies = [
  "ahash 0.8.11",
  "arrow",
@@ -2837,7 +2837,7 @@ dependencies = [
 [[package]]
 name = "datafusion-common-runtime"
 version = "38.0.0"
-source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=d7bda5c9b762426e81f144296deadc87e5f4a0b8#d7bda5c9b762426e81f144296deadc87e5f4a0b8"
+source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=7823ef2f63663907edab46af0d51359900f608d6#7823ef2f63663907edab46af0d51359900f608d6"
 dependencies = [
  "tokio",
 ]
@@ -2845,7 +2845,7 @@ dependencies = [
 [[package]]
 name = "datafusion-execution"
 version = "38.0.0"
-source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=d7bda5c9b762426e81f144296deadc87e5f4a0b8#d7bda5c9b762426e81f144296deadc87e5f4a0b8"
+source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=7823ef2f63663907edab46af0d51359900f608d6#7823ef2f63663907edab46af0d51359900f608d6"
 dependencies = [
  "arrow",
  "chrono",
@@ -2865,7 +2865,7 @@ dependencies = [
 [[package]]
 name = "datafusion-expr"
 version = "38.0.0"
-source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=d7bda5c9b762426e81f144296deadc87e5f4a0b8#d7bda5c9b762426e81f144296deadc87e5f4a0b8"
+source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=7823ef2f63663907edab46af0d51359900f608d6#7823ef2f63663907edab46af0d51359900f608d6"
 dependencies = [
  "ahash 0.8.11",
  "arrow",
@@ -2882,7 +2882,7 @@ dependencies = [
 [[package]]
 name = "datafusion-functions"
 version = "38.0.0"
-source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=d7bda5c9b762426e81f144296deadc87e5f4a0b8#d7bda5c9b762426e81f144296deadc87e5f4a0b8"
+source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=7823ef2f63663907edab46af0d51359900f608d6#7823ef2f63663907edab46af0d51359900f608d6"
 dependencies = [
  "arrow",
  "base64 0.22.1",
@@ -2908,7 +2908,7 @@ dependencies = [
 [[package]]
 name = "datafusion-functions-aggregate"
 version = "38.0.0"
-source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=d7bda5c9b762426e81f144296deadc87e5f4a0b8#d7bda5c9b762426e81f144296deadc87e5f4a0b8"
+source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=7823ef2f63663907edab46af0d51359900f608d6#7823ef2f63663907edab46af0d51359900f608d6"
 dependencies = [
  "ahash 0.8.11",
  "arrow",
@@ -2925,7 +2925,7 @@ dependencies = [
 [[package]]
 name = "datafusion-functions-array"
 version = "38.0.0"
-source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=d7bda5c9b762426e81f144296deadc87e5f4a0b8#d7bda5c9b762426e81f144296deadc87e5f4a0b8"
+source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=7823ef2f63663907edab46af0d51359900f608d6#7823ef2f63663907edab46af0d51359900f608d6"
 dependencies = [
  "arrow",
  "arrow-array",
@@ -2944,7 +2944,7 @@ dependencies = [
 [[package]]
 name = "datafusion-optimizer"
 version = "38.0.0"
-source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=d7bda5c9b762426e81f144296deadc87e5f4a0b8#d7bda5c9b762426e81f144296deadc87e5f4a0b8"
+source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=7823ef2f63663907edab46af0d51359900f608d6#7823ef2f63663907edab46af0d51359900f608d6"
 dependencies = [
  "arrow",
  "async-trait",
@@ -2962,7 +2962,7 @@ dependencies = [
 [[package]]
 name = "datafusion-physical-expr"
 version = "38.0.0"
-source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=d7bda5c9b762426e81f144296deadc87e5f4a0b8#d7bda5c9b762426e81f144296deadc87e5f4a0b8"
+source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=7823ef2f63663907edab46af0d51359900f608d6#7823ef2f63663907edab46af0d51359900f608d6"
 dependencies = [
  "ahash 0.8.11",
  "arrow",
@@ -2992,7 +2992,7 @@ dependencies = [
 [[package]]
 name = "datafusion-physical-expr-common"
 version = "38.0.0"
-source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=d7bda5c9b762426e81f144296deadc87e5f4a0b8#d7bda5c9b762426e81f144296deadc87e5f4a0b8"
+source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=7823ef2f63663907edab46af0d51359900f608d6#7823ef2f63663907edab46af0d51359900f608d6"
 dependencies = [
  "arrow",
  "datafusion-common",
@@ -3003,7 +3003,7 @@ dependencies = [
 [[package]]
 name = "datafusion-physical-plan"
 version = "38.0.0"
-source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=d7bda5c9b762426e81f144296deadc87e5f4a0b8#d7bda5c9b762426e81f144296deadc87e5f4a0b8"
+source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=7823ef2f63663907edab46af0d51359900f608d6#7823ef2f63663907edab46af0d51359900f608d6"
 dependencies = [
  "ahash 0.8.11",
  "arrow",
@@ -3036,7 +3036,7 @@ dependencies = [
 [[package]]
 name = "datafusion-sql"
 version = "38.0.0"
-source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=d7bda5c9b762426e81f144296deadc87e5f4a0b8#d7bda5c9b762426e81f144296deadc87e5f4a0b8"
+source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=7823ef2f63663907edab46af0d51359900f608d6#7823ef2f63663907edab46af0d51359900f608d6"
 dependencies = [
  "arrow",
  "arrow-array",
@@ -3052,7 +3052,7 @@ dependencies = [
 [[package]]
 name = "datafusion-substrait"
 version = "38.0.0"
-source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=d7bda5c9b762426e81f144296deadc87e5f4a0b8#d7bda5c9b762426e81f144296deadc87e5f4a0b8"
+source = "git+https://github.com/waynexia/arrow-datafusion.git?rev=7823ef2f63663907edab46af0d51359900f608d6#7823ef2f63663907edab46af0d51359900f608d6"
 dependencies = [
  "async-recursion",
  "chrono",
@@ -3066,7 +3066,7 @@ dependencies = [
 
 [[package]]
 name = "datanode"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "arrow-flight",
@@ -3113,9 +3113,9 @@ dependencies = [
  "serde",
  "servers",
  "session",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "store-api",
- "substrait 0.9.0",
+ "substrait 0.9.1",
  "table",
  "tokio",
  "toml 0.8.14",
@@ -3124,7 +3124,7 @@ dependencies = [
 
 [[package]]
 name = "datatypes"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "arrow",
  "arrow-array",
@@ -3143,7 +3143,7 @@ dependencies = [
  "paste",
  "serde",
  "serde_json",
- "snafu 0.8.3",
+ "snafu 0.8.4",
 ]
 
 [[package]]
@@ -3685,7 +3685,7 @@ dependencies = [
 
 [[package]]
 name = "file-engine"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "async-trait",
@@ -3707,7 +3707,7 @@ dependencies = [
  "object-store",
  "serde",
  "serde_json",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "store-api",
  "table",
  "tokio",
@@ -3781,7 +3781,7 @@ dependencies = [
 
 [[package]]
 name = "flow"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "arrow-schema",
@@ -3832,10 +3832,10 @@ dependencies = [
  "servers",
  "session",
  "smallvec",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "store-api",
  "strum 0.25.0",
- "substrait 0.9.0",
+ "substrait 0.9.1",
  "table",
  "tokio",
  "tonic 0.11.0",
@@ -3882,7 +3882,7 @@ checksum = "6c2141d6d6c8512188a7891b4b01590a45f6dac67afb4f255c4124dbb86d4eaa"
 
 [[package]]
 name = "frontend"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "arc-swap",
@@ -3930,7 +3930,7 @@ dependencies = [
  "serde_json",
  "servers",
  "session",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "sql",
  "sqlparser 0.45.0 (git+https://github.com/GreptimeTeam/sqlparser-rs.git?rev=54a267ac89c09b11c0c88934690530807185d3e7)",
  "store-api",
@@ -4993,7 +4993,7 @@ dependencies = [
 
 [[package]]
 name = "index"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "async-trait",
  "asynchronous-codec",
@@ -5014,7 +5014,7 @@ dependencies = [
  "regex",
  "regex-automata 0.4.7",
  "serde",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "tantivy",
  "tantivy-jieba",
  "tempfile",
@@ -5224,6 +5224,15 @@ name = "itertools"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
 dependencies = [
  "either",
 ]
@@ -5763,7 +5772,7 @@ checksum = "90ed8c1e510134f979dbc4f070f87d4313098b704861a105fe34231c70a3901c"
 
 [[package]]
 name = "log-store"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -5781,6 +5790,7 @@ dependencies = [
  "futures-util",
  "itertools 0.10.5",
  "lazy_static",
+ "pin-project",
  "prometheus",
  "protobuf",
  "protobuf-build",
@@ -5790,7 +5800,7 @@ dependencies = [
  "rskafka",
  "serde",
  "serde_json",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "store-api",
  "tokio",
  "uuid",
@@ -6070,7 +6080,7 @@ dependencies = [
 
 [[package]]
 name = "meta-client"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "async-trait",
@@ -6085,7 +6095,7 @@ dependencies = [
  "meta-srv",
  "rand",
  "serde",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "tokio",
  "tokio-stream",
  "tonic 0.11.0",
@@ -6096,7 +6106,7 @@ dependencies = [
 
 [[package]]
 name = "meta-srv"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "async-trait",
@@ -6138,7 +6148,7 @@ dependencies = [
  "serde_json",
  "servers",
  "session",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "store-api",
  "table",
  "tokio",
@@ -6172,7 +6182,7 @@ dependencies = [
 
 [[package]]
 name = "metric-engine"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "aquamarine",
@@ -6194,7 +6204,7 @@ dependencies = [
  "object-store",
  "prometheus",
  "serde_json",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "store-api",
  "tokio",
 ]
@@ -6263,7 +6273,7 @@ dependencies = [
 
 [[package]]
 name = "mito2"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "aquamarine",
@@ -6320,7 +6330,7 @@ dependencies = [
  "serde_with",
  "session",
  "smallvec",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "store-api",
  "strum 0.25.0",
  "table",
@@ -6910,7 +6920,7 @@ dependencies = [
 
 [[package]]
 name = "object-store"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "anyhow",
  "bytes",
@@ -6967,9 +6977,9 @@ checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
 
 [[package]]
 name = "opendal"
-version = "0.47.2"
+version = "0.48.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff159a2da374ef2d64848a6547943cf1af7d2ceada5ae77be175e1389aa07ae3"
+checksum = "615d41187deea0ea7fab5b48e9afef6ae8fc742fdcfa248846ee3d92ff71e986"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6986,7 +6996,7 @@ dependencies = [
  "md-5",
  "once_cell",
  "percent-encoding",
- "quick-xml 0.31.0",
+ "quick-xml 0.36.1",
  "reqsign",
  "reqwest",
  "serde",
@@ -7157,7 +7167,7 @@ dependencies = [
 
 [[package]]
 name = "operator"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "async-trait",
@@ -7198,11 +7208,11 @@ dependencies = [
  "regex",
  "serde_json",
  "session",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "sql",
  "sqlparser 0.45.0 (git+https://github.com/GreptimeTeam/sqlparser-rs.git?rev=54a267ac89c09b11c0c88934690530807185d3e7)",
  "store-api",
- "substrait 0.9.0",
+ "substrait 0.9.1",
  "table",
  "tokio",
  "tokio-util",
@@ -7452,7 +7462,7 @@ dependencies = [
 
 [[package]]
 name = "partition"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "async-trait",
@@ -7466,7 +7476,7 @@ dependencies = [
  "itertools 0.10.5",
  "serde",
  "serde_json",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "sql",
  "sqlparser 0.45.0 (git+https://github.com/GreptimeTeam/sqlparser-rs.git?rev=54a267ac89c09b11c0c88934690530807185d3e7)",
  "store-api",
@@ -7741,7 +7751,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "pipeline"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "ahash 0.8.11",
  "api",
@@ -7787,7 +7797,7 @@ dependencies = [
  "serde",
  "serde_json",
  "session",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "sql",
  "table",
  "tokio",
@@ -7902,14 +7912,14 @@ dependencies = [
 
 [[package]]
 name = "plugins"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "auth",
  "common-base",
  "datanode",
  "frontend",
  "meta-srv",
- "snafu 0.8.3",
+ "snafu 0.8.4",
 ]
 
 [[package]]
@@ -7931,11 +7941,11 @@ checksum = "7170ef9988bc169ba16dd36a7fa041e5c4cbeb6a35b76d4c03daded371eae7c0"
 
 [[package]]
 name = "postgres-protocol"
-version = "0.6.6"
+version = "0.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49b6c5ef183cd3ab4ba005f1ca64c21e8bd97ce4699cfea9e8d9a2c4958ca520"
+checksum = "acda0ebdebc28befa84bee35e651e4c5f09073d668c7aed4cf7e23c3cda84b23"
 dependencies = [
- "base64 0.21.7",
+ "base64 0.22.1",
  "byteorder",
  "bytes",
  "fallible-iterator",
@@ -7949,9 +7959,9 @@ dependencies = [
 
 [[package]]
 name = "postgres-types"
-version = "0.2.6"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d2234cdee9408b523530a9b6d2d6b373d1db34f6a8e51dc03ded1828d7fb67c"
+checksum = "02048d9e032fb3cc3413bbf7b83a15d84a5d419778e2628751896d856498eee9"
 dependencies = [
  "array-init",
  "bytes",
@@ -8171,7 +8181,7 @@ dependencies = [
 
 [[package]]
 name = "promql"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "ahash 0.8.11",
  "async-trait",
@@ -8191,7 +8201,7 @@ dependencies = [
  "prost 0.12.6",
  "query",
  "session",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "tokio",
 ]
 
@@ -8245,7 +8255,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22505a5c94da8e3b7c2996394d1c933236c4d743e81a410bcca4e6989fc066a4"
 dependencies = [
  "bytes",
- "heck 0.5.0",
+ "heck 0.4.1",
  "itertools 0.12.1",
  "log",
  "multimap",
@@ -8266,8 +8276,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5bb182580f71dd070f88d01ce3de9f4da5021db7115d2e1c3605a754153b77c1"
 dependencies = [
  "bytes",
- "heck 0.5.0",
- "itertools 0.12.1",
+ "heck 0.4.1",
+ "itertools 0.13.0",
  "log",
  "multimap",
  "once_cell",
@@ -8311,7 +8321,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "18bec9b0adc4eba778b33684b7ba3e7137789434769ee3ce3930463ef904cfca"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "proc-macro2",
  "quote",
  "syn 2.0.66",
@@ -8406,7 +8416,7 @@ dependencies = [
 
 [[package]]
 name = "puffin"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "async-compression 0.4.11",
  "async-trait",
@@ -8427,7 +8437,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "tokio",
  "tokio-util",
  "uuid",
@@ -8528,7 +8538,7 @@ dependencies = [
 
 [[package]]
 name = "query"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "ahash 0.8.11",
  "api",
@@ -8584,14 +8594,14 @@ dependencies = [
  "rand",
  "regex",
  "session",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "sql",
  "sqlparser 0.45.0 (git+https://github.com/GreptimeTeam/sqlparser-rs.git?rev=54a267ac89c09b11c0c88934690530807185d3e7)",
  "statrs",
  "stats-cli",
  "store-api",
  "streaming-stats",
- "substrait 0.9.0",
+ "substrait 0.9.1",
  "table",
  "tokio",
  "tokio-stream",
@@ -8608,9 +8618,19 @@ dependencies = [
 
 [[package]]
 name = "quick-xml"
-version = "0.31.0"
+version = "0.35.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1004a344b30a54e2ee58d66a71b32d2db2feb0a31f9a2d302bf0536f15de2a33"
+checksum = "86e446ed58cef1bbfe847bc2fda0e2e4ea9f0e57b90c507d4781292590d72a4e"
+dependencies = [
+ "memchr",
+ "serde",
+]
+
+[[package]]
+name = "quick-xml"
+version = "0.36.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96a05e2e8efddfa51a84ca47cec303fac86c8541b686d37cac5efc0e094417bc"
 dependencies = [
  "memchr",
  "serde",
@@ -8886,9 +8906,9 @@ dependencies = [
 
 [[package]]
 name = "reqsign"
-version = "0.15.2"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70fe66d4cd0b5ed9b1abbfe639bf6baeaaf509f7da2d51b31111ba945be59286"
+checksum = "03dd4ba7c3901dd43e6b8c7446a760d45bc1ea4301002e1a6fa48f97c3a796fa"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8904,7 +8924,7 @@ dependencies = [
  "log",
  "once_cell",
  "percent-encoding",
- "quick-xml 0.31.0",
+ "quick-xml 0.35.0",
  "rand",
  "reqwest",
  "rsa 0.9.6",
@@ -9919,7 +9939,7 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
 name = "script"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "arc-swap",
@@ -9966,7 +9986,7 @@ dependencies = [
  "serde",
  "servers",
  "session",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "sql",
  "table",
  "tokio",
@@ -10212,7 +10232,7 @@ dependencies = [
 
 [[package]]
 name = "servers"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "aide",
  "api",
@@ -10293,7 +10313,7 @@ dependencies = [
  "serde",
  "serde_json",
  "session",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "snap",
  "sql",
  "strum 0.25.0",
@@ -10318,7 +10338,7 @@ dependencies = [
 
 [[package]]
 name = "session"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "arc-swap",
@@ -10330,7 +10350,7 @@ dependencies = [
  "common-time",
  "derive_builder 0.12.0",
  "meter-core",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "sql",
 ]
 
@@ -10379,9 +10399,9 @@ dependencies = [
 
 [[package]]
 name = "shadow-rs"
-version = "0.29.0"
+version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a600f795d0894cda22235b44eea4b85c2a35b405f65523645ac8e35b306817a"
+checksum = "66caf2de9b7e61293c00006cd2807d6c4e4b31018c5ea21d008f44f4852b93c3"
 dependencies = [
  "const_format",
  "git2",
@@ -10516,11 +10536,11 @@ dependencies = [
 
 [[package]]
 name = "snafu"
-version = "0.8.3"
+version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "418b8136fec49956eba89be7da2847ec1909df92a9ae4178b5ff0ff092c8d95e"
+checksum = "2b835cb902660db3415a672d862905e791e54d306c6e8189168c7f3d9ae1c79d"
 dependencies = [
- "snafu-derive 0.8.3",
+ "snafu-derive 0.8.4",
 ]
 
 [[package]]
@@ -10537,11 +10557,11 @@ dependencies = [
 
 [[package]]
 name = "snafu-derive"
-version = "0.8.3"
+version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a4812a669da00d17d8266a0439eddcacbc88b17f732f927e52eeb9d196f7fb5"
+checksum = "38d1e02fca405f6280643174a50c942219f0bbf4dbf7d480f1dd864d6f211ae5"
 dependencies = [
- "heck 0.5.0",
+ "heck 0.4.1",
  "proc-macro2",
  "quote",
  "syn 2.0.66",
@@ -10619,7 +10639,7 @@ dependencies = [
 
 [[package]]
 name = "sql"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "chrono",
@@ -10643,7 +10663,7 @@ dependencies = [
  "lazy_static",
  "regex",
  "serde_json",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "sqlparser 0.45.0 (git+https://github.com/GreptimeTeam/sqlparser-rs.git?rev=54a267ac89c09b11c0c88934690530807185d3e7)",
  "sqlparser_derive 0.1.1",
  "table",
@@ -10679,7 +10699,7 @@ dependencies = [
 
 [[package]]
 name = "sqlness-runner"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "async-trait",
  "clap 4.5.7",
@@ -10896,7 +10916,7 @@ dependencies = [
 
 [[package]]
 name = "store-api"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "aquamarine",
@@ -10916,7 +10936,7 @@ dependencies = [
  "futures",
  "serde",
  "serde_json",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "strum 0.25.0",
  "tokio",
 ]
@@ -11065,7 +11085,7 @@ dependencies = [
 
 [[package]]
 name = "substrait"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "async-trait",
  "bytes",
@@ -11079,7 +11099,7 @@ dependencies = [
  "datatypes",
  "promql",
  "prost 0.12.6",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "substrait 0.37.3",
  "tokio",
 ]
@@ -11266,7 +11286,7 @@ dependencies = [
 
 [[package]]
 name = "table"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "async-trait",
@@ -11296,7 +11316,7 @@ dependencies = [
  "paste",
  "serde",
  "serde_json",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "store-api",
  "tokio",
  "tokio-util",
@@ -11531,7 +11551,7 @@ checksum = "3369f5ac52d5eb6ab48c6b4ffdc8efbcad6b89c765749064ba298f2c68a16a76"
 
 [[package]]
 name = "tests-fuzz"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "arbitrary",
  "async-trait",
@@ -11561,7 +11581,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "sql",
  "sqlparser 0.45.0 (git+https://github.com/GreptimeTeam/sqlparser-rs.git?rev=54a267ac89c09b11c0c88934690530807185d3e7)",
  "sqlx",
@@ -11573,7 +11593,7 @@ dependencies = [
 
 [[package]]
 name = "tests-integration"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "api",
  "arrow-flight",
@@ -11629,11 +11649,11 @@ dependencies = [
  "serde_json",
  "servers",
  "session",
- "snafu 0.8.3",
+ "snafu 0.8.4",
  "sql",
  "sqlx",
  "store-api",
- "substrait 0.9.0",
+ "substrait 0.9.1",
  "table",
  "tempfile",
  "time",
@@ -11912,9 +11932,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-postgres"
-version = "0.7.10"
+version = "0.7.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d340244b32d920260ae7448cb72b6e238bddc3d4f7603394e7dd46ed8e48f5b8"
+checksum = "03adcf0147e203b6032c0b2d30be1415ba03bc348901f3ff1cc0df6a733e60c3"
 dependencies = [
  "async-trait",
  "byteorder",
@@ -13710,9 +13730,9 @@ dependencies = [
 
 [[package]]
 name = "zerovec"
-version = "0.10.2"
+version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb2cc8827d6c0994478a15c53f374f46fbd41bea663d809b14744bc42e6b109c"
+checksum = "aa2b893d79df23bfb12d5461018d408ea19dfafe76c2c7ef6d4eba614f8ff079"
 dependencies = [
  "yoke",
  "zerofrom",
@@ -13721,9 +13741,9 @@ dependencies = [
 
 [[package]]
 name = "zerovec-derive"
-version = "0.10.2"
+version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97cf56601ee5052b4417d90c8755c6683473c926039908196cf35d99f893ebe7"
+checksum = "6eafa6dfb17584ea3e2bd6e76e0cc15ad7af12b09abdd1ca55961bed9b1063c6"
 dependencies = [
  "proc-macro2",
  "quote",
