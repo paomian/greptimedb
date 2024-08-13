@@ -47,7 +47,7 @@ fn test_complex_data() {
         "uncompressedSize": "484",
         "overheadBytes": "232",
         "totalBytes": "0",
-        "queryStr": "cmcd=//1.0@V/bl=21600,br=1426,cid=%22akam-email%22,d=6006,mtp=11100,ot=m,sf=h,sid=%229f36f5c9-d6a2-497b-8c73-4b8f694eab749f36f5c9-d6a2-497b-8c73%22,tb=1426,dl=18500,nor=%22../300kbps/track.m4v%22,nrr=%2212323-48763%22,su,bs,rtp=12000,pr=1.08,sf=d,st=v%22",
+        "queryStr": "cmcd=//1.0@V/bl=21600,br=1426,cid=%22random-email%22,d=6006,mtp=11100,ot=m,sf=h,sid=%229f36f5c9-d6a2-497b-8c73-4b8f694eab749f36f5c9-d6a2-497b-8c73%22,tb=1426,dl=18500,nor=%22../300kbps/track.m4v%22,nrr=%2212323-48763%22,su,bs,rtp=12000,pr=1.08,sf=d,st=v%22",
         "breadcrumbs": "//BC/%5Ba=23.33.41.20,c=g,k=0,l=1%5D",
         "accLang": "en-US",
         "cookie": "cookie-content",
@@ -276,7 +276,7 @@ transform:
         ),
         (
             "query_str",
-            Some(StringValue("cmcd=//1.0@V/bl=21600,br=1426,cid=\"akam-email\",d=6006,mtp=11100,ot=m,sf=h,sid=\"9f36f5c9-d6a2-497b-8c73-4b8f694eab749f36f5c9-d6a2-497b-8c73\",tb=1426,dl=18500,nor=\"../300kbps/track.m4v\",nrr=\"12323-48763\",su,bs,rtp=12000,pr=1.08,sf=d,st=v\"".into())),
+            Some(StringValue("cmcd=//1.0@V/bl=21600,br=1426,cid=\"random-email\",d=6006,mtp=11100,ot=m,sf=h,sid=\"9f36f5c9-d6a2-497b-8c73-4b8f694eab749f36f5c9-d6a2-497b-8c73\",tb=1426,dl=18500,nor=\"../300kbps/track.m4v\",nrr=\"12323-48763\",su,bs,rtp=12000,pr=1.08,sf=d,st=v\"".into())),
         ),
         ("custom_field", Some(StringValue("any-custom-value".into()))),
         ("req_id", Some(StringValue("1239f220".into()))),
@@ -346,7 +346,7 @@ transform:
         ("cmcd_version", Some(StringValue("1.0".into()))),
         (
             "cmcd_content_id",
-            Some(StringValue("\"akam-email\"".into())),
+            Some(StringValue("\"random-email\"".into())),
         ),
         (
             "cmcd_next_object_requests",

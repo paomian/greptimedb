@@ -50,8 +50,6 @@ fn processor_mut(
 fn prepare_pipeline() -> Pipeline<GreptimeTransformer> {
     let pipeline_yaml = r#"
 ---
-description: Pipeline for Akamai DataStream2 Log
-
 processors:
   - urlencoding:
       fields:
