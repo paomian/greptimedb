@@ -7373,6 +7373,7 @@ dependencies = [
  "ordered-float 4.2.0",
  "percent-encoding",
  "rand",
+ "serde_json",
  "thiserror",
 ]
 
@@ -7990,6 +7991,7 @@ dependencies = [
  "futures",
  "greptime-proto",
  "itertools 0.10.5",
+ "jsonb",
  "lazy_static",
  "moka",
  "once_cell",
@@ -10469,6 +10471,7 @@ dependencies = [
 name = "servers"
 version = "0.9.3"
 dependencies = [
+ "ahash 0.8.11",
  "aide",
  "api",
  "arrow",
