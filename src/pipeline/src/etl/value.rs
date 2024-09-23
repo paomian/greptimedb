@@ -16,7 +16,8 @@ pub mod array;
 pub mod map;
 pub mod time;
 
-use ahash::{HashMap, HashMapExt};
+use std::collections::BTreeMap;
+
 pub use array::Array;
 use jsonb::{Number as JsonbNumber, Object as JsonbObject, Value as JsonbValue};
 pub use map::Map;
@@ -277,7 +278,7 @@ impl TryFrom<serde_json::Value> for Value {
                 Ok(Value::Array(Array { values }))
             }
             serde_json::Value::Object(v) => {
-                let mut values = HashMap::with_capacity(v.len());
+                let mut values = BTreeMap::new();
                 for (k, v) in v {
                     values.insert(k, Value::try_from(v)?);
                 }
@@ -311,7 +312,7 @@ impl TryFrom<&yaml_rust::Yaml> for Value {
                 Ok(Value::Array(Array { values }))
             }
             yaml_rust::Yaml::Hash(v) => {
-                let mut values = HashMap::new();
+                let mut values = BTreeMap::new();
                 for (k, v) in v {
                     let key = k
                         .as_str()
