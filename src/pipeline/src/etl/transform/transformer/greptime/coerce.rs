@@ -20,7 +20,8 @@ use greptime_proto::v1::{ColumnDataType, ColumnSchema, SemanticType};
 use snafu::ResultExt;
 
 use crate::etl::error::{
-    CoerceStringToTypeSnafu, CoerceUnsupportedEpochTypeSnafu, CoerceUnsupportedNullTypeSnafu,
+    CoerceNestedTypeSnafu, CoerceStringToTypeSnafu, CoerceTypeToNestedSnafu,
+    CoerceUnsupportedEpochTypeSnafu, CoerceUnsupportedNullTypeSnafu,
     CoerceUnsupportedNullTypeToSnafu, ColumnOptionsSnafu, Error, Result,
 };
 use crate::etl::transform::index::Index;
@@ -414,14 +415,14 @@ fn coerce_string_value(s: &String, transform: &Transform) -> Result<Option<Value
     }
 }
 
-fn coerce_nested_value(v: &Value, transform: &Transform) -> Result<Option<ValueData>, String> {
+fn coerce_nested_value(v: &Value, transform: &Transform) -> Result<Option<ValueData>> {
     match &transform.type_ {
         Value::Array(_) | Value::Map(_) => (),
         t => {
-            return Err(format!(
-                "nested value type not supported {}",
-                t.to_str_type()
-            ))
+            return CoerceNestedTypeSnafu {
+                ty: t.to_str_type(),
+            }
+            .fail();
         }
     }
     match v {
@@ -433,7 +434,10 @@ fn coerce_nested_value(v: &Value, transform: &Transform) -> Result<Option<ValueD
             let data: jsonb::Value = v.into();
             Ok(Some(ValueData::BinaryValue(data.to_vec())))
         }
-        _ => Err(format!("nested type not support {}", v.to_str_type())),
+        _ => CoerceTypeToNestedSnafu {
+            ty: v.to_str_type(),
+        }
+        .fail(),
     }
 }
 

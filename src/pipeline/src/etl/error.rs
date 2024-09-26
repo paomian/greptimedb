@@ -438,6 +438,18 @@ pub enum Error {
         #[snafu(implicit)]
         location: Location,
     },
+    #[snafu(display("can not coerce nested type to {ty}"))]
+    CoerceNestedType {
+        ty: String,
+        #[snafu(implicit)]
+        location: Location,
+    },
+    #[snafu(display("can not coerce {ty} to nested type"))]
+    CoerceTypeToNested {
+        ty: String,
+        #[snafu(implicit)]
+        location: Location,
+    },
 
     #[snafu(display(
         "invalid resolution: '{resolution}'. Available resolutions: {valid_resolution}"

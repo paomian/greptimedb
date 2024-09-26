@@ -20,7 +20,7 @@ pub use etl::error::Result;
 pub use etl::processor::Processor;
 pub use etl::transform::{GreptimeTransformer, Transformer};
 pub use etl::value::{Array, Map, Value};
-pub use etl::{parse, Content, Pipeline};
+pub use etl::{error as etl_error, parse, Content, Pipeline, PipelineWay};
 pub use manager::{
     error, pipeline_operator, table, util, PipelineInfo, PipelineRef, PipelineTableRef,
     PipelineVersion,
