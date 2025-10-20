@@ -24,7 +24,10 @@ use datafusion_expr::{
 };
 use datafusion_sql::TableReference;
 use datatypes::schema::Schema;
-use log_query::{AggFunc, BinaryOperator, EqualValue, LogExpr, LogQuery, TimeFilter};
+use log_query::{
+    AggFunc, BinaryOperator, ColumnFilters, ContentFilter, EqualValue, Filters, LogExpr, LogQuery,
+    TimeFilter,
+};
 use snafu::{OptionExt, ResultExt};
 use table::table::adapter::DfTableProviderAdapter;
 
@@ -47,6 +50,154 @@ impl LogQueryPlanner {
             table_provider,
             session_state,
         }
+    }
+
+    fn build_lable_value_column_filter(column_filters: &ColumnFilters) -> Result<Option<Expr>> {
+        // label filter must be a named ident
+        let ColumnFilters { expr, filters } = column_filters;
+        let label_name = if let LogExpr::NamedIdent(name) = expr.as_ref() {
+            name
+        } else {
+            return Err(UnimplementedSnafu {
+                feature: "label name must be a named ident",
+            }
+            .build());
+        };
+        if filters.is_empty() {
+            return Ok(None);
+        }
+        let col_expr = col(label_name);
+        // label value filter must be equal or regex
+        filters
+            .iter()
+            .map(|content_filter| match content_filter {
+                ContentFilter::Equal(value) => {
+                    Ok(col_expr.clone().eq(Self::create_eq_literal(value.clone())))
+                }
+                ContentFilter::Regex(pattern) => Ok(Expr::BinaryExpr(BinaryExpr {
+                    left: Box::new(col_expr.clone()),
+                    op: Operator::RegexMatch,
+                    right: Box::new(Expr::Literal(
+                        ScalarValue::Utf8(Some(pattern.clone())),
+                        None,
+                    )),
+                })),
+                _ => Err(UnimplementedSnafu {
+                    feature: "only exact and regex filters are supported for label values",
+                }
+                .build()),
+            })
+            .try_collect::<Vec<_>>()
+            .map(conjunction)
+    }
+
+    fn build_lable_value_filters(filters: &Filters) -> Result<Option<Expr>> {
+        match filters {
+            Filters::And(filters) => {
+                let exprs = filters
+                    .iter()
+                    .filter_map(|filter| Self::build_lable_value_filters(filter).transpose())
+                    .try_collect::<Vec<_>>()?;
+                if exprs.is_empty() {
+                    Ok(None)
+                } else {
+                    Ok(conjunction(exprs))
+                }
+            }
+            Filters::Or(filters) => {
+                let exprs = filters
+                    .iter()
+                    .filter_map(|filter| Self::build_lable_value_filters(filter).transpose())
+                    .try_collect::<Vec<_>>()?;
+                if exprs.is_empty() {
+                    Ok(None)
+                } else {
+                    Ok(disjunction(exprs))
+                }
+            }
+            Filters::Not(filter) => {
+                if let Some(expr) = Self::build_lable_value_filters(filter)? {
+                    Ok(Some(not(expr)))
+                } else {
+                    Ok(None)
+                }
+            }
+            Filters::Single(column_filters) => {
+                // Build a single column filter
+                Self::build_lable_value_column_filter(column_filters)
+            }
+        }
+    }
+
+    pub fn label_values(
+        schema: &Schema,
+        time_filter: TimeFilter,
+        filters: Filters,
+        label: String,
+        scan_plan: LogicalPlan,
+    ) -> Result<LogicalPlan> {
+        let filter = Self::build_lable_value_filters(&filters)?;
+        let time_filter = Self::build_time_filter(&time_filter, schema)?;
+        let distinct_expr = col(&label);
+        let mut plan_builder = LogicalPlanBuilder::from(scan_plan);
+        if let Some(filter) = filter {
+            plan_builder = plan_builder
+                .filter(filter)
+                .context(DataFusionPlanningSnafu)?;
+        }
+        plan_builder = plan_builder
+            .filter(time_filter)
+            .context(DataFusionPlanningSnafu)?;
+        plan_builder = plan_builder
+            .project([distinct_expr])
+            .context(DataFusionPlanningSnafu)?
+            .distinct()
+            .context(DataFusionPlanningSnafu)?;
+        let plan = plan_builder.build().context(DataFusionPlanningSnafu)?;
+        Ok(plan)
+    }
+
+    pub fn series(
+        schema: &Schema,
+        time_filter: TimeFilter,
+        filters: Filters,
+        line_name: String,
+        scan_plan: LogicalPlan,
+    ) -> Result<LogicalPlan> {
+        let filter = Self::build_lable_value_filters(&filters)?;
+        let time_filter = Self::build_time_filter(&time_filter, schema)?;
+        let ts_column = schema
+            .timestamp_column()
+            .with_context(|| TimeIndexNotFoundSnafu {})?
+            .name
+            .clone();
+        let tags = schema
+            .column_schemas()
+            .iter()
+            .filter_map(|cs| {
+                if cs.name == ts_column || cs.name == line_name {
+                    None
+                } else {
+                    Some(col(cs.name.clone()))
+                }
+            })
+            .collect::<Vec<_>>();
+        let mut plan_builder = LogicalPlanBuilder::from(scan_plan);
+        if let Some(filter) = filter {
+            plan_builder = plan_builder
+                .filter(filter)
+                .context(DataFusionPlanningSnafu)?;
+        }
+        plan_builder = plan_builder
+            .filter(time_filter)
+            .context(DataFusionPlanningSnafu)?;
+        plan_builder = plan_builder
+            .project(tags)
+            .context(DataFusionPlanningSnafu)?
+            .distinct()
+            .context(DataFusionPlanningSnafu)?;
+        let plan = plan_builder.build().context(DataFusionPlanningSnafu)?;
+        Ok(plan)
     }
 
     pub async fn query_to_plan(&mut self, query: LogQuery) -> Result<LogicalPlan> {
@@ -77,7 +228,7 @@ impl LogQueryPlanner {
         let mut filters = Vec::new();
 
         // Time filter
-        filters.push(self.build_time_filter(&query.time_filter, &schema)?);
+        filters.push(Self::build_time_filter(&query.time_filter, &schema)?);
 
         if let Some(filters_expr) = self.build_filters(&query.filters, df_schema.as_arrow())? {
             filters.push(filters_expr);
@@ -118,7 +269,7 @@ impl LogQueryPlanner {
         Ok(plan)
     }
 
-    fn build_time_filter(&self, time_filter: &TimeFilter, schema: &Schema) -> Result<Expr> {
+    fn build_time_filter(time_filter: &TimeFilter, schema: &Schema) -> Result<Expr> {
         let timestamp_col = schema
             .timestamp_column()
             .with_context(|| TimeIndexNotFoundSnafu {})?
@@ -738,20 +889,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_build_time_filter() {
-        let table_provider =
-            build_test_table_provider(&[("public".to_string(), "test_table".to_string())]).await;
-        let session_state = SessionStateBuilder::new().with_default_features().build();
-        let planner = LogQueryPlanner::new(table_provider, session_state);
-
         let time_filter = TimeFilter {
             start: Some("2021-01-01T00:00:00Z".to_string()),
             end: Some("2021-01-02T00:00:00Z".to_string()),
             span: None,
         };
 
-        let expr = planner
-            .build_time_filter(&time_filter, &mock_schema())
-            .unwrap();
+        let expr = LogQueryPlanner::build_time_filter(&time_filter, &mock_schema()).unwrap();
 
         let expected_expr = col("timestamp")
             .gt_eq(lit(ScalarValue::Utf8(Some(
@@ -766,20 +910,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_build_time_filter_without_end() {
-        let table_provider =
-            build_test_table_provider(&[("public".to_string(), "test_table".to_string())]).await;
-        let session_state = SessionStateBuilder::new().with_default_features().build();
-        let planner = LogQueryPlanner::new(table_provider, session_state);
-
         let time_filter = TimeFilter {
             start: Some("2021-01-01T00:00:00Z".to_string()),
             end: None,
             span: None,
         };
 
-        let expr = planner
-            .build_time_filter(&time_filter, &mock_schema())
-            .unwrap();
+        let expr = LogQueryPlanner::build_time_filter(&time_filter, &mock_schema()).unwrap();
 
         let expected_expr = col("timestamp")
             .gt_eq(lit(ScalarValue::Utf8(Some(
@@ -1555,5 +1692,45 @@ mod tests {
         // Verify the nested structure is properly created
         let expected_expr_debug = r#"BinaryExpr(BinaryExpr { left: BinaryExpr(BinaryExpr { left: Column(Column { relation: None, name: "age" }), op: Plus, right: Literal(Int32(5), None) }), op: Gt, right: Literal(Int32(30), None) })"#;
         assert_eq!(format!("{:?}", expr), expected_expr_debug);
+    }
+
+    #[tokio::test]
+    async fn test_build_label_value_filter() {
+        // Test label value filter with string column
+        let column_filter1 = ColumnFilters {
+            expr: Box::new(LogExpr::NamedIdent("message".to_string())),
+            filters: vec![ContentFilter::Equal("error".to_string().into())],
+        };
+
+        let filters = Filters::Single(column_filter1.clone());
+
+        let expr_option = LogQueryPlanner::build_lable_value_filters(&filters).unwrap();
+        assert!(expr_option.is_some());
+
+        let expr = expr_option.unwrap();
+        let expected_expr = col("message").eq(lit(ScalarValue::Utf8(Some("error".to_string()))));
+
+        assert_eq!(format!("{:?}", expr), format!("{:?}", expected_expr));
+
+        // Test label value filter with integer column
+        let column_filter2 = ColumnFilters {
+            expr: Box::new(LogExpr::NamedIdent("age".to_string())),
+            filters: vec![ContentFilter::Equal(30i64.into())],
+        };
+
+        let filters = Filters::And(vec![
+            Filters::Single(column_filter1),
+            Filters::Single(column_filter2),
+        ]);
+
+        let expr_option = LogQueryPlanner::build_lable_value_filters(&filters).unwrap();
+        assert!(expr_option.is_some());
+
+        let expr = expr_option.unwrap();
+        let expected_expr = col("message")
+            .eq(lit(ScalarValue::Utf8(Some("error".to_string()))))
+            .and(col("age").eq(lit(ScalarValue::Int64(Some(30)))));
+
+        assert_eq!(format!("{:?}", expr), format!("{:?}", expected_expr));
     }
 }

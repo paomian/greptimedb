@@ -13,19 +13,23 @@
 // limitations under the License.
 
 use std::ops::Deref;
+use std::sync::Arc;
 
 use auth::{PermissionChecker, PermissionCheckerRef, PermissionReq};
 use client::Output;
 use common_error::ext::BoxedError;
-use log_query::LogQuery;
+use log_query::{Filters, LogQuery};
+use query::log_query::planner::LogQueryPlanner;
 use server_error::Result as ServerResult;
-use servers::error::{self as server_error, AuthSnafu, ExecuteQuerySnafu};
+use servers::error::{self as server_error, AuthSnafu, ExecuteQuerySnafu, OtherSnafu};
 use servers::interceptor::{LogQueryInterceptor, LogQueryInterceptorRef};
 use servers::query_handler::LogQueryHandler;
 use session::context::{QueryContext, QueryContextRef};
 use snafu::ResultExt;
+use table::Table;
 use tonic::async_trait;
 
+use crate::error::ReadTableSnafu;
 use crate::instance::Instance;
 
 #[async_trait]
@@ -67,7 +71,64 @@ impl LogQueryHandler for Instance {
         Ok(interceptor.as_ref().post_query(output, ctx.clone())?)
     }
 
-    fn catalog_manager(&self, _ctx: &QueryContext) -> ServerResult<&dyn catalog::CatalogManager> {
-        Ok(self.catalog_manager.deref())
+    fn catalog_manager(&self, _ctx: &QueryContext) -> ServerResult<catalog::CatalogManagerRef> {
+        Ok(self.catalog_manager.clone())
+    }
+
+    async fn label_values(
+        &self,
+        table: Arc<Table>,
+        time_filter: log_query::TimeFilter,
+        filters: Filters,
+        label: String,
+        ctx: QueryContextRef,
+    ) -> ServerResult<Output> {
+        let dataframe = self
+            .query_engine
+            .read_table(table.clone())
+            .context(ReadTableSnafu {
+                table_name: table.table_info().full_table_name(),
+            })
+            .map_err(BoxedError::new)
+            .context(OtherSnafu)?;
+
+        let scan_plan = dataframe.into_logical_plan();
+        let plan =
+            LogQueryPlanner::label_values(&table.schema(), time_filter, filters, label, scan_plan)
+                .map_err(BoxedError::new)
+                .context(ExecuteQuerySnafu)?;
+        self.query_engine
+            .execute(plan, ctx.clone())
+            .await
+            .map_err(BoxedError::new)
+            .context(ExecuteQuerySnafu)
+    }
+
+    async fn series(
+        &self,
+        table: Arc<Table>,
+        time_filter: log_query::TimeFilter,
+        filters: Filters,
+        line: String,
+        ctx: QueryContextRef,
+    ) -> ServerResult<Output> {
+        let dataframe = self
+            .query_engine
+            .read_table(table.clone())
+            .context(ReadTableSnafu {
+                table_name: table.table_info().full_table_name(),
+            })
+            .map_err(BoxedError::new)
+            .context(OtherSnafu)?;
+
+        let scan_plan = dataframe.into_logical_plan();
+        let plan = LogQueryPlanner::series(&table.schema(), time_filter, filters, line, scan_plan)
+            .map_err(BoxedError::new)
+            .context(ExecuteQuerySnafu)?;
+        self.query_engine
+            .execute(plan, ctx.clone())
+            .await
+            .map_err(BoxedError::new)
+            .context(ExecuteQuerySnafu)
     }
 }

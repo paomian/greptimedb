@@ -32,17 +32,18 @@ use std::sync::Arc;
 use api::prom_store::remote::ReadRequest;
 use api::v1::RowInsertRequests;
 use async_trait::async_trait;
-use catalog::CatalogManager;
+use catalog::{CatalogManager, CatalogManagerRef};
 use common_query::Output;
 use datatypes::timestamp::TimestampNanosecond;
 use headers::HeaderValue;
-use log_query::LogQuery;
+use log_query::{Filters, LogQuery};
 use opentelemetry_proto::tonic::collector::logs::v1::ExportLogsServiceRequest;
 use opentelemetry_proto::tonic::collector::trace::v1::ExportTraceServiceRequest;
 use otel_arrow_rust::proto::opentelemetry::collector::metrics::v1::ExportMetricsServiceRequest;
 use pipeline::{GreptimePipelineParams, Pipeline, PipelineInfo, PipelineVersion, PipelineWay};
 use serde_json::Value;
 use session::context::{QueryContext, QueryContextRef};
+use table::Table;
 
 use crate::error::Result;
 use crate::http::jaeger::QueryTraceParams;
@@ -183,7 +184,25 @@ pub trait LogQueryHandler {
     async fn query(&self, query: LogQuery, ctx: QueryContextRef) -> Result<Output>;
 
     /// Get catalog manager.
-    fn catalog_manager(&self, ctx: &QueryContext) -> Result<&dyn CatalogManager>;
+    fn catalog_manager(&self, ctx: &QueryContext) -> Result<CatalogManagerRef>;
+
+    async fn label_values(
+        &self,
+        table: Arc<Table>,
+        time_filter: log_query::TimeFilter,
+        filters: Filters,
+        label: String,
+        ctx: QueryContextRef,
+    ) -> Result<Output>;
+
+    async fn series(
+        &self,
+        table: Arc<Table>,
+        time_filter: log_query::TimeFilter,
+        filters: Filters,
+        line: String,
+        ctx: QueryContextRef,
+    ) -> Result<Output>;
 }
 
 /// Handle Jaeger query requests.
