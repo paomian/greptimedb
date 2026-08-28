@@ -369,6 +369,8 @@ datafusion-sql = { git = "https://github.com/GreptimeTeam/datafusion.git", rev =
 datafusion-substrait = { git = "https://github.com/GreptimeTeam/datafusion.git", rev = "4c8a6bf28347b346348136247eb67dfb933f1147" }
 sqlparser = { git = "https://github.com/GreptimeTeam/sqlparser-rs.git", rev = "2aefa08a8d69c96eec2d6d6703598a009bba6e4c" }                           # on branch v0.61.x
 
+
+
 [profile.release]
 debug = 1
 
