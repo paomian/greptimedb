@@ -396,7 +396,7 @@ impl Default for TwcsOptions {
     fn default() -> Self {
         Self {
             trigger_file_num: 4,
-            active_window_l1_merge_trigger: 8,
+            active_window_l1_merge_trigger: 16,
             inactive_window_trigger_file_num: 2,
             inactive_window_l1_merge_trigger: 8,
             time_window: None,
@@ -1031,7 +1031,7 @@ mod tests {
             auto_flush_interval: None,
             compaction: CompactionOptions::Twcs(TwcsOptions {
                 trigger_file_num: 8,
-                active_window_l1_merge_trigger: 8,
+                active_window_l1_merge_trigger: 16,
                 inactive_window_trigger_file_num: 2,
                 inactive_window_l1_merge_trigger: 8,
                 time_window: Some(Duration::from_secs(3600 * 2)),
@@ -1106,7 +1106,7 @@ mod tests {
         let got: RegionOptions = serde_json::from_str(old_region_options_json_str).unwrap();
         assert_eq!(None, got.write_buffer_size);
         let CompactionOptions::Twcs(twcs) = got.compaction;
-        assert_eq!(8, twcs.active_window_l1_merge_trigger);
+        assert_eq!(16, twcs.active_window_l1_merge_trigger);
         assert_eq!(8, twcs.inactive_window_l1_merge_trigger);
 
         let default_json = serde_json::to_value(RegionOptions::default()).unwrap();
@@ -1145,7 +1145,7 @@ mod tests {
             auto_flush_interval: None,
             compaction: CompactionOptions::Twcs(TwcsOptions {
                 trigger_file_num: 8,
-                active_window_l1_merge_trigger: 8,
+                active_window_l1_merge_trigger: 16,
                 inactive_window_trigger_file_num: 2,
                 inactive_window_l1_merge_trigger: 8,
                 time_window: Some(Duration::from_secs(3600 * 2)),
