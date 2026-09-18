@@ -54,7 +54,7 @@ pub(crate) mod version;
 pub const DEFAULT_WRITE_BUFFER_SIZE: ReadableSize = ReadableSize::mb(8);
 
 /// Default number of concurrent write, it only works on object store backend(e.g., S3).
-pub const DEFAULT_WRITE_CONCURRENCY: usize = 8;
+pub const DEFAULT_WRITE_CONCURRENCY: usize = 1;
 
 /// Format type of the SST file.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, strum::EnumString)]
