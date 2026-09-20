@@ -28,7 +28,7 @@ use crate::compaction::buckets::infer_time_bucket;
 use crate::compaction::compactor::{CompactionRegion, CompactionVersion};
 use crate::compaction::picker::{Picker, PickerOutput, get_expired_ssts};
 use crate::error::{JoinSnafu, Result};
-use crate::region::options::CompactionOptions;
+use crate::region::options::{CompactionOptions, MergeMode};
 use crate::sst::file::FileHandle;
 
 /// Compaction picker that splits input files into disjoint time windows and merges the
@@ -300,7 +300,7 @@ mod tests {
     use crate::compaction::picker::Picker;
     use crate::compaction::test_util::compaction_region_with_ssts;
     use crate::compaction::window::{WindowedCompactionPicker, file_time_bucket_span};
-    use crate::region::options::{CompactionOptions, RegionOptions};
+    use crate::region::options::{CompactionOptions, MergeMode, RegionOptions};
     use crate::sst::file::{FileMeta, Level};
     use crate::sst::file_purger::NoopFilePurger;
     use crate::sst::version::SstVersion;
