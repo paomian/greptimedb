@@ -40,6 +40,7 @@ use crate::config::MitoConfig;
 use crate::engine::MitoEngine;
 use crate::engine::flush_test::MockTimeProvider;
 use crate::engine::listener::{CompactionListener, EventListener};
+use crate::test_util::batch_util::sort_batches_and_print;
 use crate::test_util::{
     CreateRequestBuilder, TestEnv, build_rows_for_key, column_metadata_to_column_schema, put_rows,
 };
@@ -134,6 +135,409 @@ async fn collect_stream_ts(stream: SendableRecordBatchStream) -> Vec<i64> {
         res.extend((0..ts_col.len()).map(|i| ts_col.value(i)));
     }
     res
+}
+
+#[rstest::rstest]
+#[case::split("1B", true)]
+#[case::unlimited("0B", false)]
+#[tokio::test]
+async fn test_strict_window_output_file_size(
+    #[values(false, true)] flat_format: bool,
+    #[case] max_output_file_size: &str,
+    #[case] expect_split: bool,
+) {
+    let mut env = TestEnv::new().await;
+    let engine = env
+        .create_engine(MitoConfig {
+            default_flat_format: flat_format,
+            min_compaction_interval: Duration::from_secs(3600),
+            ..Default::default()
+        })
+        .await;
+    let region_id = RegionId::new(1, 1);
+    let request = CreateRequestBuilder::new()
+        .insert_option("compaction.type", "twcs")
+        .insert_option("compaction.twcs.max_output_file_size", max_output_file_size)
+        .insert_option("max_row_group_row_count", "50")
+        .build();
+    let columns = crate::test_util::rows_schema(&request);
+    engine
+        .handle_request(region_id, RegionRequest::Create(request))
+        .await
+        .unwrap();
+
+    // Each input SST spans both windows. Each series is large enough to exceed
+    // the tiny threshold, and must remain intact within its output window.
+    for key in ["a", "b", "c"] {
+        let rows = [0, 3600]
+            .into_iter()
+            .flat_map(|start| build_rows_for_key(key, start, start + 1000, start))
+            .collect();
+        put_rows(
+            &engine,
+            region_id,
+            Rows {
+                schema: columns.clone(),
+                rows,
+            },
+        )
+        .await;
+        flush(&engine, region_id).await;
+    }
+    let stream = engine
+        .scan_to_stream(region_id, ScanRequest::default())
+        .await
+        .unwrap();
+    let before = RecordBatches::try_collect(stream).await.unwrap();
+
+    engine
+        .handle_request(
+            region_id,
+            RegionRequest::Compact(RegionCompactRequest {
+                options: api::v1::region::compact_request::Options::StrictWindow(
+                    api::v1::region::StrictWindow {
+                        window_seconds: 3600,
+                    },
+                ),
+                ..Default::default()
+            }),
+        )
+        .await
+        .unwrap();
+
+    let version = engine.get_region(region_id).unwrap().version();
+    assert!(version.ssts.levels()[0].files.is_empty());
+    let files = version.ssts.levels()[1].files().collect::<Vec<_>>();
+    assert_eq!(
+        6000,
+        files
+            .iter()
+            .map(|file| file.meta_ref().num_rows)
+            .sum::<u64>()
+    );
+    for start in [0, 3600] {
+        let window_files = files
+            .iter()
+            .filter(|file| {
+                let (min, max) = file.time_range();
+                min >= Timestamp::new_second(start) && max < Timestamp::new_second(start + 3600)
+            })
+            .collect::<Vec<_>>();
+        if expect_split {
+            assert!(window_files.len() > 1, "each window must split by size");
+        } else {
+            assert_eq!(1, window_files.len(), "zero must disable size splitting");
+        }
+        let mut ranges = window_files
+            .iter()
+            .map(|file| file.primary_key_range().unwrap())
+            .collect::<Vec<_>>();
+        ranges.sort_unstable();
+        assert!(ranges.windows(2).all(|pair| pair[0].1 < pair[1].0));
+    }
+    assert!(files.iter().all(|file| {
+        let (min, max) = file.time_range();
+        min.value() / 3_600_000 == max.value() / 3_600_000
+    }));
+
+    let stream = engine
+        .scan_to_stream(region_id, ScanRequest::default())
+        .await
+        .unwrap();
+    let after = RecordBatches::try_collect(stream).await.unwrap();
+    assert_eq!(
+        sort_batches_and_print(&before, &["tag_0", "ts"]),
+        sort_batches_and_print(&after, &["tag_0", "ts"])
+    );
+}
+
+/// Flush may collapse versions within one file, but compaction must not promote
+/// them, even with no external overlaps or after rewriting a previous output.
+#[rstest::rstest]
+#[case(false, false)]
+#[case(true, false)]
+#[case(true, true)]
+#[tokio::test]
+async fn test_compaction_preserves_flush_sequences_across_generations(
+    #[values(false, true)] flat_format: bool,
+    #[case] append_mode: bool,
+    #[case] preserve_row_sequence: bool,
+) {
+    let mut env = TestEnv::new().await;
+    let config = MitoConfig {
+        default_flat_format: flat_format,
+        min_compaction_interval: Duration::from_secs(3600),
+        ..Default::default()
+    };
+    let engine = env.create_engine(config.clone()).await;
+    let region_id = RegionId::new(1, 1);
+    let request = CreateRequestBuilder::new()
+        .insert_option("append_mode", &append_mode.to_string())
+        .insert_option("preserve_row_sequence", &preserve_row_sequence.to_string())
+        .insert_option("compaction.type", "twcs")
+        .insert_option("compaction.twcs.time_window", "1h")
+        .build();
+    let table_dir = request.table_dir.clone();
+    let options = request.options.clone();
+    let columns = crate::test_util::rows_schema(&request);
+    engine
+        .handle_request(region_id, RegionRequest::Create(request))
+        .await
+        .unwrap();
+
+    async fn read_sequences(engine: &MitoEngine, region_id: RegionId) -> Vec<u64> {
+        let region = engine.get_region(region_id).unwrap();
+        let mut sequences = Vec::new();
+        for file in region
+            .version()
+            .ssts
+            .levels()
+            .iter()
+            .flat_map(|l| l.files())
+        {
+            let mut reader = region
+                .access_layer
+                .read_sst(file.clone())
+                .build()
+                .await
+                .unwrap()
+                .unwrap();
+            while let Some(batch) = reader.next_record_batch().await.unwrap() {
+                sequences.extend_from_slice(
+                    batch
+                        .column(batch.num_columns() - 2)
+                        .as_primitive::<datatypes::arrow::datatypes::UInt64Type>()
+                        .values(),
+                );
+            }
+        }
+        sequences.sort_unstable();
+        sequences
+    }
+
+    let mut expected = Vec::new();
+    for generation in 0..=2 {
+        // Interleaving time ranges exercise a merge without duplicate rows.
+        let rows = [generation, generation + 10]
+            .into_iter()
+            .flat_map(|ts| build_rows_for_key("a", ts, ts + 1, 0))
+            .collect();
+        put_rows(
+            &engine,
+            region_id,
+            Rows {
+                schema: columns.clone(),
+                rows,
+            },
+        )
+        .await;
+        flush(&engine, region_id).await;
+        let max = (generation * 2 + 2) as u64;
+        expected.extend(if preserve_row_sequence {
+            [max - 1, max]
+        } else {
+            [max, max]
+        });
+        assert_eq!(expected, read_sequences(&engine, region_id).await);
+        if generation == 0 {
+            continue;
+        }
+        engine
+            .handle_request(
+                region_id,
+                RegionRequest::Compact(RegionCompactRequest {
+                    options: api::v1::region::compact_request::Options::StrictWindow(
+                        api::v1::region::StrictWindow {
+                            window_seconds: 3600,
+                        },
+                    ),
+                    ..Default::default()
+                }),
+            )
+            .await
+            .unwrap();
+        let version = engine.get_region(region_id).unwrap().version();
+        let files: Vec<_> = version
+            .ssts
+            .levels()
+            .iter()
+            .flat_map(|l| l.files())
+            .collect();
+        assert_eq!(
+            1,
+            files.len(),
+            "generation {generation} must merge all inputs"
+        );
+        assert_eq!(
+            preserve_row_sequence,
+            files[0].meta_ref().preserve_row_sequence
+        );
+        assert_eq!(Some(max), files[0].meta_ref().sequence.map(|s| s.get()));
+        assert_eq!(
+            expected,
+            read_sequences(&engine, region_id).await,
+            "generation {generation}"
+        );
+    }
+    let engine = env.reopen_engine(engine, config).await;
+    crate::test_util::reopen_region(&engine, region_id, table_dir, false, options).await;
+    assert_eq!(expected, read_sequences(&engine, region_id).await);
+}
+
+#[tokio::test]
+async fn test_partial_compaction_preserves_delete_order_flat() {
+    assert_partial_compaction_preserves_delete_order(true).await;
+}
+
+#[tokio::test]
+async fn test_partial_compaction_preserves_delete_order_primary_key() {
+    assert_partial_compaction_preserves_delete_order(false).await;
+}
+
+/// A newer unrelated input must not promote an old Put above an unselected Delete.
+/// All files fit in the same one-hour window; no cross-window SST is required.
+async fn assert_partial_compaction_preserves_delete_order(flat_format: bool) {
+    let mut env = TestEnv::new().await;
+    let region_id = RegionId::new(1, 1);
+    let (engine, columns) = env_for_manual_compaction(&mut env, region_id, flat_format).await;
+
+    put_and_flush(&engine, region_id, &columns, 10..16).await;
+    let mut deletes = build_rows_for_key("a", 10, 16, 0);
+    // Distinct keys keep the Delete SST large even after compression, so the
+    // byte-balance rule excludes it without fabricating FileMeta sizes.
+    let mut rng = <rand::rngs::StdRng as rand::SeedableRng>::seed_from_u64(0);
+    for _ in 0..3000 {
+        deletes.extend(build_rows_for_key(
+            &format!("{:032x}", rand::Rng::random::<u128>(&mut rng)),
+            1,
+            2,
+            0,
+        ));
+    }
+    engine
+        .handle_request(
+            region_id,
+            RegionRequest::Delete(RegionDeleteRequest {
+                rows: Rows {
+                    schema: columns.clone(),
+                    rows: deletes,
+                },
+                hint: None,
+                partition_expr_version: None,
+            }),
+        )
+        .await
+        .unwrap();
+    flush(&engine, region_id).await;
+    // These newer writes are legitimate, but must not change the version of 10..16.
+    for i in 10..25 {
+        put_and_flush(&engine, region_id, &columns, i * 10..i * 10 + 6).await;
+    }
+
+    let region = engine.get_region(region_id).unwrap();
+    let table_dir = region.table_dir().to_string();
+    let version = region.version();
+    let files = version
+        .ssts
+        .levels()
+        .iter()
+        .flat_map(|level| level.files())
+        .collect::<Vec<_>>();
+    assert_eq!(17, files.len());
+    assert!(files.iter().all(|file| {
+        file.time_range().0 >= Timestamp::new_millisecond(0)
+            && file.time_range().1 < Timestamp::new_millisecond(3_600_000)
+    }));
+    let delete_file = files
+        .iter()
+        .find(|file| file.meta_ref().num_rows == 3006)
+        .unwrap();
+    let delete_id = delete_file.file_id();
+    let delete_sequence = delete_file.meta_ref().sequence;
+    let old_ids = files
+        .iter()
+        .map(|file| file.file_id())
+        .collect::<HashSet<_>>();
+    let before = collect_stream_ts(
+        engine
+            .scanner(region_id, ScanRequest::default())
+            .await
+            .unwrap()
+            .scan()
+            .await
+            .unwrap(),
+    )
+    .await;
+    let expected = (10..25)
+        .flat_map(|i| (i * 10..i * 10 + 6).map(|ts| ts * 1000))
+        .collect::<Vec<i64>>();
+    assert_eq!(
+        expected, before,
+        "the Delete must hide old rows before compaction"
+    );
+
+    compact(&engine, region_id).await;
+
+    let scanner = engine
+        .scanner(region_id, ScanRequest::default())
+        .await
+        .unwrap();
+    let current_ids = scanner.file_ids();
+    assert_eq!(
+        2,
+        current_ids.len(),
+        "the 16 small inputs must merge, leaving the large Delete SST"
+    );
+    assert!(current_ids.contains(&delete_id));
+    assert_eq!(
+        1,
+        current_ids.iter().filter(|id| old_ids.contains(id)).count()
+    );
+    let after = collect_stream_ts(scanner.scan().await.unwrap()).await;
+
+    let current = region.version();
+    let output = current
+        .ssts
+        .levels()
+        .iter()
+        .flat_map(|level| level.files())
+        .find(|file| !old_ids.contains(&file.file_id()))
+        .unwrap();
+    let mut reader = region
+        .access_layer
+        .read_sst(output.clone())
+        .build()
+        .await
+        .unwrap()
+        .unwrap();
+    let batch = reader.next_record_batch().await.unwrap().unwrap();
+    let output_sequences = batch
+        .column(batch.num_columns() - 2)
+        .as_primitive::<datatypes::arrow::datatypes::UInt64Type>();
+    let first_output_sequence = output_sequences.value(0);
+
+    crate::test_util::reopen_region(&engine, region_id, table_dir, true, HashMap::new()).await;
+    let reopened = collect_stream_ts(
+        engine
+            .scanner(region_id, ScanRequest::default())
+            .await
+            .unwrap()
+            .scan()
+            .await
+            .unwrap(),
+    )
+    .await;
+    let resurrected = after
+        .iter()
+        .filter(|ts| (10_000..16_000).contains(*ts))
+        .collect::<Vec<_>>();
+    assert!(
+        after == expected && reopened == expected,
+        "partial compaction changed delete ordering (flat_format={flat_format}, unselected Delete sequence={delete_sequence:?}, first output row sequence={first_output_sequence}); expected rows={}, after rows={}, reopened rows={}, resurrected timestamps={resurrected:?}",
+        expected.len(),
+        after.len(),
+        reopened.len()
+    );
 }
 
 struct CompactionListenerGuard(Option<Arc<CompactionListener>>);
